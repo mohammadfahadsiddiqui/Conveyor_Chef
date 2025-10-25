@@ -60,6 +60,18 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 76d23400a016f49039180fefb9394c6a, type: 3}
+      propertyPath: m_Materials.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 76d23400a016f49039180fefb9394c6a, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 8409c91b3e0e3fc4dade9b695a12fdfb, type: 2}
+    - target: {fileID: -7511558181221131132, guid: 76d23400a016f49039180fefb9394c6a, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 8409c91b3e0e3fc4dade9b695a12fdfb, type: 2}
     - target: {fileID: 919132149155446097, guid: 76d23400a016f49039180fefb9394c6a, type: 3}
       propertyPath: m_Name
       value: d5
@@ -72,6 +84,11 @@ PrefabInstance:
 --- !u!4 &219483898496524772 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 76d23400a016f49039180fefb9394c6a, type: 3}
+  m_PrefabInstance: {fileID: 324674840733730319}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &1387372215696251531 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 76d23400a016f49039180fefb9394c6a, type: 3}
   m_PrefabInstance: {fileID: 324674840733730319}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1840274893154683138
@@ -259,7 +276,7 @@ PrefabInstance:
     - target: {fileID: 5697573440116050450, guid: 899af33eb4d2c1f40addacdff3e98332, type: 3}
       propertyPath: characterRenderer
       value: 
-      objectReference: {fileID: 8771396510763588706}
+      objectReference: {fileID: 1387372215696251531}
     - target: {fileID: 6893644304395467787, guid: 899af33eb4d2c1f40addacdff3e98332, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -302,10 +319,5 @@ PrefabInstance:
 --- !u!4 &6698711868896189120 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1443064347929665512, guid: 899af33eb4d2c1f40addacdff3e98332, type: 3}
-  m_PrefabInstance: {fileID: 5255790464998622504}
-  m_PrefabAsset: {fileID: 0}
---- !u!137 &8771396510763588706 stripped
-SkinnedMeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 3551672368987035978, guid: 899af33eb4d2c1f40addacdff3e98332, type: 3}
   m_PrefabInstance: {fileID: 5255790464998622504}
   m_PrefabAsset: {fileID: 0}
