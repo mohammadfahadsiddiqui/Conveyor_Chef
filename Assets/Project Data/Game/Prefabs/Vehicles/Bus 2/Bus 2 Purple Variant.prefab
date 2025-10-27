@@ -145,7 +145,7 @@ PrefabInstance:
     - target: {fileID: -7511558181221131132, guid: 8dc1133d6be984f17b1db2f1b1d03671, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: 2d8ba01c391db4f6b8093e10769798ee, type: 2}
+      objectReference: {fileID: 2100000, guid: dacdd02e3f80f064b9c6450a44454f11, type: 2}
     - target: {fileID: 919132149155446097, guid: 8dc1133d6be984f17b1db2f1b1d03671, type: 3}
       propertyPath: m_Name
       value: plate1
