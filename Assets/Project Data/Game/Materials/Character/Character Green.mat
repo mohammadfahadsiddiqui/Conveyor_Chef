@@ -33,9 +33,10 @@ Material:
     m_Ints: []
     m_Floats: []
     m_Colors:
-    - _Color: {r: 0.51228005, g: 1, b: 0.427451, a: 1}
+    - _Color: {r: 0.15068507, g: 1, b: 0, a: 1}
     - _RampMin: {r: 0.23925345, g: 0.6226415, b: 0, a: 1}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &5357820803545793681
 MonoBehaviour:
   m_ObjectHideFlags: 11
