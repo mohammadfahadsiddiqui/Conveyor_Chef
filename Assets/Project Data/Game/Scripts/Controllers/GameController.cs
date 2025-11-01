@@ -201,18 +201,67 @@ namespace Watermelon
             OnLevelChangedEvent?.Invoke();
         }
 
+        public static void ReturnToLevelSelection()
+        {
+            // Reset game state
+            isGameActive = false;
 
+            // Reset the level selection flag
+            levelSave.isPlayingFromLevelSelection = false;
+
+            // Save the state
+            SaveController.MarkAsSaveIsRequired();
+            SaveController.Save(true);
+
+            // Disable raycast controller if active
+            RaycastController.Disable();
+
+            Debug.Log("[GameController] Returning to level selection");
+
+            // Load the level selection scene
+            UnityEngine.SceneManagement.SceneManager.LoadScene("LevelSelection");
+        }
+
+
+        // public static void StartGame()
+        // {
+        //     // On Level is loaded
+        //     isGameActive = true;
+
+        //     //UIController.HidePage<UIMainMenu>();
+        //     UIController.ShowPage<UIGame>();
+
+        //     //Tween.DelayedCall(2f, LivesManager.RemoveLife);
+        // }
 
         public static void StartGame()
         {
+            // Check if player has lives before starting
+            if (LivesManager.Lives <= 0)
+            {
+                Debug.Log("[GameController] Cannot start game - No lives remaining");
+
+                // Show the add lives panel
+                UIMainMenu mainMenu = UIController.GetPage<UIMainMenu>();
+                if (mainMenu != null)
+                {
+                    mainMenu.ShowAddLivesPanel();
+                }
+
+                return; // Don't start the game
+            }
+
             // On Level is loaded
             isGameActive = true;
 
-            //UIController.HidePage<UIMainMenu>();
             UIController.ShowPage<UIGame>();
 
-            Tween.DelayedCall(2f, LivesManager.RemoveLife);
+            // Remove a life when starting the game
+            //Tween.DelayedCall(2f, LivesManager.RemoveLife);
+
+            Debug.Log($"[GameController] Game started - Lives remaining: {LivesManager.Lives}");
         }
+
 
         public static void LoseGame()
         {
@@ -222,6 +271,7 @@ namespace Watermelon
             isGameActive = false;
 
             RaycastController.Disable();
+            LivesManager.RemoveLife();
 
             UIController.HidePage<UIGame>();
             UIController.ShowPage<UIGameOver>();
@@ -381,14 +431,14 @@ namespace Watermelon
             AdsManager.ShowInterstitial(null);
 
             //LoadLevel();
-            LoadLevel(() => 
+            LoadLevel(() =>
     {
         // Refresh level number AFTER level loads
         UIMainMenu mainMenu = UIController.GetPage<UIMainMenu>();
         if (mainMenu != null && mainMenu.IsPageDisplayed)
         {
             mainMenu.RefreshLevelNumber();
-            
+
             // Also refresh orders for new level
             if (LevelController.OrderTracker != null)
             {
@@ -404,7 +454,7 @@ namespace Watermelon
         /// <summary>
         /// Get total number of levels in the database
         /// </summary>
-        
+
 
 
 
@@ -437,20 +487,47 @@ namespace Watermelon
         //     LoadLevel();
         // }
 
+        // public static void ReplayLevel()
+        // {
+        //     isGameActive = false;
+
+        //     UIController.ShowPage<UIMainMenu>();
+
+        //     levelSave.ReplayingLevelAgain = true;
+
+        //     // Don't change selectedLevelIndex - replay same level
+
+        //     AdsManager.ShowInterstitial(null);
+
+        //     LoadLevel();
+        // }
+
         public static void ReplayLevel()
-{
-    isGameActive = false;
+        {
+            isGameActive = false;
 
-    UIController.ShowPage<UIMainMenu>();
+            // Check lives before replaying
+            if (LivesManager.Lives <= 0)
+            {
+                Debug.Log("[GameController] Cannot replay level - No lives remaining");
+                UIController.ShowPage<UIMainMenu>();
 
-    levelSave.ReplayingLevelAgain = true;
-    
-    // Don't change selectedLevelIndex - replay same level
-    
-    AdsManager.ShowInterstitial(null);
+                UIMainMenu mainMenu = UIController.GetPage<UIMainMenu>();
+                if (mainMenu != null)
+                {
+                    mainMenu.ShowAddLivesPanel();
+                }
+                return;
+            }
 
-    LoadLevel();
-}
+            UIController.ShowPage<UIMainMenu>();
+            levelSave.ReplayingLevelAgain = true;
+
+            AdsManager.ShowInterstitial(null);
+            LoadLevel();
+        }
+
+
 
         public static void RefreshLevelDev()
         {

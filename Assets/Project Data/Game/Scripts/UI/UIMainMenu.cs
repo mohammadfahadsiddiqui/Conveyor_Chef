@@ -3,6 +3,7 @@ using UnityEngine;
 using Watermelon.BusStop;
 using Watermelon.IAPStore;
 using Watermelon.SkinStore;
+using UnityEngine.UI;
 
 namespace Watermelon
 {
@@ -180,6 +181,13 @@ namespace Watermelon
         public void RefreshLevelNumber()
         {
             UpdateLevelNumber();
+        }
+
+        public void OnHomeButtonClicked()
+        {
+            // Optional: Show confirmation dialog
+            // For now, directly return to level selection
+            GameController.ReturnToLevelSelection();
         }
 
         #endregion

@@ -1,3 +1,236 @@
+// using UnityEngine;
+// using UnityEngine.UI;
+// using System.Collections;
+// using System;
+// using System.Collections.Generic;
+// using TMPro;
+// using Watermelon.BusStop;
+
+// namespace Watermelon
+// {
+//     public class UIComplete : UIPage
+//     {
+//         [SerializeField] RectTransform safeZone;
+//         [SerializeField] UIFadeAnimation backgroundFade;
+
+//         [Space]
+//         [SerializeField] UIScaleAnimation levelCompleteLabel;
+
+//         [Space]
+//         [SerializeField] UIScaleAnimation rewardLabel;
+//         [SerializeField] Image rewardIconImage;
+//         [SerializeField] TextMeshProUGUI rewardAmountText;
+
+//         [Header("Coins Label")]
+//         [SerializeField] UIScaleAnimation coinsPanelScalable;
+//         [SerializeField] CurrencyUIPanelSimple coinsPanelUI;
+
+//         [Space]
+//         [SerializeField] UIFadeAnimation multiplyRewardButtonFade;
+//         [SerializeField] Button multiplyRewardButton;
+//         [SerializeField] UIFadeAnimation noThanksButtonFade;
+//         [SerializeField] Button noThanksButton;
+//         [SerializeField] TMP_Text noThanksText;
+
+//         private TweenCase noThanksAppearTween;
+//         private int coinsHash = FloatingCloud.StringToHash(CurrencyType.Coins.ToString());
+
+//         private readonly string NO_THANKS_TEXT = "NO, THANKS";
+//         private readonly string CONTINUE_TEXT = "CONTINUE";
+
+//         private int currentReward;
+
+//         public override void Initialise()
+//         {
+//             multiplyRewardButton.onClick.AddListener(MultiplyRewardButton);
+//             noThanksButton.onClick.AddListener(NoThanksButton);
+
+//             coinsPanelUI.Initialise();
+
+//             Currency currency = CurrenciesController.GetCurrency(CurrencyType.Coins);
+//             rewardIconImage.sprite = currency.Icon;
+
+//             //NotchSaveArea.RegisterRectTransform(safeZone);
+//         }
+
+//         #region Show/Hide
+//         public override void PlayShowAnimation()
+//         {
+//             rewardLabel.Hide(immediately: true);
+//             multiplyRewardButtonFade.Hide(immediately: true);
+//             noThanksButtonFade.Hide(immediately: true);
+//             noThanksButton.interactable = false;
+//             coinsPanelScalable.Hide(immediately: true);
+
+//             noThanksText.text = NO_THANKS_TEXT;
+
+//             backgroundFade.Show(duration: 0.3f);
+//             levelCompleteLabel.Show();
+
+//             coinsPanelScalable.Show();
+
+//             currentReward = LevelController.CurrentReward;
+
+//             ShowRewardLabel(currentReward, false, 0.3f, delegate // update reward here
+//             {
+//                 rewardLabel.RectTransform.DOPushScale(Vector3.one * 1.1f, Vector3.one, 0.2f, 0.2f).OnComplete(delegate
+//                 {
+//                     FloatingCloud.SpawnCurrency(coinsHash, rewardLabel.RectTransform, coinsPanelScalable.RectTransform, 10, "", () =>
+//                     {
+//                         CurrenciesController.Add(CurrencyType.Coins, currentReward);
+
+//                         multiplyRewardButtonFade.Show();
+//                         multiplyRewardButton.interactable = true;
+
+//                         noThanksAppearTween = Tween.DelayedCall(0.5f, delegate
+//                         {
+//                             noThanksButtonFade.Show();
+//                             noThanksButton.interactable = true;
+//                         });
+//                     });
+//                 });
+//             });
+//         }
+
+//         public override void PlayHideAnimation()
+//         {
+//             if (!isPageDisplayed)
+//                 return;
+
+//             backgroundFade.Hide(0.25f);
+//             coinsPanelScalable.Hide();
+
+//             Tween.DelayedCall(0.25f, delegate
+//             {
+//                 canvas.enabled = false;
+//                 isPageDisplayed = false;
+
+//                 UIController.OnPageClosed(this);
+//             });
+//         }
+
+
+//         #endregion
+
+//         #region RewardLabel
+
+//         public void ShowRewardLabel(float rewardAmounts, bool immediately = false, float duration = 0.3f, Action onComplted = null)
+//         {
+//             rewardLabel.Show(immediately: immediately);
+
+//             if (immediately)
+//             {
+//                 rewardAmountText.text = "+" + rewardAmounts;
+//                 onComplted?.Invoke();
+
+//                 return;
+//             }
+
+//             rewardAmountText.text = "+" + 0;
+
+//             Tween.DoFloat(0, rewardAmounts, duration, (float value) =>
+//             {
+//                 rewardAmountText.text = "+" + (int)value;
+//             }).OnComplete(delegate
+//             {
+
+//                 onComplted?.Invoke();
+//             });
+//         }
+
+//         #endregion
+
+//         #region Buttons
+
+//         public void MultiplyRewardButton()
+//         {
+//             AudioController.PlaySound(AudioController.Sounds.buttonSound);
+
+//             if (noThanksAppearTween != null && noThanksAppearTween.IsActive)
+//             {
+//                 noThanksAppearTween.Kill();
+//             }
+
+//             noThanksButton.interactable = false;
+//             multiplyRewardButton.interactable = false;
+
+//             AdsManager.ShowRewardBasedVideo((bool success) =>
+//             {
+//                 if (success)
+//                 {
+//                     int rewardMult = 3;
+
+//                     noThanksButtonFade.Hide(immediately: true);
+//                     multiplyRewardButtonFade.Hide(immediately: true);
+
+//                     ShowRewardLabel(currentReward * rewardMult, false, 0.3f, delegate
+//                     {
+//                         FloatingCloud.SpawnCurrency(coinsHash, rewardLabel.RectTransform, coinsPanelScalable.RectTransform, 10, "", () =>
+//                         {
+//                             CurrenciesController.Add(CurrencyType.Coins, currentReward * rewardMult);
+
+//                             noThanksText.text = CONTINUE_TEXT;
+
+//                             noThanksButton.interactable = true;
+//                             noThanksButton.gameObject.SetActive(true);
+//                             noThanksButtonFade.Show();
+//                         });
+//                     });
+
+//                     LivesManager.AddLife();
+//                 }
+//                 else
+//                 {
+//                     NoThanksButton();
+//                 }
+//             });
+//         }
+
+//         // public void NoThanksButton()
+//         // {
+//         //     AudioController.PlaySound(AudioController.Sounds.buttonSound);
+
+//         //     UIController.HidePage<UIComplete>();
+
+//         //     GameController.LoadNextLevel();
+
+//         //     LivesManager.AddLife();
+//         // }
+//         public void NoThanksButton()
+//         {
+//             AudioController.PlaySound(AudioController.Sounds.buttonSound);
+
+//             UIController.HidePage<UIComplete>();
+
+//             LevelSave levelSave = SaveController.GetSaveObject<LevelSave>("level");
+
+//             if (levelSave.isPlayingFromLevelSelection)
+//             {
+//                 // Move to next level
+//                 levelSave.selectedLevelIndex++; // Increment here
+//                 levelSave.ReplayingLevelAgain = false;
+
+//                 Debug.Log($"Moving to next level: {levelSave.selectedLevelIndex + 1}");
+
+//                 SaveController.MarkAsSaveIsRequired();
+//                 SaveController.Save(true);
+//             }
+
+//             GameController.LoadNextLevel();
+//             //LivesManager.AddLife();
+//         }
+
+
+//         public void HomeButton()
+//         {
+//             AudioController.PlaySound(AudioController.Sounds.buttonSound);
+//         }
+
+//         #endregion
+//     }
+// }
+
+
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
@@ -32,6 +265,10 @@ namespace Watermelon
         [SerializeField] Button noThanksButton;
         [SerializeField] TMP_Text noThanksText;
 
+        [Space]
+        [Header("Confetti Effect")]
+        [SerializeField] GameObject confettiObject; // The confetti from hierarchy
+
         private TweenCase noThanksAppearTween;
         private int coinsHash = FloatingCloud.StringToHash(CurrencyType.Coins.ToString());
 
@@ -50,6 +287,12 @@ namespace Watermelon
             Currency currency = CurrenciesController.GetCurrency(CurrencyType.Coins);
             rewardIconImage.sprite = currency.Icon;
 
+            // Make sure confetti is inactive at start
+            if (confettiObject != null)
+            {
+                confettiObject.SetActive(false);
+            }
+
             //NotchSaveArea.RegisterRectTransform(safeZone);
         }
 
@@ -67,11 +310,14 @@ namespace Watermelon
             backgroundFade.Show(duration: 0.3f);
             levelCompleteLabel.Show();
 
+            // Play confetti effect
+            PlayConfetti();
+
             coinsPanelScalable.Show();
 
             currentReward = LevelController.CurrentReward;
 
-            ShowRewardLabel(currentReward, false, 0.3f, delegate // update reward here
+            ShowRewardLabel(currentReward, false, 0.3f, delegate
             {
                 rewardLabel.RectTransform.DOPushScale(Vector3.one * 1.1f, Vector3.one, 0.2f, 0.2f).OnComplete(delegate
                 {
@@ -100,6 +346,9 @@ namespace Watermelon
             backgroundFade.Hide(0.25f);
             coinsPanelScalable.Hide();
 
+            // Stop confetti when hiding
+            StopConfetti();
+
             Tween.DelayedCall(0.25f, delegate
             {
                 canvas.enabled = false;
@@ -109,6 +358,53 @@ namespace Watermelon
             });
         }
 
+        #endregion
+
+        #region Confetti Effect
+
+        private void PlayConfetti()
+        {
+            if (confettiObject != null)
+            {
+                // Activate the confetti object
+                confettiObject.SetActive(true);
+                
+                // Force all particle systems to play
+                ParticleSystem[] particles = confettiObject.GetComponentsInChildren<ParticleSystem>(true);
+                
+                Debug.Log($"[UIComplete] Activating confetti with {particles.Length} particle systems");
+                
+                foreach (ParticleSystem ps in particles)
+                {
+                    ps.Clear(); // Clear any previous particles
+                    ps.Play();
+                    Debug.Log($"[UIComplete] Playing particle: {ps.name}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[UIComplete] Confetti object is not assigned in Inspector!");
+            }
+        }
+
+        private void StopConfetti()
+        {
+            if (confettiObject != null)
+            {
+                // Stop all particle systems
+                ParticleSystem[] particles = confettiObject.GetComponentsInChildren<ParticleSystem>(true);
+                foreach (ParticleSystem ps in particles)
+                {
+                    ps.Stop();
+                    ps.Clear();
+                }
+                
+                // Deactivate the confetti object
+                confettiObject.SetActive(false);
+                
+                Debug.Log("[UIComplete] Confetti stopped and deactivated");
+            }
+        }
 
         #endregion
 
@@ -133,7 +429,6 @@ namespace Watermelon
                 rewardAmountText.text = "+" + (int)value;
             }).OnComplete(delegate
             {
-
                 onComplted?.Invoke();
             });
         }
@@ -186,16 +481,6 @@ namespace Watermelon
             });
         }
 
-        // public void NoThanksButton()
-        // {
-        //     AudioController.PlaySound(AudioController.Sounds.buttonSound);
-
-        //     UIController.HidePage<UIComplete>();
-
-        //     GameController.LoadNextLevel();
-
-        //     LivesManager.AddLife();
-        // }
         public void NoThanksButton()
         {
             AudioController.PlaySound(AudioController.Sounds.buttonSound);
@@ -207,7 +492,7 @@ namespace Watermelon
             if (levelSave.isPlayingFromLevelSelection)
             {
                 // Move to next level
-                levelSave.selectedLevelIndex++; // Increment here
+                levelSave.selectedLevelIndex++;
                 levelSave.ReplayingLevelAgain = false;
 
                 Debug.Log($"Moving to next level: {levelSave.selectedLevelIndex + 1}");
@@ -217,9 +502,7 @@ namespace Watermelon
             }
 
             GameController.LoadNextLevel();
-            LivesManager.AddLife();
         }
-
 
         public void HomeButton()
         {

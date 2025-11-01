@@ -124,18 +124,38 @@ namespace Watermelon.BusStop
             }
         }
 
+        // public void LoadSelectedLevel(int levelIndex)
+        // {
+        //     // Save which level was selected
+        //     levelSave.selectedLevelIndex = levelIndex;
+        //     levelSave.isPlayingFromLevelSelection = true;
+        //     levelSave.ReplayingLevelAgain = false;
+            
+        //     SaveController.MarkAsSaveIsRequired();
+        //     SaveController.Save(true);
+
+        //     // Load game scene (replace "Game" with your actual game scene name)
+        //     SceneManager.LoadScene("Game");
+        // }
+
         public void LoadSelectedLevel(int levelIndex)
         {
-            // Save which level was selected
+            Debug.Log($"[LevelSelection] Loading level {levelIndex + 1}");
+            
+            // Get the save object
+            LevelSave levelSave = SaveController.GetSaveObject<LevelSave>("level");
+            
+            // Set the selected level
             levelSave.selectedLevelIndex = levelIndex;
             levelSave.isPlayingFromLevelSelection = true;
             levelSave.ReplayingLevelAgain = false;
             
+            // Save before loading
             SaveController.MarkAsSaveIsRequired();
             SaveController.Save(true);
-
-            // Load game scene (replace "Game" with your actual game scene name)
-            SceneManager.LoadScene("Game");
+            
+            // Load the game scene
+            SceneManager.LoadScene("Game"); // Replace "Game" with your actual game scene name
         }
 
         public void BackToMainMenu()

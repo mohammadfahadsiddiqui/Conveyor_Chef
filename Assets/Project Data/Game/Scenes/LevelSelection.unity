@@ -609,7 +609,7 @@ MonoBehaviour:
     m_Left: 60
     m_Right: 0
     m_Top: 50
-    m_Bottom: 0
+    m_Bottom: 50
   m_ChildAlignment: 1
   m_StartCorner: 0
   m_StartAxis: 0

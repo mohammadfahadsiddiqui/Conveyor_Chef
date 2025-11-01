@@ -7,7 +7,7 @@ namespace Watermelon.BusStop
     public class LevelController : MonoBehaviour
     {
         private static LevelController instance;
-
+        private static bool isInitialized = false; // ← ADD THIS LINE
         [SerializeField] LevelDatabase database;
 
         [Space]
