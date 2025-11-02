@@ -1,5 +1,8 @@
+
+
 // using UnityEngine;
 // using UnityEngine.UI;
+// using System.Collections;
 
 // namespace Watermelon.BusStop
 // {
@@ -7,20 +10,75 @@
 //     {
 //         [Header("References")]
 //         [SerializeField] PageIndicator pageIndicatorPrefab;
+//         [SerializeField] ScrollRect indicatorsScrollRect; // ADD THIS - the ScrollRect for indicators
 //         [SerializeField] Transform indicatorsContainer;
-//         [SerializeField] ScrollRect scrollRect; // Optional: for swipe navigation
+//         [SerializeField] Button leftButton;
+//         [SerializeField] Button rightButton;
 
 //         [Header("Settings")]
-//         [SerializeField] float indicatorSpacing = 80f;
+//         [SerializeField] float scrollDuration = 0.3f;
 
 //         private PageIndicator[] indicators;
 //         private LevelSelectionController controller;
 //         private int currentPage = 0;
+//         private Coroutine scrollCoroutine;
 
 //         public void Setup(int totalPages, LevelSelectionController controller)
 //         {
 //             this.controller = controller;
 //             CreateIndicators(totalPages);
+//             SetupNavigationButtons();
+//             UpdateNavigationButtons();
+//         }
+
+//         private void SetupNavigationButtons()
+//         {
+//             if (leftButton != null)
+//             {
+//                 leftButton.onClick.RemoveAllListeners();
+//                 leftButton.onClick.AddListener(OnLeftButtonClicked);
+//             }
+
+//             if (rightButton != null)
+//             {
+//                 rightButton.onClick.RemoveAllListeners();
+//                 rightButton.onClick.AddListener(OnRightButtonClicked);
+//             }
+//         }
+
+//         private void OnLeftButtonClicked()
+//         {
+//             if (currentPage > 0)
+//             {
+//                 controller.ShowPage(currentPage - 1);
+//             }
+//         }
+
+//         private void OnRightButtonClicked()
+//         {
+//             if (currentPage < indicators.Length - 1)
+//             {
+//                 int nextPage = currentPage + 1;
+//                 if (controller.IsPageUnlocked(nextPage))
+//                 {
+//                     controller.ShowPage(nextPage);
+//                 }
+//             }
+//         }
+
+//         private void UpdateNavigationButtons()
+//         {
+//             if (leftButton != null)
+//             {
+//                 leftButton.interactable = currentPage > 0;
+//             }
+
+//             if (rightButton != null)
+//             {
+//                 bool hasNextPage = currentPage < indicators.Length - 1;
+//                 bool nextPageUnlocked = hasNextPage && controller.IsPageUnlocked(currentPage + 1);
+//                 rightButton.interactable = hasNextPage && nextPageUnlocked;
+//             }
 //         }
 
 //         private void CreateIndicators(int totalPages)
@@ -30,12 +88,7 @@
 //             for (int i = 0; i < totalPages; i++)
 //             {
 //                 PageIndicator indicator = Instantiate(pageIndicatorPrefab, indicatorsContainer);
-                
-//                 // Position indicator
-//                 RectTransform rt = indicator.GetComponent<RectTransform>();
-//                 rt.anchoredPosition = new Vector2(i * indicatorSpacing, 0);
 
-//                 // Setup indicator
 //                 int pageIndex = i;
 //                 bool isUnlocked = controller.IsPageUnlocked(pageIndex);
 //                 indicator.Setup(pageIndex, isUnlocked, () => OnPageIndicatorClicked(pageIndex));
@@ -53,33 +106,56 @@
 //         {
 //             currentPage = pageIndex;
 
-//             // Update all indicators
+//             // Update indicator states
 //             for (int i = 0; i < indicators.Length; i++)
 //             {
 //                 bool isCurrent = i == currentPage;
 //                 bool isUnlocked = controller.IsPageUnlocked(i);
 //                 indicators[i].SetState(isCurrent, isUnlocked);
 //             }
+
+//             // SCROLL THE INDICATORS!
+//             ScrollIndicators(pageIndex);
+
+//             UpdateNavigationButtons();
 //         }
 
-//         // Optional: Add swipe support
-//         public void OnSwipeLeft()
+//         private void ScrollIndicators(int pageIndex)
 //         {
-//             if (currentPage < indicators.Length - 1)
+//             if (indicatorsScrollRect == null || indicators.Length <= 1)
+//                 return;
+
+//             // Stop any ongoing scroll
+//             if (scrollCoroutine != null)
 //             {
-//                 controller.ShowPage(currentPage + 1);
+//                 StopCoroutine(scrollCoroutine);
 //             }
+
+//             // Calculate position (same as level pages)
+//             float targetPosition = (float)pageIndex / (float)(indicators.Length - 1);
+
+//             scrollCoroutine = StartCoroutine(SmoothScrollTo(targetPosition));
 //         }
 
-//         public void OnSwipeRight()
+//         private IEnumerator SmoothScrollTo(float targetPosition)
 //         {
-//             if (currentPage > 0)
+//             float startPosition = indicatorsScrollRect.horizontalNormalizedPosition;
+//             float elapsed = 0f;
+
+//             while (elapsed < scrollDuration)
 //             {
-//                 controller.ShowPage(currentPage - 1);
+//                 elapsed += Time.deltaTime;
+//                 float t = elapsed / scrollDuration;
+//                 t = t * t * (3f - 2f * t);
+                
+//                 indicatorsScrollRect.horizontalNormalizedPosition = Mathf.Lerp(startPosition, targetPosition, t);
+//                 yield return null;
 //             }
+
+//             indicatorsScrollRect.horizontalNormalizedPosition = targetPosition;
+//             scrollCoroutine = null;
 //         }
 
-//         // Call this when a page unlocks (e.g., after completing all levels in previous page)
 //         public void RefreshIndicators()
 //         {
 //             for (int i = 0; i < indicators.Length; i++)
@@ -87,6 +163,8 @@
 //                 bool isUnlocked = controller.IsPageUnlocked(i);
 //                 indicators[i].UpdateUnlockState(isUnlocked);
 //             }
+            
+//             UpdateNavigationButtons();
 //         }
 //     }
 // }
@@ -94,6 +172,7 @@
 
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 
 namespace Watermelon.BusStop
 {
@@ -101,34 +180,77 @@ namespace Watermelon.BusStop
     {
         [Header("References")]
         [SerializeField] PageIndicator pageIndicatorPrefab;
+        [SerializeField] ScrollRect indicatorsScrollRect;
         [SerializeField] Transform indicatorsContainer;
-        [SerializeField] ScrollRect scrollRect; // Optional: for swipe navigation
+        [SerializeField] Button leftButton;
+        [SerializeField] Button rightButton;
 
         [Header("Settings")]
-        [SerializeField] float indicatorSpacing = 80f;
+        [SerializeField] float scrollDuration = 0.3f;
 
         private PageIndicator[] indicators;
         private LevelSelectionController controller;
         private int currentPage = 0;
+        private Coroutine scrollCoroutine;
 
         public void Setup(int totalPages, LevelSelectionController controller)
         {
             this.controller = controller;
             CreateIndicators(totalPages);
-            
-            // Scroll to beginning or last unlocked page after a frame
-            StartCoroutine(ScrollToStartPosition());
+            SetupNavigationButtons();
+            UpdateNavigationButtons();
         }
 
-        private System.Collections.IEnumerator ScrollToStartPosition()
+        private void SetupNavigationButtons()
         {
-            // Wait for layout to update
-            yield return new WaitForEndOfFrame();
-            
-            // Reset scroll to beginning (leftmost position)
-            if (scrollRect != null)
+            if (leftButton != null)
             {
-                scrollRect.horizontalNormalizedPosition = 0f; // 0 = left, 1 = right
+                leftButton.onClick.RemoveAllListeners();
+                leftButton.onClick.AddListener(OnLeftButtonClicked);
+            }
+
+            if (rightButton != null)
+            {
+                rightButton.onClick.RemoveAllListeners();
+                rightButton.onClick.AddListener(OnRightButtonClicked);
+            }
+        }
+
+        private void OnLeftButtonClicked()
+        {
+            if (currentPage > 0)
+            {
+                // CHANGED: Always allow navigation, don't check if unlocked
+                controller.ShowPage(currentPage - 1);
+            }
+        }
+
+        private void OnRightButtonClicked()
+        {
+            if (currentPage < indicators.Length - 1)
+            {
+                // CHANGED: Always allow navigation to next page
+                controller.ShowPage(currentPage + 1);
+            }
+        }
+
+        private void UpdateNavigationButtons()
+        {
+            if (leftButton != null)
+            {
+                // Disable left button only if at first page
+                leftButton.interactable = currentPage > 0;
+            }
+
+            if (rightButton != null)
+            {
+                // Disable right button only if at last page
+                bool hasNextPage = currentPage < indicators.Length - 1;
+                rightButton.interactable = hasNextPage;
+                
+                // REMOVED: Lock check for next page
+                // bool nextPageUnlocked = hasNextPage && controller.IsPageUnlocked(currentPage + 1);
+                // rightButton.interactable = hasNextPage && nextPageUnlocked;
             }
         }
 
@@ -139,12 +261,7 @@ namespace Watermelon.BusStop
             for (int i = 0; i < totalPages; i++)
             {
                 PageIndicator indicator = Instantiate(pageIndicatorPrefab, indicatorsContainer);
-                
-                // Position indicator
-                RectTransform rt = indicator.GetComponent<RectTransform>();
-                rt.anchoredPosition = new Vector2(i * indicatorSpacing, 0);
 
-                // Setup indicator
                 int pageIndex = i;
                 bool isUnlocked = controller.IsPageUnlocked(pageIndex);
                 indicator.Setup(pageIndex, isUnlocked, () => OnPageIndicatorClicked(pageIndex));
@@ -155,6 +272,7 @@ namespace Watermelon.BusStop
 
         private void OnPageIndicatorClicked(int pageIndex)
         {
+            // CHANGED: Always allow clicking to any page
             controller.ShowPage(pageIndex);
         }
 
@@ -162,33 +280,56 @@ namespace Watermelon.BusStop
         {
             currentPage = pageIndex;
 
-            // Update all indicators
+            // Update indicator states
             for (int i = 0; i < indicators.Length; i++)
             {
                 bool isCurrent = i == currentPage;
                 bool isUnlocked = controller.IsPageUnlocked(i);
                 indicators[i].SetState(isCurrent, isUnlocked);
             }
+
+            // Scroll the indicators
+            ScrollIndicators(pageIndex);
+
+            UpdateNavigationButtons();
         }
 
-        // Optional: Add swipe support
-        public void OnSwipeLeft()
+        private void ScrollIndicators(int pageIndex)
         {
-            if (currentPage < indicators.Length - 1)
+            if (indicatorsScrollRect == null || indicators.Length <= 1)
+                return;
+
+            // Stop any ongoing scroll
+            if (scrollCoroutine != null)
             {
-                controller.ShowPage(currentPage + 1);
+                StopCoroutine(scrollCoroutine);
             }
+
+            // Calculate position (same as level pages)
+            float targetPosition = (float)pageIndex / (float)(indicators.Length - 1);
+
+            scrollCoroutine = StartCoroutine(SmoothScrollTo(targetPosition));
         }
 
-        public void OnSwipeRight()
+        private IEnumerator SmoothScrollTo(float targetPosition)
         {
-            if (currentPage > 0)
+            float startPosition = indicatorsScrollRect.horizontalNormalizedPosition;
+            float elapsed = 0f;
+
+            while (elapsed < scrollDuration)
             {
-                controller.ShowPage(currentPage - 1);
+                elapsed += Time.deltaTime;
+                float t = elapsed / scrollDuration;
+                t = t * t * (3f - 2f * t);
+                
+                indicatorsScrollRect.horizontalNormalizedPosition = Mathf.Lerp(startPosition, targetPosition, t);
+                yield return null;
             }
+
+            indicatorsScrollRect.horizontalNormalizedPosition = targetPosition;
+            scrollCoroutine = null;
         }
 
-        // Call this when a page unlocks (e.g., after completing all levels in previous page)
         public void RefreshIndicators()
         {
             for (int i = 0; i < indicators.Length; i++)
@@ -196,6 +337,8 @@ namespace Watermelon.BusStop
                 bool isUnlocked = controller.IsPageUnlocked(i);
                 indicators[i].UpdateUnlockState(isUnlocked);
             }
+            
+            UpdateNavigationButtons();
         }
     }
 }

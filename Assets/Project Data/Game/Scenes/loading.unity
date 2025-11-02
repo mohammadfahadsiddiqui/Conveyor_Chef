@@ -210,7 +210,7 @@ GameObject:
   - component: {fileID: 128354071}
   - component: {fileID: 128354070}
   m_Layer: 5
-  m_Name: Image
+  m_Name: scooter
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -227,8 +227,7 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1488533240}
+  m_Children: []
   m_Father: {fileID: 1880072542}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -1137,9 +1136,17 @@ MonoBehaviour:
   progressBarSlider: {fileID: 495291449}
   progressText: {fileID: 1181933643}
   loadingTipText: {fileID: 751124769}
+  scooterTransform: {fileID: 128354069}
+  mapTransform: {fileID: 1389523367}
+  shadowTransform: {fileID: 1488533240}
   minimumLoadTime: 2
   progressSmoothness: 5
   showPercentage: 1
+  scooterBounceHeight: 20
+  scooterBounceDuration: 1
+  mapRotationDuration: 8
+  shadowScaleMin: 0.9
+  shadowScaleMax: 1.1
   showOnSceneStart: 1
   initialLoadDuration: 3
   autoLoadGameScene: 1
@@ -1611,7 +1618,7 @@ GameObject:
   - component: {fileID: 1389523369}
   - component: {fileID: 1389523368}
   m_Layer: 5
-  m_Name: Image
+  m_Name: map
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1761,7 +1768,7 @@ GameObject:
   - component: {fileID: 1488533242}
   - component: {fileID: 1488533241}
   m_Layer: 5
-  m_Name: Image
+  m_Name: shadow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1774,12 +1781,12 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1488533239}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 128354069}
+  m_Father: {fileID: 1880072542}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -1857,7 +1864,7 @@ RectTransform:
   m_Father: {fileID: 1178687330}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0.07, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 10, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -2103,7 +2110,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1880072540
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2160,6 +2167,7 @@ RectTransform:
   - {fileID: 1181933642}
   - {fileID: 1389523367}
   - {fileID: 128354069}
+  - {fileID: 1488533240}
   m_Father: {fileID: 2007913067}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -2174,7 +2182,7 @@ CanvasGroup:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1880072539}
-  m_Enabled: 1
+  m_Enabled: 0
   m_Alpha: 1
   m_Interactable: 1
   m_BlocksRaycasts: 1
