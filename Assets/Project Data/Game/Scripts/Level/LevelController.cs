@@ -74,16 +74,29 @@ namespace Watermelon.BusStop
 
         public void Initialise()
         {
-            instance = this;
 
-            levelSave = SaveController.GetSaveObject<LevelSave>("level");
-            gameUI = UIController.GetPage<UIGame>();
-            levelTutorial = new LevelTutorial();
+            Debug.Log("=== LevelController.Initialise START ===");
+    
+    instance = this;
+    levelSave = SaveController.GetSaveObject<LevelSave>("level");
+    gameUI = UIController.GetPage<UIGame>();
+    levelTutorial = new LevelTutorial();
 
-            database.Initialise();
+    Debug.Log($"Initializing database with {database.LevelElements.Length} elements");
+    database.Initialise();
 
-            levelElementsLink = new Dictionary<LevelElement.Type, LevelElement>();
-            LevelElement[] availableLevelElements = database.LevelElements;
+    levelElementsLink = new Dictionary<LevelElement.Type, LevelElement>();
+    LevelElement[] availableLevelElements = database.LevelElements;
+            // instance = this;
+
+            // levelSave = SaveController.GetSaveObject<LevelSave>("level");
+            // gameUI = UIController.GetPage<UIGame>();
+            // levelTutorial = new LevelTutorial();
+
+            // database.Initialise();
+
+            // levelElementsLink = new Dictionary<LevelElement.Type, LevelElement>();
+            // LevelElement[] availableLevelElements = database.LevelElements;
             for (int i = 0; i < availableLevelElements.Length; i++)
             {
                 if (levelElementsLink.ContainsKey(availableLevelElements[i].ElementType))
@@ -94,8 +107,14 @@ namespace Watermelon.BusStop
                 }
 
                 availableLevelElements[i].Initialise();
+        
+        Debug.Log($"Element {availableLevelElements[i].ElementType} - Pool: {availableLevelElements[i].Pool?.Name ?? "NULL"}");
+        
+        levelElementsLink.Add(availableLevelElements[i].ElementType, availableLevelElements[i]);
 
-                levelElementsLink.Add(availableLevelElements[i].ElementType, availableLevelElements[i]);
+                // availableLevelElements[i].Initialise();
+
+                // levelElementsLink.Add(availableLevelElements[i].ElementType, availableLevelElements[i]);
             }
 
             levelEffectsLink = new Dictionary<LevelData.SpecialEffectType, ElementSpecialEffect>();
@@ -871,6 +890,24 @@ public static void MarkLevelCompleted(int levelIndex, int starsEarned)
         {
             return database.Levels.Length;
         }
+
+        private void OnDestroy()
+        {
+            // Clear static references
+            instance = null;
+            isStageLoaded = false;
+            loadedLevelData = null;
+            levelMap = null;
+            levelElements = null;
+            highlightedElements = null;
+            levelElementsLink = null;
+            levelEffectsLink = null;
+            orderTracker = null;
+
+            Debug.Log("[LevelController] Static data cleared");
+        }
+
+
 
     }
 }

@@ -123,7 +123,8 @@ namespace Watermelon
             }
             else
             {
-                Debug.LogError(string.Format("[Particle Controller]: Particle with name {0} already register!"));
+                //Debug.LogError(string.Format("[Particle Controller]: Particle with name {0} already register!"));
+                Debug.LogError(string.Format("[Particle Controller]: Particle with name {0} already register!", particle.ParticleName));
             }
 
             return -1;
@@ -180,6 +181,28 @@ namespace Watermelon
         {
             return particleName.GetHashCode();
         }
+
+        private void OnDestroy()
+        {
+            // Clear static data when scene unloads
+            registerParticles.Clear();
+            activeParticles.Clear();
+            activeParticlesCount = 0;
+
+            for (int i = 0; i < delayedParticles.Count; i++)
+            {
+                if (delayedParticles[i] != null && delayedParticles[i].IsActive)
+                {
+                    delayedParticles[i].Kill();
+                }
+            }
+            delayedParticles.Clear();
+
+            StopAllCoroutines();
+
+            Debug.Log("[ParticlesController] Cleaned up static data");
+        }
+
     }
 }
 

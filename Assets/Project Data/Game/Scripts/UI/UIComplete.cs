@@ -297,51 +297,157 @@ namespace Watermelon
         }
 
         #region Show/Hide
+        // public override void PlayShowAnimation()
+        // {
+        //     rewardLabel.Hide(immediately: true);
+        //     multiplyRewardButtonFade.Hide(immediately: true);
+        //     noThanksButtonFade.Hide(immediately: true);
+        //     noThanksButton.interactable = false;
+        //     coinsPanelScalable.Hide(immediately: true);
+
+        //     noThanksText.text = NO_THANKS_TEXT;
+
+        //     backgroundFade.Show(duration: 0.3f);
+        //     levelCompleteLabel.Show();
+
+        //     // Play confetti effect
+        //     PlayConfetti();
+
+        //     coinsPanelScalable.Show();
+
+        //     currentReward = LevelController.CurrentReward;
+
+        //     ShowRewardLabel(currentReward, false, 0.3f, delegate
+        //     {
+        //         rewardLabel.RectTransform.DOPushScale(Vector3.one * 1.1f, Vector3.one, 0.2f, 0.2f).OnComplete(delegate
+        //         {
+        //             FloatingCloud.SpawnCurrency(coinsHash, rewardLabel.RectTransform, coinsPanelScalable.RectTransform, 10, "", () =>
+        //             {
+        //                 CurrenciesController.Add(CurrencyType.Coins, currentReward);
+
+        //                 multiplyRewardButtonFade.Show();
+        //                 multiplyRewardButton.interactable = true;
+
+        //                 noThanksAppearTween = Tween.DelayedCall(0.5f, delegate
+        //                 {
+        //                     noThanksButtonFade.Show();
+        //                     noThanksButton.interactable = true;
+        //                 });
+        //             });
+        //         });
+        //     });
+        // }
+
         public override void PlayShowAnimation()
+{
+    Debug.Log("[UIComplete] PlayShowAnimation started");
+    
+    rewardLabel.Hide(immediately: true);
+    multiplyRewardButtonFade.Hide(immediately: true);
+    noThanksButtonFade.Hide(immediately: true);
+    noThanksButton.interactable = false;
+    coinsPanelScalable.Hide(immediately: true);
+
+    noThanksText.text = NO_THANKS_TEXT;
+
+    backgroundFade.Show(duration: 0.3f);
+    levelCompleteLabel.Show();
+
+    PlayConfetti();
+
+    coinsPanelScalable.Show();
+
+    currentReward = LevelController.CurrentReward;
+    Debug.Log($"[UIComplete] Current reward: {currentReward}");
+
+    ShowRewardLabel(currentReward, false, 0.3f, delegate
+    {
+        Debug.Log("[UIComplete] Reward label shown");
+        
+        rewardLabel.RectTransform.DOPushScale(Vector3.one * 1.1f, Vector3.one, 0.2f, 0.2f).OnComplete(delegate
         {
-            rewardLabel.Hide(immediately: true);
-            multiplyRewardButtonFade.Hide(immediately: true);
-            noThanksButtonFade.Hide(immediately: true);
-            noThanksButton.interactable = false;
-            coinsPanelScalable.Hide(immediately: true);
-
-            noThanksText.text = NO_THANKS_TEXT;
-
-            backgroundFade.Show(duration: 0.3f);
-            levelCompleteLabel.Show();
-
-            // Play confetti effect
-            PlayConfetti();
-
-            coinsPanelScalable.Show();
-
-            currentReward = LevelController.CurrentReward;
-
-            ShowRewardLabel(currentReward, false, 0.3f, delegate
+            Debug.Log("[UIComplete] Scale animation complete, spawning currency");
+            
+            // ADDED: Fallback timeout in case FloatingCloud fails
+            bool callbackCalled = false;
+            
+            FloatingCloud.SpawnCurrency(coinsHash, rewardLabel.RectTransform, coinsPanelScalable.RectTransform, 10, "", () =>
             {
-                rewardLabel.RectTransform.DOPushScale(Vector3.one * 1.1f, Vector3.one, 0.2f, 0.2f).OnComplete(delegate
+                if (callbackCalled) return;
+                callbackCalled = true;
+                
+                Debug.Log("[UIComplete] Currency spawned callback");
+                ShowButtons();
+            });
+            
+            // Fallback: Show buttons after 2 seconds if callback doesn't fire
+            Tween.DelayedCall(2f, delegate
+            {
+                if (!callbackCalled)
                 {
-                    FloatingCloud.SpawnCurrency(coinsHash, rewardLabel.RectTransform, coinsPanelScalable.RectTransform, 10, "", () =>
-                    {
-                        CurrenciesController.Add(CurrencyType.Coins, currentReward);
+                    Debug.LogWarning("[UIComplete] FloatingCloud callback didn't fire, showing buttons anyway");
+                    callbackCalled = true;
+                    ShowButtons();
+                }
+            });
+        });
+    });
+}
 
-                        multiplyRewardButtonFade.Show();
-                        multiplyRewardButton.interactable = true;
+        // Helper method to show buttons
+        private void ShowButtons()
+        {
+            CurrenciesController.Add(CurrencyType.Coins, currentReward);
 
-                        noThanksAppearTween = Tween.DelayedCall(0.5f, delegate
-                        {
-                            noThanksButtonFade.Show();
-                            noThanksButton.interactable = true;
-                        });
-                    });
-                });
+            multiplyRewardButtonFade.Show();
+            multiplyRewardButton.interactable = true;
+
+            Debug.Log("[UIComplete] Multiply button shown");
+
+            noThanksAppearTween = Tween.DelayedCall(0.5f, delegate
+            {
+                Debug.Log("[UIComplete] Showing No Thanks button");
+
+                noThanksButtonFade.Show();
+                noThanksButton.interactable = true;
             });
         }
+
+        // public override void PlayHideAnimation()
+        // {
+        //     if (!isPageDisplayed)
+        //         return;
+
+        //     backgroundFade.Hide(0.25f);
+        //     coinsPanelScalable.Hide();
+
+        //     // Stop confetti when hiding
+        //     StopConfetti();
+
+        //     Tween.DelayedCall(0.25f, delegate
+        //     {
+        //         canvas.enabled = false;
+        //         isPageDisplayed = false;
+
+        //         UIController.OnPageClosed(this);
+        //     });
+        // }
 
         public override void PlayHideAnimation()
         {
             if (!isPageDisplayed)
                 return;
+
+            // ADDED: Kill any active tweens before hiding
+            if (noThanksAppearTween != null && noThanksAppearTween.IsActive)
+            {
+                noThanksAppearTween.Kill();
+                noThanksAppearTween = null;
+            }
+
+            // Reset button states
+            multiplyRewardButton.interactable = false;
+            noThanksButton.interactable = false;
 
             backgroundFade.Hide(0.25f);
             coinsPanelScalable.Hide();
@@ -356,7 +462,10 @@ namespace Watermelon
 
                 UIController.OnPageClosed(this);
             });
+
+            Debug.Log("[UIComplete] PlayHideAnimation - Cleaned up tweens and reset buttons");
         }
+
 
         #endregion
 
@@ -507,7 +616,11 @@ namespace Watermelon
         public void HomeButton()
         {
             AudioController.PlaySound(AudioController.Sounds.buttonSound);
+
+            // Simple: just go back to level selection
+            UnityEngine.SceneManagement.SceneManager.LoadScene("LevelSelection");
         }
+
 
         #endregion
     }

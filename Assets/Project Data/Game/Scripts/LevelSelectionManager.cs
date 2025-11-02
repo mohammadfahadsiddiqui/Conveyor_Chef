@@ -202,45 +202,62 @@ namespace Watermelon.BusStop
         // public void LoadSelectedLevel(int levelIndex)
         // {
         //     Debug.Log($"[LevelSelection] Loading level {levelIndex + 1}");
-            
+
         //     LevelSave levelSave = SaveController.GetSaveObject<LevelSave>("level");
-            
+
         //     levelSave.selectedLevelIndex = levelIndex;
         //     levelSave.isPlayingFromLevelSelection = true;
         //     levelSave.ReplayingLevelAgain = false;
-            
+
         //     SaveController.MarkAsSaveIsRequired();
         //     SaveController.Save(true);
-            
+
+        //     SceneManager.LoadScene("Game");
+        // }
+
+        // public void LoadSelectedLevel(int levelIndex)
+        // {
+        //     Debug.Log($"[LevelSelection] Loading level {levelIndex + 1}");
+
+        //     // IMPORTANT: Re-get the save object to ensure we're working with the latest
+        //     LevelSave levelSave = SaveController.GetSaveObject<LevelSave>("level");
+
+        //     // Set the selected level
+        //     levelSave.selectedLevelIndex = levelIndex;
+        //     levelSave.isPlayingFromLevelSelection = true;
+        //     levelSave.ReplayingLevelAgain = false;
+
+        //     Debug.Log($"[LevelSelection] Set levelSave values - selectedIndex: {levelSave.selectedLevelIndex}, isPlayingFromLevelSelection: {levelSave.isPlayingFromLevelSelection}");
+
+        //     // CRITICAL: Force save immediately and synchronously
+        //     SaveController.MarkAsSaveIsRequired();
+        //     SaveController.Save(true); // true = force immediate save
+
+        //     // Verify save was successful
+        //     LevelSave verifyLoad = SaveController.GetSaveObject<LevelSave>("level");
+        //     Debug.Log($"[LevelSelection] Verified save - isPlayingFromLevelSelection: {verifyLoad.isPlayingFromLevelSelection}, selectedIndex: {verifyLoad.selectedLevelIndex}");
+
+        //     // Load the game scene directly (bypass loading screen since we're already in game)
+        //     Debug.Log("[LevelSelection] Loading Game scene now...");
         //     SceneManager.LoadScene("Game");
         // }
 
         public void LoadSelectedLevel(int levelIndex)
         {
-            Debug.Log($"[LevelSelection] Loading level {levelIndex + 1}");
-            
-            // IMPORTANT: Re-get the save object to ensure we're working with the latest
+            Debug.Log($"Loading level {levelIndex + 1}");
+
             LevelSave levelSave = SaveController.GetSaveObject<LevelSave>("level");
-            
-            // Set the selected level
             levelSave.selectedLevelIndex = levelIndex;
             levelSave.isPlayingFromLevelSelection = true;
             levelSave.ReplayingLevelAgain = false;
-            
-            Debug.Log($"[LevelSelection] Set levelSave values - selectedIndex: {levelSave.selectedLevelIndex}, isPlayingFromLevelSelection: {levelSave.isPlayingFromLevelSelection}");
-            
-            // CRITICAL: Force save immediately and synchronously
+
             SaveController.MarkAsSaveIsRequired();
-            SaveController.Save(true); // true = force immediate save
-            
-            // Verify save was successful
-            LevelSave verifyLoad = SaveController.GetSaveObject<LevelSave>("level");
-            Debug.Log($"[LevelSelection] Verified save - isPlayingFromLevelSelection: {verifyLoad.isPlayingFromLevelSelection}, selectedIndex: {verifyLoad.selectedLevelIndex}");
-            
-            // Load the game scene directly (bypass loading screen since we're already in game)
-            Debug.Log("[LevelSelection] Loading Game scene now...");
+            SaveController.Save(true);
+
+            // Just load the scene
             SceneManager.LoadScene("Game");
         }
+
 
         public void BackToMainMenu()
         {

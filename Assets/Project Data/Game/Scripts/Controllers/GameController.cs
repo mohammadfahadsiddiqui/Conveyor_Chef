@@ -151,6 +151,7 @@ namespace Watermelon
 
             SkinStoreController.Init();
             levelController.Initialise();
+            UIController.ShowPage<UIMainMenu>();
 
             // IMPORTANT: Re-get the save object after all initializations
             levelSave = SaveController.GetSaveObject<LevelSave>("level");
@@ -186,6 +187,20 @@ namespace Watermelon
                 });
             }
         }
+
+        private void OnDestroy()
+        {
+            // DON'T unload pools here - Unity already destroys them when scene unloads
+            // Only mark that we need to replay the level
+            if (levelSave != null)
+            {
+                levelSave.ReplayingLevelAgain = true;
+            }
+
+            Debug.Log("[GameController] OnDestroy - Scene is unloading");
+        }
+
+
 
         // private static void LoadLevel(System.Action OnComplete = null)
         // {
@@ -280,20 +295,29 @@ namespace Watermelon
 
         public static void ReturnToLevelSelection()
         {
-            // Reset game state
+            if (!isGameActive)
+                return;
+
             isGameActive = false;
 
-            // Reset the level selection flag
-            levelSave.isPlayingFromLevelSelection = false;
-
-            // Save the state
-            SaveController.MarkAsSaveIsRequired();
-            SaveController.Save(true);
-
-            // Disable raycast controller if active
             RaycastController.Disable();
 
-            Debug.Log("[GameController] Returning to level selection");
+            levelSave.ReplayingLevelAgain = false;
+
+            LevelData completedLevel = LevelController.LoadedStageData;
+
+            // Mark the completed level with correct index
+            int completedLevelIndex;
+            if (levelSave.isPlayingFromLevelSelection)
+            {
+                completedLevelIndex = levelSave.selectedLevelIndex;
+            }
+            else
+            {
+                completedLevelIndex = levelSave.RealLevelNumber;
+            }
+
+            SaveController.Save(true);
 
             // Load the level selection scene
             UnityEngine.SceneManagement.SceneManager.LoadScene("LevelSelection");
@@ -441,6 +465,14 @@ namespace Watermelon
             levelSave.levelProgress[levelIndex].starsEarned = Mathf.Max(currentStars, stars);
 
             SaveController.MarkAsSaveIsRequired();
+        }
+
+        public void HomeButton()
+        {
+            AudioController.PlaySound(AudioController.Sounds.buttonSound);
+
+            // Simple: just go back to level selection
+            UnityEngine.SceneManagement.SceneManager.LoadScene("LevelSelection");
         }
 
         // public static void LoadNextLevel()
