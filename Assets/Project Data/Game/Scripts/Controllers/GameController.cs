@@ -87,6 +87,56 @@ namespace Watermelon
         //     });
         // }
 
+        // public void InitialiseGame()
+        // {
+        //     uiController.Initialise();
+        //     particlesController.Initialise();
+        //     currenciesController.Initialise();
+        //     tutorialController.Initialise();
+        //     powerUpsController.Initialise();
+        //     uiController.InitialisePages();
+
+        //     RaycastController raycastController = gameObject.AddComponent<RaycastController>();
+        //     raycastController.Initialise();
+
+        //     SkinStoreController.Init();
+        //     levelController.Initialise();
+
+        //     UIController.ShowPage<UIMainMenu>();
+
+        //     // NEW: Check if playing from level selection
+        //     if (levelSave.isPlayingFromLevelSelection)
+        //     {
+        //         // Load the selected level directly
+        //         UIController.ShowPage<UIGame>();
+        //         LoadLevel(() =>
+        //         {
+        //             GameLoading.MarkAsReadyToHide();
+        //             StartGame();
+        //         });
+        //     }
+        //     else
+        //     {
+        //         // Normal game flow
+        //         // if (LevelController.RealLevelNumber != 0)
+        //         // {
+        //         //     UIController.ShowPage<UIMainMenu>();
+        //         // }
+        //         // else
+        //         // {
+        //         //     UIController.ShowPage<UIGame>();
+        //         // }
+
+        //         LoadLevel(() =>
+        //         {
+        //             GameLoading.MarkAsReadyToHide();
+        //             if (LevelController.RealLevelNumber == 0)
+        //             {
+        //                 StartGame();
+        //             }
+        //         });
+        //     }
+        // }
         public void InitialiseGame()
         {
             uiController.Initialise();
@@ -102,13 +152,19 @@ namespace Watermelon
             SkinStoreController.Init();
             levelController.Initialise();
 
-            UIController.ShowPage<UIMainMenu>();
+            // IMPORTANT: Re-get the save object after all initializations
+            levelSave = SaveController.GetSaveObject<LevelSave>("level");
 
-            // NEW: Check if playing from level selection
+            Debug.Log($"[GameController] InitialiseGame - isPlayingFromLevelSelection: {levelSave.isPlayingFromLevelSelection}, selectedLevel: {levelSave.selectedLevelIndex}");
+
+            // Check if playing from level selection
             if (levelSave.isPlayingFromLevelSelection)
             {
-                // Load the selected level directly
+                Debug.Log($"[GameController] Loading from level selection - Level {levelSave.selectedLevelIndex + 1}");
+
+                // Show game UI directly
                 UIController.ShowPage<UIGame>();
+
                 LoadLevel(() =>
                 {
                     GameLoading.MarkAsReadyToHide();
@@ -118,14 +174,7 @@ namespace Watermelon
             else
             {
                 // Normal game flow
-                // if (LevelController.RealLevelNumber != 0)
-                // {
-                //     UIController.ShowPage<UIMainMenu>();
-                // }
-                // else
-                // {
-                //     UIController.ShowPage<UIGame>();
-                // }
+                UIController.ShowPage<UIMainMenu>();
 
                 LoadLevel(() =>
                 {
@@ -137,7 +186,6 @@ namespace Watermelon
                 });
             }
         }
-
 
         // private static void LoadLevel(System.Action OnComplete = null)
         // {
@@ -172,6 +220,35 @@ namespace Watermelon
         //     OnLevelChangedEvent?.Invoke();
         // }
 
+        // private static void LoadLevel(System.Action OnComplete = null)
+        // {
+        //     gameController.levelController.LoadLevel(() =>
+        //     {
+        //         // Initialize orders in UIMainMenu (preview)
+        //         UIMainMenu mainMenu = UIController.GetPage<UIMainMenu>();
+        //         if (mainMenu != null && LevelController.OrderTracker != null)
+        //         {
+        //             LevelData levelData = LevelController.LoadedStageData;
+        //             mainMenu.InitializeOrders(levelData.BusSpawnQueue);
+        //         }
+
+        //         // Initialize orders in UIGame (live tracking)
+        //         if (LevelController.OrderTracker != null)
+        //         {
+        //             UIGame gameUI = UIController.GetPage<UIGame>();
+        //             if (gameUI != null)
+        //             {
+        //                 LevelData levelData = LevelController.LoadedStageData;
+        //                 gameUI.InitializeOrders(levelData.BusSpawnQueue);
+        //             }
+        //         }
+
+        //         OnComplete?.Invoke();
+        //     });
+
+        //     OnLevelChangedEvent?.Invoke();
+        // }
+
         private static void LoadLevel(System.Action OnComplete = null)
         {
             gameController.levelController.LoadLevel(() =>
@@ -183,7 +260,7 @@ namespace Watermelon
                     LevelData levelData = LevelController.LoadedStageData;
                     mainMenu.InitializeOrders(levelData.BusSpawnQueue);
                 }
-
+        
                 // Initialize orders in UIGame (live tracking)
                 if (LevelController.OrderTracker != null)
                 {
@@ -194,10 +271,10 @@ namespace Watermelon
                         gameUI.InitializeOrders(levelData.BusSpawnQueue);
                     }
                 }
-
+        
                 OnComplete?.Invoke();
             });
-
+        
             OnLevelChangedEvent?.Invoke();
         }
 
