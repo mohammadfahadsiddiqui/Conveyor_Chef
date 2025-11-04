@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 3420963712108190198}
   - component: {fileID: 915149987612684205}
   m_Layer: 5
-  m_Name: Image
+  m_Name: map
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -223,7 +223,7 @@ GameObject:
   - component: {fileID: 4768972111095681215}
   - component: {fileID: 2489346801442115034}
   m_Layer: 5
-  m_Name: Image
+  m_Name: shadow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -236,12 +236,12 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3090890573568593377}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 8949424265223476184}
+  m_Father: {fileID: 6974574955561168020}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -296,6 +296,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3829202046901898485}
   - component: {fileID: 7501818054345504426}
+  - component: {fileID: 5014492377776015662}
   m_Layer: 0
   m_Name: Loading Screen
   m_TagString: Untagged
@@ -336,6 +337,27 @@ MonoBehaviour:
   backgroundImage: {fileID: 7530689543908134603}
   canvasScaler: {fileID: 4541973953943290547}
   loadingCamera: {fileID: 2321393889918777808}
+--- !u!114 &5014492377776015662
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3395919838312422690}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce01f24d76c9d4968a1c6ccc64ca42a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  scooterTransform: {fileID: 8949424265223476184}
+  mapTransform: {fileID: 7259000807914858834}
+  shadowTransform: {fileID: 7322522647771580294}
+  scooterBounceHeight: 20
+  scooterBounceDuration: 1
+  mapRotationDuration: 8
+  shadowScaleMin: 0.9
+  shadowScaleMax: 1.1
+  playOnEnable: 1
 --- !u!1 &4586536653664873260
 GameObject:
   m_ObjectHideFlags: 0
@@ -476,7 +498,7 @@ GameObject:
   - component: {fileID: 5925284946940991010}
   - component: {fileID: 7951059133063589606}
   m_Layer: 5
-  m_Name: Image
+  m_Name: scooter
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -493,8 +515,7 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 7322522647771580294}
+  m_Children: []
   m_Father: {fileID: 6974574955561168020}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
@@ -573,6 +594,7 @@ RectTransform:
   m_Children:
   - {fileID: 7259000807914858834}
   - {fileID: 8949424265223476184}
+  - {fileID: 7322522647771580294}
   m_Father: {fileID: 8998368078783892896}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -601,14 +623,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 0.8490566, g: 0.8310342, b: 0.74092203, a: 1}
+  m_Color: {r: 0.14509805, g: 0.14901961, b: 0.16078432, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: bd0bb2ebf32d8c142802818c66c4592e, type: 3}
+  m_Sprite: {fileID: 0}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1

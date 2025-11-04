@@ -13,11 +13,12 @@ MonoBehaviour:
   m_Name: PU Shuffle Settings
   m_EditorClassIdentifier: 
   type: 2
-  icon: {fileID: 21300000, guid: bc05c9e359644804ea39b33fdcf4cbb3, type: 3}
+  icon: {fileID: 21300000, guid: 91d6c8592971949ae90fdc3bbcb8be88, type: 3}
   behaviorPrefab: {fileID: 7790535292472644827, guid: 8e778cfa513e3c1479c851dfaf32ea2c, type: 3}
   defaultAmount: 3
   description: Shuffle characters on the map
   requiredLevel: 0
+  visualiseActiveState: 0
   backgroundColor: {r: 1, g: 0.95722246, b: 0.48584908, a: 1}
   currencyType: 0
   price: 100

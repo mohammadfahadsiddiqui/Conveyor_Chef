@@ -374,7 +374,7 @@ namespace Watermelon
             RaycastController.Disable();
             LivesManager.RemoveLife();
 
-            UIController.HidePage<UIGame>();
+            //UIController.HidePage<UIGame>();
             UIController.ShowPage<UIGameOver>();
 
             AudioController.PlaySound(AudioController.Sounds.failSound);
@@ -430,7 +430,7 @@ namespace Watermelon
             LevelController.MarkLevelCompleted(completedLevelIndex, 3);
             SaveController.Save(true);
 
-            UIController.HidePage<UIGame>();
+            //UIController.HidePage<UIGame>();
             UIController.ShowPage<UIComplete>();
 
             AudioController.PlaySound(AudioController.Sounds.completeSound);

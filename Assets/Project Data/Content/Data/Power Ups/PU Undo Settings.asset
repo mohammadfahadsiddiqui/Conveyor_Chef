@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PU Undo Settings
   m_EditorClassIdentifier: 
   type: 0
-  icon: {fileID: 21300000, guid: a323e3679e7ff1145b4828972d86518d, type: 3}
+  icon: {fileID: 21300000, guid: 1bbb978795f124882a79914d91354f18, type: 3}
   behaviorPrefab: {fileID: 1263534553345675991, guid: ce69ece84a382034caa6bb0c26aaea5f, type: 3}
   defaultAmount: 3
   description: Undo the last move

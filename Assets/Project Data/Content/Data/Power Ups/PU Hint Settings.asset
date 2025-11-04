@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PU Hint Settings
   m_EditorClassIdentifier: 
   type: 1
-  icon: {fileID: 21300000, guid: 8d897474d50966f4797ea6072db7c1a0, type: 3}
+  icon: {fileID: 21300000, guid: dcdf4b7b3f0fb46dba600783463a2f7e, type: 3}
   behaviorPrefab: {fileID: 1085015711430956740, guid: 1fd2d5235b313f241881511df2c10e65, type: 3}
   defaultAmount: 3
   description: Complete pair
