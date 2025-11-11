@@ -20034,7 +20034,7 @@ Transform:
   m_GameObject: {fileID: 956244638}
   serializedVersion: 2
   m_LocalRotation: {x: 0.54463905, y: 0, z: 0, w: 0.8386706}
-  m_LocalPosition: {x: 0, y: 24.62, z: -11.3}
+  m_LocalPosition: {x: 0, y: 25, z: -13}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -30626,7 +30626,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4220367465153731948, guid: 6ab7b2ae81cc462429d971366cb819ef, type: 3}
       propertyPath: m_AnchoredPosition.y
-      value: 0.0026245117
+      value: 0.0014343262
       objectReference: {fileID: 0}
     - target: {fileID: 5029019629099302171, guid: 6ab7b2ae81cc462429d971366cb819ef, type: 3}
       propertyPath: m_Name
@@ -31209,31 +31209,31 @@ PrefabInstance:
     - target: {fileID: 4656055550505403961, guid: b5f6cc9f0ef59d34b9f4a1e24115de70, type: 3}
       propertyPath: busTypeSprites.Array.data[0].sprite
       value: 
-      objectReference: {fileID: 21300000, guid: 3d3d22bd7bcc84c3ea224e7fbc3ab8fa, type: 3}
+      objectReference: {fileID: 21300000, guid: 082b76558942f45c78fd0d38cd724aa8, type: 3}
     - target: {fileID: 4656055550505403961, guid: b5f6cc9f0ef59d34b9f4a1e24115de70, type: 3}
       propertyPath: busTypeSprites.Array.data[1].sprite
       value: 
-      objectReference: {fileID: 21300000, guid: a16b8e9d1a0684238ad991bb9cf54f96, type: 3}
+      objectReference: {fileID: 21300000, guid: de92dcd2b17704974ad138499a9b8b4e, type: 3}
     - target: {fileID: 4656055550505403961, guid: b5f6cc9f0ef59d34b9f4a1e24115de70, type: 3}
       propertyPath: busTypeSprites.Array.data[2].sprite
       value: 
-      objectReference: {fileID: 21300000, guid: 4298bbe36690141a996ad1d4ab91e16f, type: 3}
+      objectReference: {fileID: 21300000, guid: 1cf224a64e1214f16b42214b52003eaf, type: 3}
     - target: {fileID: 4656055550505403961, guid: b5f6cc9f0ef59d34b9f4a1e24115de70, type: 3}
       propertyPath: busTypeSprites.Array.data[3].sprite
       value: 
-      objectReference: {fileID: 21300000, guid: f9312fb9fdc0d40a78080d27c2e70bdf, type: 3}
+      objectReference: {fileID: 21300000, guid: b0d0119652be546a29e2e10b55ce5d86, type: 3}
     - target: {fileID: 4656055550505403961, guid: b5f6cc9f0ef59d34b9f4a1e24115de70, type: 3}
       propertyPath: busTypeSprites.Array.data[4].sprite
       value: 
-      objectReference: {fileID: 21300000, guid: c5416d30fa8214e17a3dc6e3d76ff17c, type: 3}
+      objectReference: {fileID: 21300000, guid: 51f5ff2f406ba4b6a98ee95088142528, type: 3}
     - target: {fileID: 4656055550505403961, guid: b5f6cc9f0ef59d34b9f4a1e24115de70, type: 3}
       propertyPath: busTypeSprites.Array.data[5].sprite
       value: 
-      objectReference: {fileID: 21300000, guid: 5c16982386eeb45338bd77b6380200ea, type: 3}
+      objectReference: {fileID: 21300000, guid: 8bfdb0ddc0b5d460da92de9f17862fd4, type: 3}
     - target: {fileID: 4656055550505403961, guid: b5f6cc9f0ef59d34b9f4a1e24115de70, type: 3}
       propertyPath: busTypeSprites.Array.data[6].sprite
       value: 
-      objectReference: {fileID: 21300000, guid: 297521d8565d54df7b8c5f601b04a98b, type: 3}
+      objectReference: {fileID: 21300000, guid: 0cacd0b08f544470790753e3dd5979f8, type: 3}
     - target: {fileID: 4726178063034198013, guid: b5f6cc9f0ef59d34b9f4a1e24115de70, type: 3}
       propertyPath: m_LocalPosition.z
       value: 36
@@ -32096,6 +32096,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5178066047858781992}
     m_Modifications:
+    - target: {fileID: 405371334666097637, guid: f498ec5c4d8606d44b8576c76181fe5a, type: 3}
+      propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 405371334666097637, guid: f498ec5c4d8606d44b8576c76181fe5a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 405371334666097637, guid: f498ec5c4d8606d44b8576c76181fe5a, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 502419815835314810, guid: f498ec5c4d8606d44b8576c76181fe5a, type: 3}
       propertyPath: 'm_ActiveFontFeatures.Array.data[0]'
       value: 1801810542
@@ -32176,6 +32188,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6217617638586576338, guid: f498ec5c4d8606d44b8576c76181fe5a, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6500966416460795563, guid: f498ec5c4d8606d44b8576c76181fe5a, type: 3}
       propertyPath: m_Sprite
       value: 
@@ -32187,6 +32203,18 @@ PrefabInstance:
     - target: {fileID: 6500966416460795563, guid: f498ec5c4d8606d44b8576c76181fe5a, type: 3}
       propertyPath: m_PixelsPerUnitMultiplier
       value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 6607549417842268371, guid: f498ec5c4d8606d44b8576c76181fe5a, type: 3}
+      propertyPath: m_Pivot.y
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6607549417842268371, guid: f498ec5c4d8606d44b8576c76181fe5a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6607549417842268371, guid: f498ec5c4d8606d44b8576c76181fe5a, type: 3}
+      propertyPath: m_AnchoredPosition.y
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7223891417244055454, guid: f498ec5c4d8606d44b8576c76181fe5a, type: 3}
       propertyPath: m_Enabled

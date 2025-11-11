@@ -79,10 +79,10 @@ MonoBehaviour:
       x: 2
       y: 1
   - elementPosition:
-      x: 0
+      x: 1
       y: 2
   - elementPosition:
-      x: 1
+      x: 0
       y: 2
   - elementPosition:
       x: 2

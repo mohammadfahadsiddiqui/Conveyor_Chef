@@ -426,6 +426,58 @@ namespace Watermelon
             return null;
         }
 
+        // /// <summary>
+        // /// Applies pooled object settings to object.
+        // /// </summary>
+        // /// <param name="gameObject">Game object to apply settings.</param>
+        // /// <param name="settings">Settings to apply.</param>
+        // protected void SetupPooledObject(GameObject gameObject, PooledObjectSettings settings)
+        // {
+        //     Transform objectTransform = gameObject.transform;
+
+        //     if (settings.ApplyParrent)
+        //     {
+        //         objectTransform.SetParent(settings.Parrent);
+        //     }
+
+        //     if (settings.ApplyPosition)
+        //     {
+        //         objectTransform.position = settings.Position;
+        //     }
+
+        //     if (settings.ApplyLocalPosition)
+        //     {
+        //         objectTransform.localPosition = settings.LocalPosition;
+        //     }
+
+        //     if (settings.ApplyEulerRotation)
+        //     {
+        //         objectTransform.eulerAngles = settings.EulerRotation;
+        //     }
+
+        //     if(settings.ApplyLocalEulerRotation)
+        //     {
+        //         objectTransform.localEulerAngles = settings.LocalEulerRotation;
+        //     }
+
+        //     if (settings.ApplyRotation)
+        //     {
+        //         objectTransform.rotation = settings.Rotation;
+        //     }
+
+        //     if (settings.ApplyLocalRotation)
+        //     {
+        //         objectTransform.rotation = settings.LocalRotation;
+        //     }
+
+        //     if (settings.ApplyLocalScale)
+        //     {
+        //         objectTransform.localScale = settings.LocalScale;
+        //     }
+
+        //     gameObject.SetActive(settings.Activate);
+        // }
+
         /// <summary>
         /// Applies pooled object settings to object.
         /// </summary>
@@ -455,7 +507,7 @@ namespace Watermelon
                 objectTransform.eulerAngles = settings.EulerRotation;
             }
 
-            if(settings.ApplyLocalEulerRotation)
+            if (settings.ApplyLocalEulerRotation)
             {
                 objectTransform.localEulerAngles = settings.LocalEulerRotation;
             }
@@ -470,13 +522,20 @@ namespace Watermelon
                 objectTransform.rotation = settings.LocalRotation;
             }
 
+            // ALWAYS reset scale to Vector3.one unless explicitly overridden
             if (settings.ApplyLocalScale)
             {
                 objectTransform.localScale = settings.LocalScale;
             }
+            else
+            {
+                // Reset to default scale
+                objectTransform.localScale = Vector3.one;
+            }
 
             gameObject.SetActive(settings.Activate);
         }
+
 
         /// <summary>
         /// Adds one more object to a single type pool.

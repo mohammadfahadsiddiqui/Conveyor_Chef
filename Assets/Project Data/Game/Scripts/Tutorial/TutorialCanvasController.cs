@@ -33,18 +33,37 @@ namespace Watermelon
             canvasRectTransform = (RectTransform)tutorialCanvas.transform;
         }
 
+        // public static void ActivatePointer(Vector3 position, int animationHash)
+        // {
+        //     RectTransform pointerTransform = (RectTransform)instance.pointerAnimator.transform;
+        //     pointerTransform.gameObject.SetActive(true);
+
+        //     pointerTransform.localPosition = WorldToCanvasPosition(canvasRectTransform, Camera.main, position);
+        //     pointerTransform.SetAsLastSibling();
+
+        //     tutorialCanvas.enabled = true;
+
+        //     instance.pointerAnimator.Play(animationHash, -1, 0);
+        // }
+
         public static void ActivatePointer(Vector3 position, int animationHash)
         {
             RectTransform pointerTransform = (RectTransform)instance.pointerAnimator.transform;
             pointerTransform.gameObject.SetActive(true);
 
-            pointerTransform.localPosition = WorldToCanvasPosition(canvasRectTransform, Camera.main, position);
+            Vector2 canvasPos = WorldToCanvasPosition(canvasRectTransform, Camera.main, position);
+
+            // ✅ Offset Y by -1
+            canvasPos.y -= 80f;
+
+            pointerTransform.localPosition = canvasPos;
             pointerTransform.SetAsLastSibling();
 
             tutorialCanvas.enabled = true;
 
             instance.pointerAnimator.Play(animationHash, -1, 0);
         }
+
 
         private static Vector2 WorldToCanvasPosition(RectTransform canvas, Camera camera, Vector3 position)
         {
