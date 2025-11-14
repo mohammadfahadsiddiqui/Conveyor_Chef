@@ -220,6 +220,7 @@ namespace Watermelon.BusStop
         {
             if (currentPage > 0)
             {
+                AudioController.PlaySound(AudioController.Sounds.buttonSound);
                 // CHANGED: Always allow navigation, don't check if unlocked
                 controller.ShowPage(currentPage - 1);
             }
@@ -229,6 +230,7 @@ namespace Watermelon.BusStop
         {
             if (currentPage < indicators.Length - 1)
             {
+                AudioController.PlaySound(AudioController.Sounds.buttonSound);
                 // CHANGED: Always allow navigation to next page
                 controller.ShowPage(currentPage + 1);
             }

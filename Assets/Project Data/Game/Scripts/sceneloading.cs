@@ -1,16 +1,27 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Watermelon.BusStop;
 
-public class sceneloading : MonoBehaviour
+namespace Watermelon.BusStop
 {
-    public string gameSceneName = "Game";
-    public void scenechange()
+    public class sceneloading : MonoBehaviour
     {
-        SceneManager.LoadScene(gameSceneName);
-    }
+        public string gameSceneName = "Game";
+        public void scenechange()
+        {
+            AudioController.PlaySound(AudioController.Sounds.buttonSound);
+            SceneManager.LoadScene(gameSceneName);
+        }
 
-    public void quit()
-    {
-        Application.Quit();
+        public void quit()
+        {
+            AudioController.PlaySound(AudioController.Sounds.buttonSound);
+            Application.Quit();
+        }
+
+        public void buttonsound()
+        {
+            AudioController.PlaySound(AudioController.Sounds.buttonSound);
+        }
     }
 }

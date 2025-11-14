@@ -109,6 +109,7 @@ namespace Watermelon.BusStop
         {
             if (isUnlocked)
             {
+                AudioController.PlaySound(AudioController.Sounds.buttonSound);
                 LevelSelectionController.Instance.LoadSelectedLevel(levelIndex);
             }
         }
