@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Audio Settings
   m_EditorClassIdentifier: 
   music:
-    gameMusic: {fileID: 0}
+    gameMusic: {fileID: 8300000, guid: e18713d5c19d4a84fa2c91618335bcd5, type: 3}
   sounds:
     buttonSound: {fileID: 8300000, guid: 43778771ca132fe44baa768ab4be8bc2, type: 3}
     matchSound: {fileID: 8300000, guid: 1241c180ad574404590d97a6644a8811, type: 3}

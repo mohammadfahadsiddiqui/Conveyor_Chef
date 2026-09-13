@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -23,20 +23,40 @@ namespace Watermelon
 
         private static IExtensionProvider extensions;
         public static IExtensionProvider Extensions => extensions;
+
+        private DummyIAPWrapper fallbackWrapper;
 #endif
 
         public override async void Initialise(IAPSettings settings)
         {
 #if MODULE_IAP
+            // If project is not linked to a Unity Cloud Project ID, gracefully fallback to Dummy IAP
+            if (string.IsNullOrEmpty(Application.cloudProjectId))
+            {
+                Debug.Log("[IAPWrapper]: Unity Project is not linked to a Project ID in Project Settings > Services. Operating in local Dummy IAP mode.");
+                fallbackWrapper = new DummyIAPWrapper();
+                fallbackWrapper.Initialise(settings);
+                return;
+            }
+
             try
             {
                 var options = new InitializationOptions().SetEnvironmentName("production");
-
                 await UnityServices.InitializeAsync(options);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[IAPWrapper]: Unity Services initialization failed ({ex.Message}). Operating in local Dummy IAP mode.");
+                fallbackWrapper = new DummyIAPWrapper();
+                fallbackWrapper.Initialise(settings);
+                return;
+            }
 
+            try
+            {
                 StandardPurchasingModule purchasingModule = StandardPurchasingModule.Instance();
 
-                if (settings.UseTestMode)
+                if (settings.UseTestMode || Application.isEditor)
                 {
                     purchasingModule.useFakeStoreAlways = true;
                     purchasingModule.useFakeStoreUIMode = FakeStoreUIMode.DeveloperUser;
@@ -46,16 +66,21 @@ namespace Watermelon
                 ConfigurationBuilder builder = ConfigurationBuilder.Instance(purchasingModule);
 
                 IAPItem[] items = settings.StoreItems;
-                for (int i = 0; i < items.Length; i++)
+                if (items != null)
                 {
-                    builder.AddProduct(items[i].ID, (UnityEngine.Purchasing.ProductType)items[i].ProductType);
+                    for (int i = 0; i < items.Length; i++)
+                    {
+                        builder.AddProduct(items[i].ID, (UnityEngine.Purchasing.ProductType)items[i].ProductType);
+                    }
                 }
 
                 UnityPurchasing.Initialize(this, builder);
             }
             catch (System.Exception exception)
             {
-                Debug.LogError(exception.Message);
+                Debug.LogWarning("[IAPWrapper]: UnityPurchasing initialization failed: " + exception.Message + ". Falling back to Dummy IAP.");
+                fallbackWrapper = new DummyIAPWrapper();
+                fallbackWrapper.Initialise(settings);
             }
 #else
             await Task.Run(() => Debug.Log("[IAP Manager]: Define MODULE_IAP is disabled!"));
@@ -160,6 +185,12 @@ namespace Watermelon
         public override void RestorePurchases()
         {
 #if MODULE_IAP
+            if (fallbackWrapper != null)
+            {
+                fallbackWrapper.RestorePurchases();
+                return;
+            }
+
             if (!IAPManager.IsInitialised)
             {
                 IAPCanvas.ShowMessage("Network error. Please try again later");
@@ -192,6 +223,12 @@ namespace Watermelon
         public override void BuyProduct(ProductKeyType productKeyType)
         {
 #if MODULE_IAP
+            if (fallbackWrapper != null)
+            {
+                fallbackWrapper.BuyProduct(productKeyType);
+                return;
+            }
+
             if (!IAPManager.IsInitialised)
             {
                 IAPCanvas.ShowMessage("Network error. Please try again later");
@@ -214,6 +251,12 @@ namespace Watermelon
 
         public override ProductData GetProductData(ProductKeyType productKeyType)
         {
+#if MODULE_IAP
+            if (fallbackWrapper != null)
+            {
+                return fallbackWrapper.GetProductData(productKeyType);
+            }
+#endif
             if (!IAPManager.IsInitialised)
                 return null;
 
@@ -231,6 +274,11 @@ namespace Watermelon
         public override bool IsSubscribed(ProductKeyType productKeyType)
         {
 #if MODULE_IAP
+            if (fallbackWrapper != null)
+            {
+                return fallbackWrapper.IsSubscribed(productKeyType);
+            }
+
             IAPItem item = IAPManager.GetIAPItem(productKeyType);
             if (item != null)
             {

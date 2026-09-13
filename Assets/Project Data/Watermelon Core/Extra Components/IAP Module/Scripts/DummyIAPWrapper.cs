@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Watermelon
@@ -41,7 +41,7 @@ namespace Watermelon
 
         public override void Initialise(IAPSettings settings)
         {
-            Debug.LogWarning("[IAP Manager]: Dummy mode is activated. Configure the module before uploading the game to stores!");
+            Debug.Log("[IAP Manager]: Dummy mode is activated for local testing.");
 
             IAPManager.OnModuleInitialised();
         }

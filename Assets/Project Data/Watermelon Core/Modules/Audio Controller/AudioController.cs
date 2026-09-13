@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Watermelon
 {
@@ -86,6 +87,9 @@ namespace Watermelon
             vibrationState = PrefsSettings.GetBool(PrefsSettings.Key.Vibration);
             volume = PrefsSettings.GetFloat(PrefsSettings.Key.Volume);
 
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            SceneManager.sceneLoaded += OnSceneLoaded;
+
             Tween.InvokeCoroutine(MinDelayQueueUpdate());
         }
 
@@ -93,6 +97,13 @@ namespace Watermelon
         {
             if (audioListener != null)
                 return;
+
+            AudioListener existing = UnityEngine.Object.FindFirstObjectByType<AudioListener>();
+            if (existing != null)
+            {
+                audioListener = existing;
+                return;
+            }
 
             // Create game object for listener
             GameObject listenerObject = new GameObject("[AUDIO LISTENER]");
@@ -103,6 +114,29 @@ namespace Watermelon
 
             // Add listener component to created object
             audioListener = listenerObject.AddComponent<AudioListener>();
+        }
+
+        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            AudioListener[] listeners = UnityEngine.Object.FindObjectsByType<AudioListener>(FindObjectsSortMode.None);
+            if (listeners != null && listeners.Length > 1)
+            {
+                bool keptOne = false;
+                for (int i = 0; i < listeners.Length; i++)
+                {
+                    if (listeners[i] == null) continue;
+
+                    if (!keptOne && listeners[i].enabled)
+                    {
+                        keptOne = true;
+                        audioListener = listeners[i];
+                    }
+                    else
+                    {
+                        listeners[i].enabled = false;
+                    }
+                }
+            }
         }
 
         public static bool IsVibrationModuleEnabled()
@@ -118,7 +152,11 @@ namespace Watermelon
         public static void PlayRandomMusic()
         {
             if (!musicAudioClips.IsNullOrEmpty())
-                PlayMusic(musicAudioClips.GetRandomItem());
+            {
+                AudioClip clip = musicAudioClips.GetRandomItem();
+                if (clip != null)
+                    PlayMusic(clip);
+            }
         }
 
         /// <summary>
@@ -258,7 +296,7 @@ namespace Watermelon
         public static void PlayMusic(AudioClip clip, float volumePercentage = 1.0f)
         {
             if (clip == null)
-                Debug.LogError("[AudioController]: Audio clip is null");
+                return;
 
             AudioSource source = instance.GetAudioSource();
 
