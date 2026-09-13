@@ -6,32 +6,37 @@ using UnityEngine.UI;
 namespace Watermelon.BusStop
 {
     /// <summary>
-    /// Applies the generated level-map visual language to the existing real level
-    /// buttons while leaving unlock/progression callbacks untouched.
+    /// Uses the approved level-selection artwork as the visual backdrop while the
+    /// existing real level buttons continue to own progression and click behaviour.
     /// </summary>
     public static class ConveyorChefLevelSelectionStyler
     {
+        private const string ArtworkResource = "UIReference/LevelSelectionReference.b64";
+
         public static void Style(LevelSelectionController controller)
         {
-            if (controller == null) return;
-
-            ConveyorChefUITheme.StyleLevelSelectionScene(controller);
+            if (controller == null)
+                return;
 
             Canvas canvas = controller.GetComponentInParent<Canvas>();
             if (canvas == null)
                 canvas = UnityEngine.Object.FindFirstObjectByType<Canvas>(FindObjectsInactive.Include);
-            if (canvas == null) return;
+            if (canvas == null)
+                return;
 
-            AddMapBackdrop(canvas.transform);
+            AddApprovedBackdrop(canvas.transform);
+            HideLegacyBackdropArt(canvas.gameObject);
             RestyleLevelButtons(canvas.gameObject);
             StyleNavigation(canvas.gameObject);
         }
 
-        private static void AddMapBackdrop(Transform canvas)
+        private static void AddApprovedBackdrop(Transform canvas)
         {
-            if (canvas.Find("CC_LevelMapBackdrop") != null) return;
+            if (canvas.Find("CC_ApprovedLevelSelectionArtwork") != null)
+                return;
 
-            GameObject backdrop = new GameObject("CC_LevelMapBackdrop", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            Texture2D artwork = UIReferenceImageLoader.LoadTexture(ArtworkResource);
+            GameObject backdrop = new GameObject("CC_ApprovedLevelSelectionArtwork", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
             backdrop.layer = LayerMask.NameToLayer("UI");
             backdrop.transform.SetParent(canvas, false);
             backdrop.transform.SetAsFirstSibling();
@@ -39,38 +44,27 @@ namespace Watermelon.BusStop
             RectTransform rect = backdrop.GetComponent<RectTransform>();
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
-            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
 
-            Image image = backdrop.GetComponent<Image>();
-            image.color = new Color(0.55f, 0.83f, 0.96f, 1f);
+            RawImage image = backdrop.GetComponent<RawImage>();
+            image.texture = artwork;
+            image.color = artwork != null ? Color.white : new Color(0.55f, 0.83f, 0.96f, 1f);
             image.raycastTarget = false;
+        }
 
-            // Warm road/map panel behind the actual level buttons.
-            GameObject road = new GameObject("RoadMap", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            road.layer = LayerMask.NameToLayer("UI");
-            road.transform.SetParent(backdrop.transform, false);
-            RectTransform roadRect = road.GetComponent<RectTransform>();
-            roadRect.anchorMin = new Vector2(0.05f, 0.08f);
-            roadRect.anchorMax = new Vector2(0.95f, 0.82f);
-            roadRect.offsetMin = roadRect.offsetMax = Vector2.zero;
-            Image roadImage = road.GetComponent<Image>();
-            roadImage.color = new Color(0.98f, 0.82f, 0.57f, 0.94f);
-            roadImage.raycastTarget = false;
-
-            // Decorative map path made from alternating road markers.
-            for (int i = 0; i < 7; i++)
+        private static void HideLegacyBackdropArt(GameObject root)
+        {
+            Image[] images = root.GetComponentsInChildren<Image>(true);
+            foreach (Image image in images)
             {
-                GameObject marker = new GameObject("PathMarker" + i, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                marker.layer = LayerMask.NameToLayer("UI");
-                marker.transform.SetParent(road.transform, false);
-                RectTransform m = marker.GetComponent<RectTransform>();
-                float y = 0.09f + i * 0.13f;
-                m.anchorMin = new Vector2(i % 2 == 0 ? 0.29f : 0.58f, y);
-                m.anchorMax = m.anchorMin;
-                m.sizeDelta = new Vector2(160, 18);
-                Image mi = marker.GetComponent<Image>();
-                mi.color = new Color(1f, 1f, 1f, 0.58f);
-                mi.raycastTarget = false;
+                if (image == null || image.GetComponent<Button>() != null)
+                    continue;
+
+                string name = image.name.ToLowerInvariant();
+                if (name.Contains("background") || name == "bg" || name.Contains("scooter") || name.Contains("map"))
+                    image.enabled = false;
             }
         }
 
@@ -79,10 +73,12 @@ namespace Watermelon.BusStop
             Button[] buttons = root.GetComponentsInChildren<Button>(true);
             foreach (Button button in buttons)
             {
-                if (!LooksLikeLevelButton(button)) continue;
+                if (!LooksLikeLevelButton(button))
+                    continue;
 
                 int levelNumber = ExtractLevelNumber(button);
-                if (levelNumber <= 0) continue;
+                if (levelNumber <= 0)
+                    continue;
 
                 int levelIndex = levelNumber - 1;
                 bool completed = false;
@@ -92,20 +88,28 @@ namespace Watermelon.BusStop
                 }
                 catch (Exception)
                 {
-                    // Existing button state remains authoritative if saves are not ready yet.
+                    // Existing button state remains authoritative while saves initialise.
                 }
 
                 Color stateColor;
                 if (!button.interactable)
-                    stateColor = ConveyorChefUITheme.Locked;
+                    stateColor = new Color(0.38f, 0.39f, 0.42f, 1f);
                 else if (completed)
-                    stateColor = ConveyorChefUITheme.Gold;
+                    stateColor = new Color(1f, 0.66f, 0.08f, 1f);
                 else
-                    stateColor = ConveyorChefUITheme.Green;
+                    stateColor = new Color(0.35f, 0.84f, 0.17f, 1f);
 
-                ConveyorChefUITheme.StyleButton(button, stateColor,
-                    button.interactable ? ConveyorChefUITheme.Ink : Color.white,
-                    completed || !button.interactable ? 1f : 1.07f);
+                Image image = button.GetComponent<Image>();
+                if (image != null)
+                {
+                    image.color = stateColor;
+                    Shadow shadow = image.GetComponent<Shadow>();
+                    if (shadow == null)
+                        shadow = image.gameObject.AddComponent<Shadow>();
+                    shadow.effectColor = new Color(0.18f, 0.08f, 0.02f, 0.42f);
+                    shadow.effectDistance = new Vector2(0f, -7f);
+                    shadow.useGraphicAlpha = true;
+                }
 
                 TMP_Text[] labels = button.GetComponentsInChildren<TMP_Text>(true);
                 foreach (TMP_Text label in labels)
@@ -114,7 +118,7 @@ namespace Watermelon.BusStop
                     if (IsNumeric(label.text))
                     {
                         label.fontSize = Mathf.Max(label.fontSize, 48f);
-                        label.color = button.interactable ? ConveyorChefUITheme.Ink : Color.white;
+                        label.color = button.interactable ? new Color(0.28f, 0.12f, 0.05f, 1f) : Color.white;
                     }
                 }
             }
@@ -124,25 +128,33 @@ namespace Watermelon.BusStop
         {
             foreach (Button button in root.GetComponentsInChildren<Button>(true))
             {
-                string n = button.name.ToLowerInvariant();
-                if (n.Contains("back") || n.Contains("previous") || n.Contains("prev"))
-                    ConveyorChefUITheme.StyleButton(button, ConveyorChefUITheme.CreamLight, ConveyorChefUITheme.Ink, 1f);
-                else if (n.Contains("next") || n.Contains("forward"))
-                    ConveyorChefUITheme.StyleButton(button, ConveyorChefUITheme.CreamLight, ConveyorChefUITheme.Ink, 1f);
+                string name = button.name.ToLowerInvariant();
+                if (!(name.Contains("back") || name.Contains("previous") || name.Contains("prev") || name.Contains("next") || name.Contains("forward")))
+                    continue;
+
+                Image image = button.GetComponent<Image>();
+                if (image != null)
+                    image.color = new Color(1f, 0.94f, 0.80f, 1f);
+
+                foreach (TMP_Text text in button.GetComponentsInChildren<TMP_Text>(true))
+                {
+                    text.fontStyle = FontStyles.Bold;
+                    text.color = new Color(0.31f, 0.14f, 0.06f, 1f);
+                }
             }
         }
 
         private static bool LooksLikeLevelButton(Button button)
         {
-            string n = button.name.ToLowerInvariant();
-            if (n.Contains("level")) return true;
+            string name = button.name.ToLowerInvariant();
+            if (name.Contains("level"))
+                return true;
             return ExtractLevelNumber(button) > 0;
         }
 
         private static int ExtractLevelNumber(Button button)
         {
-            TMP_Text[] labels = button.GetComponentsInChildren<TMP_Text>(true);
-            foreach (TMP_Text label in labels)
+            foreach (TMP_Text label in button.GetComponentsInChildren<TMP_Text>(true))
             {
                 if (int.TryParse(label.text == null ? string.Empty : label.text.Trim(), out int value))
                     return value;
