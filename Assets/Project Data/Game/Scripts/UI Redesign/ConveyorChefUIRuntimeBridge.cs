@@ -43,7 +43,6 @@ namespace Watermelon.BusStop
 
             private IEnumerator ApplyWhenReady()
             {
-                // Let scene-owned Start/Initialise methods create dynamic UI first.
                 yield return null;
                 yield return null;
 
@@ -54,7 +53,7 @@ namespace Watermelon.BusStop
                         LevelSelectionController controller = Object.FindFirstObjectByType<LevelSelectionController>(FindObjectsInactive.Include);
                         if (controller != null)
                         {
-                            ConveyorChefUITheme.StyleLevelSelectionScene(controller);
+                            ConveyorChefLevelSelectionStyler.Style(controller);
                             break;
                         }
                         yield return null;
