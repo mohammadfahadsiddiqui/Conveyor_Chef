@@ -43,7 +43,7 @@ namespace Watermelon.BusStop
 
             private IEnumerator ApplyWhenReady()
             {
-                // Let scene-owned Start/Initialise methods create their dynamic UI first.
+                // Let scene-owned Start/Initialise methods create dynamic UI first.
                 yield return null;
                 yield return null;
 
@@ -62,9 +62,16 @@ namespace Watermelon.BusStop
                 }
                 else if (sceneName.Equals("Game", System.StringComparison.OrdinalIgnoreCase))
                 {
-                    for (int i = 0; i < 45; i++)
+                    for (int i = 0; i < 60; i++)
                     {
                         bool styledAnything = false;
+
+                        global::Watermelon.UIMainMenu[] mainMenus = Object.FindObjectsByType<global::Watermelon.UIMainMenu>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+                        foreach (global::Watermelon.UIMainMenu menu in mainMenus)
+                        {
+                            ConveyorChefGameplayHUDStyler.Style(menu);
+                            styledAnything = true;
+                        }
 
                         global::Watermelon.UIGame[] gamePages = Object.FindObjectsByType<global::Watermelon.UIGame>(FindObjectsInactive.Include, FindObjectsSortMode.None);
                         foreach (global::Watermelon.UIGame page in gamePages)
@@ -72,6 +79,7 @@ namespace Watermelon.BusStop
                             TMPro.TextMeshProUGUI level = FindLevelLabel(page.gameObject);
                             UnityEngine.UI.Button replay = FindNamedButton(page.gameObject, "replay");
                             ConveyorChefUITheme.StyleGameplayPage(page.gameObject, level, replay);
+                            ConveyorChefGameplayHUDStyler.StylePowerups(page.gameObject);
                             styledAnything = true;
                         }
 
