@@ -8,517 +8,399 @@ using UnityEngine.UI;
 namespace Watermelon.BusStop
 {
     /// <summary>
-    /// Builds the Conveyor Chef main menu presentation at runtime while preserving
-    /// the existing scene-loading logic and the original menu scene as a fallback.
+    /// Presentation-only main menu overhaul. Existing scene navigation remains owned
+    /// by sceneloading so the redesign cannot break the game's flow.
     /// </summary>
     public sealed class MainMenuRedesignController : MonoBehaviour
     {
         private const string ROOT_NAME = "CC_MainMenu_Redesign";
         private const string SOUND_PREF_KEY = "CC_SOUND_MUTED";
 
-        private static readonly Color Cream = new Color(1.00f, 0.95f, 0.84f, 1.00f);
-        private static readonly Color CreamLight = new Color(1.00f, 0.985f, 0.94f, 1.00f);
-        private static readonly Color Tomato = new Color(0.90f, 0.20f, 0.20f, 1.00f);
-        private static readonly Color TomatoDark = new Color(0.67f, 0.10f, 0.11f, 1.00f);
-        private static readonly Color Teal = new Color(0.10f, 0.59f, 0.55f, 1.00f);
-        private static readonly Color Honey = new Color(1.00f, 0.70f, 0.18f, 1.00f);
-        private static readonly Color Ink = new Color(0.19f, 0.12f, 0.10f, 1.00f);
-        private static readonly Color White = new Color(1.00f, 1.00f, 1.00f, 1.00f);
-
         private sceneloading sceneLoader;
-        private TMP_FontAsset legacyFont;
-        private Sprite legacyPlaySprite;
-        private Sprite legacyMapSprite;
-        private Sprite legacyScooterSprite;
-        private Sprite legacySettingsIcon;
-        private Sprite legacyPanelSprite;
         private Canvas legacyCanvas;
+        private TMP_FontAsset font;
+        private Sprite buttonSprite;
+        private Sprite panelSprite;
+        private Sprite settingsSprite;
 
-        private RectTransform safeAreaRoot;
+        private RectTransform safeArea;
         private Rect lastSafeArea;
-        private GameObject settingsOverlay;
-        private TextMeshProUGUI soundStateText;
-
-        private RectTransform logoRoot;
-        private RectTransform heroRoot;
-        private RectTransform playButtonRoot;
+        private RectTransform logo;
+        private RectTransform hero;
+        private RectTransform playArea;
         private CanvasGroup logoGroup;
         private CanvasGroup heroGroup;
         private CanvasGroup playGroup;
-
+        private GameObject settingsPopup;
+        private TMP_Text soundLabel;
         private bool initialised;
 
         public void Initialise(sceneloading loader)
         {
-            if (initialised || loader == null)
-                return;
-
+            if (initialised || loader == null) return;
             initialised = true;
             sceneLoader = loader;
 
-            if (FindSceneObject(ROOT_NAME) != null)
-                return;
+            GameObject oldRoot = GameObject.Find(ROOT_NAME);
+            if (oldRoot != null) Destroy(oldRoot);
 
-            CaptureLegacyReferences();
+            CaptureLegacyAssets();
             EnsureEventSystem();
-            BuildMenu();
-            ApplySavedSoundState();
+            Build();
+            ApplyStoredSoundState();
 
             if (legacyCanvas != null)
                 legacyCanvas.gameObject.SetActive(false);
 
-            StartCoroutine(EntranceRoutine());
-            StartCoroutine(HeroFloatRoutine());
-            StartCoroutine(PlayPulseRoutine());
+            StartCoroutine(Entrance());
+            StartCoroutine(HeroIdle());
+            StartCoroutine(PlayPulse());
         }
 
         private void Update()
         {
-            if (safeAreaRoot != null && Screen.safeArea != lastSafeArea)
+            if (safeArea != null && Screen.safeArea != lastSafeArea)
                 ApplySafeArea();
         }
 
-        private void CaptureLegacyReferences()
+        private void CaptureLegacyAssets()
         {
-            GameObject playObject = FindSceneObject("play");
-            if (playObject != null)
-            {
-                Image image = playObject.GetComponent<Image>();
-                if (image != null)
-                    legacyPlaySprite = image.sprite;
+            Scene scene = SceneManager.GetActiveScene();
+            GameObject[] roots = scene.GetRootGameObjects();
 
-                legacyCanvas = playObject.GetComponentInParent<Canvas>(true);
-            }
-
-            GameObject mapObject = FindSceneObject("map");
-            if (mapObject != null)
+            foreach (GameObject root in roots)
             {
-                Image image = mapObject.GetComponent<Image>();
-                if (image != null)
-                    legacyMapSprite = image.sprite;
-            }
-
-            GameObject scooterObject = FindSceneObject("scooter");
-            if (scooterObject != null)
-            {
-                Image image = scooterObject.GetComponent<Image>();
-                if (image != null)
-                    legacyScooterSprite = image.sprite;
-            }
-
-            GameObject settingsObject = FindSceneObject("setting");
-            if (settingsObject != null)
-            {
-                Image[] images = settingsObject.GetComponentsInChildren<Image>(true);
-                for (int i = 0; i < images.Length; i++)
+                foreach (Canvas canvas in root.GetComponentsInChildren<Canvas>(true))
                 {
-                    if (images[i].gameObject != settingsObject && images[i].sprite != null)
-                    {
-                        legacySettingsIcon = images[i].sprite;
-                        break;
-                    }
+                    if (legacyCanvas == null) legacyCanvas = canvas;
                 }
-            }
 
-            GameObject settingsPanelObject = FindSceneObject("setting panel");
-            if (settingsPanelObject != null)
-            {
-                Image image = settingsPanelObject.GetComponent<Image>();
-                if (image != null)
-                    legacyPanelSprite = image.sprite;
-            }
-
-            Scene activeScene = SceneManager.GetActiveScene();
-            GameObject[] roots = activeScene.GetRootGameObjects();
-            for (int i = 0; i < roots.Length && legacyFont == null; i++)
-            {
-                TextMeshProUGUI[] labels = roots[i].GetComponentsInChildren<TextMeshProUGUI>(true);
-                for (int j = 0; j < labels.Length; j++)
+                foreach (TextMeshProUGUI text in root.GetComponentsInChildren<TextMeshProUGUI>(true))
                 {
-                    if (labels[j].font != null)
-                    {
-                        legacyFont = labels[j].font;
-                        break;
-                    }
+                    if (text.font != null && font == null) font = text.font;
+                }
+
+                foreach (Image image in root.GetComponentsInChildren<Image>(true))
+                {
+                    string n = image.name.ToLowerInvariant();
+                    if (buttonSprite == null && n.Contains("play") && image.sprite != null) buttonSprite = image.sprite;
+                    if (panelSprite == null && (n.Contains("panel") || n.Contains("background")) && image.sprite != null) panelSprite = image.sprite;
+                    if (settingsSprite == null && (n.Contains("setting") || n.Contains("gear")) && image.sprite != null) settingsSprite = image.sprite;
                 }
             }
         }
 
-        private void EnsureEventSystem()
-        {
-            EventSystem[] eventSystems = FindObjectsByType<EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            if (eventSystems.Length > 0)
-            {
-                eventSystems[0].gameObject.SetActive(true);
-                return;
-            }
-
-            GameObject eventSystemObject = new GameObject("CC_EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-            eventSystemObject.transform.SetParent(null);
-        }
-
-        private void BuildMenu()
+        private void Build()
         {
             GameObject root = new GameObject(ROOT_NAME, typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             root.layer = LayerMask.NameToLayer("UI");
 
             Canvas canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 100;
+            canvas.sortingOrder = 200;
 
             CanvasScaler scaler = root.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1080f, 1920f);
+            scaler.referenceResolution = new Vector2(1080, 1920);
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0.5f;
 
             RectTransform canvasRect = root.GetComponent<RectTransform>();
+            BuildBackground(canvasRect);
 
-            Image background = CreateImage("Background", canvasRect, CreamLight, null);
-            Stretch(background.rectTransform);
-
-            Image topBand = CreateImage("TopWarmBand", canvasRect, new Color(1f, 0.84f, 0.59f, 0.75f), legacyPanelSprite);
-            SetRect(topBand.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, 40f), new Vector2(1180f, 550f));
-
-            Image bottomBand = CreateImage("BottomWarmBand", canvasRect, new Color(0.96f, 0.86f, 0.68f, 0.95f), legacyPanelSprite);
-            SetRect(bottomBand.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, -40f), new Vector2(1180f, 570f));
-
-            Image accentStrip = CreateImage("AccentStrip", canvasRect, Tomato, null);
-            SetRect(accentStrip.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(0f, 18f));
-
-            safeAreaRoot = CreateRect("SafeArea", canvasRect);
+            safeArea = Rect("SafeArea", canvasRect);
             ApplySafeArea();
 
             BuildHeader();
             BuildHero();
-            BuildActions();
+            BuildPlay();
             BuildFooter();
-            BuildSettingsOverlay(canvasRect);
+            BuildSettings(canvasRect);
+        }
+
+        private void BuildBackground(RectTransform canvas)
+        {
+            Image sky = Image("Sky", canvas, ConveyorChefUITheme.Sky, null);
+            Stretch(sky.rectTransform);
+
+            Image sunGlow = Image("SunGlow", canvas, new Color(1f, 0.84f, 0.40f, 0.34f), panelSprite);
+            Place(sunGlow.rectTransform, new Vector2(0.50f, 0.72f), new Vector2(0.50f, 0.72f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1250, 1250));
+
+            Image street = Image("FoodTown", canvas, new Color(1f, 0.78f, 0.50f, 1f), panelSprite);
+            Place(street.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0.57f), new Vector2(0.5f, 0f), Vector2.zero, Vector2.zero);
+
+            Image horizon = Image("Horizon", canvas, new Color(0.97f, 0.45f, 0.24f, 0.55f), panelSprite);
+            Place(horizon.rectTransform, new Vector2(0f, 0.40f), new Vector2(1f, 0.60f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+
+            // Food-factory silhouettes keep the scene lively without competing with the CTA.
+            for (int i = 0; i < 5; i++)
+            {
+                float x = 0.04f + i * 0.235f;
+                float h = 230 + (i % 3) * 75;
+                Image building = Image("Shop" + i, canvas, new Color(0.35f, 0.20f, 0.14f, 0.24f), panelSprite);
+                Place(building.rectTransform, new Vector2(x, 0.42f), new Vector2(x + 0.19f, 0.42f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(0, h));
+            }
+
+            Image foreground = Image("ForegroundShade", canvas, new Color(0.18f, 0.09f, 0.04f, 0.22f), null);
+            Place(foreground.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0.23f), new Vector2(0.5f, 0f), Vector2.zero, Vector2.zero);
         }
 
         private void BuildHeader()
         {
-            RectTransform header = CreateRect("Header", safeAreaRoot);
-            SetRect(header, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -120f), new Vector2(980f, 360f));
+            logo = Rect("Logo", safeArea);
+            Place(logo, new Vector2(0.08f, 0.70f), new Vector2(0.92f, 0.96f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            logoGroup = logo.gameObject.AddComponent<CanvasGroup>();
 
-            logoRoot = CreateRect("Logo", header);
-            SetRect(logoRoot, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(860f, 285f));
-            logoGroup = logoRoot.gameObject.AddComponent<CanvasGroup>();
+            TMP_Text chefHat = Text("ChefHat", logo, "♨", 88, ConveyorChefUITheme.CreamLight, FontStyles.Bold);
+            Place(chefHat.rectTransform, new Vector2(0.38f, 0.75f), new Vector2(0.62f, 1f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 
-            TextMeshProUGUI title = CreateText("Title", logoRoot, "CONVEYOR CHEF", 96f, Ink, FontStyles.Bold);
-            SetRect(title.rectTransform, new Vector2(0f, 0.53f), new Vector2(1f, 1f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            TMP_Text title = Text("Title", logo, "CONVEYOR\nCHEF", 112, ConveyorChefUITheme.Gold, FontStyles.Bold);
+            title.lineSpacing = -18;
+            Place(title.rectTransform, new Vector2(0f, 0.20f), new Vector2(1f, 0.82f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 
-            TextMeshProUGUI subtitle = CreateText("Subtitle", logoRoot, "FOOD RUSH", 58f, Tomato, FontStyles.Bold);
-            SetRect(subtitle.rectTransform, new Vector2(0f, 0.22f), new Vector2(1f, 0.58f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-            subtitle.characterSpacing = 5f;
+            Image ribbon = Image("Ribbon", logo, ConveyorChefUITheme.Tomato, panelSprite);
+            Place(ribbon.rectTransform, new Vector2(0.19f, 0.03f), new Vector2(0.81f, 0.25f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            AddShadow(ribbon, new Vector2(0, -7), 0.28f);
 
-            TextMeshProUGUI tagline = CreateText("Tagline", logoRoot, "SORT  •  SERVE  •  RUSH", 25f, new Color(Ink.r, Ink.g, Ink.b, 0.72f), FontStyles.Bold);
-            SetRect(tagline.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0.27f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-            tagline.characterSpacing = 3f;
+            TMP_Text subtitle = Text("FoodRush", ribbon.transform, "FOOD RUSH", 46, Color.white, FontStyles.Bold);
+            Stretch(subtitle.rectTransform);
+            subtitle.characterSpacing = 5;
 
-            Button settingsButton = CreateButton("SettingsButton", header, Cream, legacyPanelSprite, OpenSettings);
-            SetRect(settingsButton.GetComponent<RectTransform>(), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-20f, -25f), new Vector2(128f, 108f));
+            Button settings = Button("Settings", safeArea, ConveyorChefUITheme.CreamLight, OpenSettings);
+            Place(settings.GetComponent<RectTransform>(), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-38, -38), new Vector2(122, 122));
+            AddShadow(settings.GetComponent<Image>(), new Vector2(0, -6), 0.35f);
 
-            if (legacySettingsIcon != null)
+            if (settingsSprite != null)
             {
-                Image icon = CreateImage("Icon", settingsButton.transform, TomatoDark, legacySettingsIcon);
+                Image icon = Image("Icon", settings.transform, ConveyorChefUITheme.Ink, settingsSprite);
                 icon.preserveAspect = true;
-                SetRect(icon.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(62f, 62f));
+                Place(icon.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(66, 66));
             }
             else
             {
-                TextMeshProUGUI settingsLabel = CreateText("Label", settingsButton.transform, "SET", 28f, TomatoDark, FontStyles.Bold);
-                Stretch(settingsLabel.rectTransform);
+                TMP_Text icon = Text("Icon", settings.transform, "⚙", 57, ConveyorChefUITheme.Ink, FontStyles.Bold);
+                Stretch(icon.rectTransform);
             }
         }
 
         private void BuildHero()
         {
-            heroRoot = CreateRect("HeroArea", safeAreaRoot);
-            SetRect(heroRoot, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 120f), new Vector2(940f, 870f));
-            heroGroup = heroRoot.gameObject.AddComponent<CanvasGroup>();
+            hero = Rect("Hero", safeArea);
+            Place(hero, new Vector2(0.05f, 0.22f), new Vector2(0.95f, 0.72f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            heroGroup = hero.gameObject.AddComponent<CanvasGroup>();
 
-            Image heroCard = CreateImage("HeroCard", heroRoot, new Color(1f, 1f, 1f, 0.63f), legacyPanelSprite);
-            SetRect(heroCard.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), new Vector2(900f, 760f));
+            Image glow = Image("HeroGlow", hero, new Color(1f, 0.96f, 0.76f, 0.80f), panelSprite);
+            Place(glow.rectTransform, new Vector2(0.14f, 0.12f), new Vector2(0.86f, 0.93f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            AddShadow(glow, new Vector2(0, -12), 0.30f);
 
-            Image innerAccent = CreateImage("InnerAccent", heroRoot, new Color(Teal.r, Teal.g, Teal.b, 0.12f), legacyPanelSprite);
-            SetRect(innerAccent.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -20f), new Vector2(835f, 695f));
+            // A clean chef badge replaces the unrelated scooter art from the old attempt.
+            Image chefBody = Image("ChefBody", hero, ConveyorChefUITheme.CreamLight, panelSprite);
+            Place(chefBody.rectTransform, new Vector2(0.25f, 0.26f), new Vector2(0.75f, 0.75f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 
-            if (legacyMapSprite != null)
-            {
-                Image map = CreateImage("KitchenMap", heroRoot, new Color(1f, 1f, 1f, 0.30f), legacyMapSprite);
-                map.preserveAspect = true;
-                SetRect(map.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 20f), new Vector2(720f, 720f));
-            }
+            TMP_Text chef = Text("ChefMark", chefBody.transform, "CHEF", 86, ConveyorChefUITheme.Ink, FontStyles.Bold);
+            Place(chef.rectTransform, new Vector2(0.04f, 0.22f), new Vector2(0.96f, 0.72f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            TMP_Text ready = Text("Ready", chefBody.transform, "READY!", 38, ConveyorChefUITheme.Tomato, FontStyles.Bold);
+            Place(ready.rectTransform, new Vector2(0.04f, 0.05f), new Vector2(0.96f, 0.31f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 
-            if (legacyScooterSprite != null)
-            {
-                Image scooter = CreateImage("ChefDeliveryHero", heroRoot, White, legacyScooterSprite);
-                scooter.preserveAspect = true;
-                SetRect(scooter.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 35f), new Vector2(600f, 600f));
-            }
-            else
-            {
-                TextMeshProUGUI fallback = CreateText("HeroFallback", heroRoot, "THE KITCHEN\nIS READY!", 54f, Ink, FontStyles.Bold);
-                fallback.alignment = TextAlignmentOptions.Center;
-                SetRect(fallback.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 60f), new Vector2(700f, 250f));
-            }
+            // Conveyor belt and food category cards visually explain the game before Play.
+            RectTransform conveyor = Rect("Conveyor", hero);
+            Place(conveyor, new Vector2(0.06f, 0.03f), new Vector2(0.94f, 0.26f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            Image belt = Image("Belt", conveyor, new Color(0.18f, 0.16f, 0.15f, 0.94f), panelSprite);
+            Stretch(belt.rectTransform);
 
-            RectTransform badges = CreateRect("FeatureBadges", heroRoot);
-            SetRect(badges, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 25f), new Vector2(760f, 115f));
-
-            CreateBadge(badges, "SORT", -250f, Tomato);
-            CreateBadge(badges, "SERVE", 0f, Honey);
-            CreateBadge(badges, "RUSH", 250f, Teal);
+            CreateFoodCard(conveyor, "BURGER", 0.18f, ConveyorChefUITheme.Gold);
+            CreateFoodCard(conveyor, "DONUT", 0.50f, ConveyorChefUITheme.Tomato);
+            CreateFoodCard(conveyor, "PASTRY", 0.82f, ConveyorChefUITheme.Orange);
         }
 
-        private void BuildActions()
+        private void CreateFoodCard(Transform parent, string label, float x, Color color)
         {
-            playButtonRoot = CreateRect("PlayArea", safeAreaRoot);
-            SetRect(playButtonRoot, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 245f), new Vector2(760f, 235f));
-            playGroup = playButtonRoot.gameObject.AddComponent<CanvasGroup>();
+            Image card = Image(label, parent, color, panelSprite);
+            Place(card.rectTransform, new Vector2(x, 0.50f), new Vector2(x, 0.50f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(230, 112));
+            TMP_Text txt = Text("Label", card.transform, label, 27, ConveyorChefUITheme.Ink, FontStyles.Bold);
+            Stretch(txt.rectTransform);
+        }
 
-            Button playButton = CreateButton("PlayButton", playButtonRoot, Tomato, legacyPlaySprite, PlayGame);
-            SetRect(playButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 180f));
+        private void BuildPlay()
+        {
+            playArea = Rect("PlayArea", safeArea);
+            Place(playArea, new Vector2(0.12f, 0.045f), new Vector2(0.88f, 0.22f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            playGroup = playArea.gameObject.AddComponent<CanvasGroup>();
 
-            TextMeshProUGUI playLabel = CreateText("PlayLabel", playButton.transform, "PLAY", 72f, White, FontStyles.Bold);
-            SetRect(playLabel.rectTransform, new Vector2(0f, 0.25f), new Vector2(1f, 0.92f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-            playLabel.characterSpacing = 4f;
+            Button play = Button("PlayButton", playArea, ConveyorChefUITheme.Tomato, PlayGame);
+            Place(play.GetComponent<RectTransform>(), new Vector2(0f, 0.22f), new Vector2(1f, 0.92f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            AddShadow(play.GetComponent<Image>(), new Vector2(0, -13), 0.42f);
+            AddOutline(play.GetComponent<Image>(), ConveyorChefUITheme.Gold, 5);
 
-            TextMeshProUGUI playSubLabel = CreateText("PlaySubLabel", playButton.transform, "CONTINUE YOUR FOOD RUSH", 20f, new Color(1f, 1f, 1f, 0.84f), FontStyles.Bold);
-            SetRect(playSubLabel.rectTransform, new Vector2(0f, 0.06f), new Vector2(1f, 0.34f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
-            playSubLabel.characterSpacing = 2f;
+            TMP_Text label = Text("Play", play.transform, "▶  PLAY", 76, Color.white, FontStyles.Bold);
+            Stretch(label.rectTransform);
+            label.characterSpacing = 2;
+
+            TMP_Text hint = Text("Hint", playArea, "Continue your food rush", 25, ConveyorChefUITheme.CreamLight, FontStyles.Bold);
+            Place(hint.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0.24f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
         }
 
         private void BuildFooter()
         {
-            TextMeshProUGUI footer = CreateText("Version", safeAreaRoot, $"CONVEYOR CHEF  •  v{Application.version}", 22f, new Color(Ink.r, Ink.g, Ink.b, 0.56f), FontStyles.Bold);
-            SetRect(footer.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 40f), new Vector2(0f, 50f));
+            TMP_Text footer = Text("Version", safeArea, "CONVEYOR CHEF  •  v" + Application.version, 20, new Color(1f, 1f, 1f, 0.82f), FontStyles.Bold);
+            Place(footer.rectTransform, new Vector2(0.15f, 0.005f), new Vector2(0.85f, 0.04f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
         }
 
-        private void BuildSettingsOverlay(RectTransform canvasRect)
+        private void BuildSettings(RectTransform canvas)
         {
-            settingsOverlay = new GameObject("SettingsOverlay", typeof(RectTransform));
-            settingsOverlay.layer = LayerMask.NameToLayer("UI");
-            settingsOverlay.transform.SetParent(canvasRect, false);
-            Stretch(settingsOverlay.GetComponent<RectTransform>());
+            settingsPopup = new GameObject("CC_SettingsPopup", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            settingsPopup.layer = LayerMask.NameToLayer("UI");
+            settingsPopup.transform.SetParent(canvas, false);
+            RectTransform root = settingsPopup.GetComponent<RectTransform>();
+            Stretch(root);
+            Image dim = settingsPopup.GetComponent<Image>();
+            dim.color = ConveyorChefUITheme.Overlay;
 
-            Image dim = settingsOverlay.AddComponent<Image>();
-            dim.color = new Color(0.08f, 0.05f, 0.04f, 0.72f);
-            dim.raycastTarget = true;
+            Image card = Image("Card", settingsPopup.transform, ConveyorChefUITheme.CreamLight, panelSprite);
+            Place(card.rectTransform, new Vector2(0.13f, 0.27f), new Vector2(0.87f, 0.73f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            AddShadow(card, new Vector2(0, -14), 0.45f);
 
-            Image card = CreateImage("SettingsCard", settingsOverlay.transform, CreamLight, legacyPanelSprite);
-            SetRect(card.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(790f, 800f));
+            TMP_Text title = Text("Title", card.transform, "SETTINGS", 61, ConveyorChefUITheme.Ink, FontStyles.Bold);
+            Place(title.rectTransform, new Vector2(0.08f, 0.74f), new Vector2(0.92f, 0.94f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
 
-            Image cardAccent = CreateImage("Accent", card.transform, Tomato, null);
-            SetRect(cardAccent.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), Vector2.zero, new Vector2(0f, 16f));
+            Button sound = Button("Sound", card.transform, ConveyorChefUITheme.Teal, ToggleSound);
+            Place(sound.GetComponent<RectTransform>(), new Vector2(0.14f, 0.47f), new Vector2(0.86f, 0.66f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            soundLabel = Text("Label", sound.transform, "SOUND: ON", 36, Color.white, FontStyles.Bold);
+            Stretch(soundLabel.rectTransform);
 
-            TextMeshProUGUI title = CreateText("Title", card.transform, "SETTINGS", 64f, Ink, FontStyles.Bold);
-            SetRect(title.rectTransform, new Vector2(0.08f, 0.77f), new Vector2(0.92f, 0.95f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            Button quit = Button("Quit", card.transform, ConveyorChefUITheme.Tomato, QuitGame);
+            Place(quit.GetComponent<RectTransform>(), new Vector2(0.14f, 0.25f), new Vector2(0.86f, 0.44f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            TMP_Text quitText = Text("Label", quit.transform, "QUIT GAME", 36, Color.white, FontStyles.Bold);
+            Stretch(quitText.rectTransform);
 
-            TextMeshProUGUI description = CreateText("Description", card.transform, "Adjust the kitchen and jump back into the rush.", 26f, new Color(Ink.r, Ink.g, Ink.b, 0.68f), FontStyles.Normal);
-            SetRect(description.rectTransform, new Vector2(0.10f, 0.66f), new Vector2(0.90f, 0.78f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            Button back = Button("Back", card.transform, ConveyorChefUITheme.Cream, CloseSettings);
+            Place(back.GetComponent<RectTransform>(), new Vector2(0.25f, 0.06f), new Vector2(0.75f, 0.20f), new Vector2(0.5f, 0.5f), Vector2.zero, Vector2.zero);
+            TMP_Text backText = Text("Label", back.transform, "BACK", 30, ConveyorChefUITheme.Ink, FontStyles.Bold);
+            Stretch(backText.rectTransform);
 
-            Button soundButton = CreateButton("SoundButton", card.transform, Teal, legacyPlaySprite, ToggleSound);
-            SetRect(soundButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 85f), new Vector2(560f, 145f));
-            soundStateText = CreateText("SoundState", soundButton.transform, "SOUND: ON", 40f, White, FontStyles.Bold);
-            Stretch(soundStateText.rectTransform);
-
-            Button quitButton = CreateButton("QuitButton", card.transform, Tomato, legacyPlaySprite, QuitGame);
-            SetRect(quitButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -100f), new Vector2(560f, 130f));
-            TextMeshProUGUI quitLabel = CreateText("QuitLabel", quitButton.transform, "QUIT GAME", 36f, White, FontStyles.Bold);
-            Stretch(quitLabel.rectTransform);
-
-            Button closeButton = CreateButton("CloseButton", card.transform, Cream, legacyPanelSprite, CloseSettings);
-            SetRect(closeButton.GetComponent<RectTransform>(), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 65f), new Vector2(390f, 105f));
-            TextMeshProUGUI closeLabel = CreateText("CloseLabel", closeButton.transform, "BACK", 32f, Ink, FontStyles.Bold);
-            Stretch(closeLabel.rectTransform);
-
-            settingsOverlay.SetActive(false);
+            settingsPopup.SetActive(false);
         }
 
-        private void CreateBadge(RectTransform parent, string text, float x, Color accent)
-        {
-            Image badge = CreateImage(text + "Badge", parent, new Color(accent.r, accent.g, accent.b, 0.17f), legacyPanelSprite);
-            SetRect(badge.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(x, 0f), new Vector2(205f, 74f));
-
-            TextMeshProUGUI label = CreateText("Label", badge.transform, text, 25f, accent, FontStyles.Bold);
-            Stretch(label.rectTransform);
-            label.characterSpacing = 2f;
-        }
-
-        private void PlayGame()
-        {
-            sceneLoader.scenechange();
-        }
+        private void PlayGame() => sceneLoader.scenechange();
 
         private void OpenSettings()
         {
             sceneLoader.buttonsound();
-            settingsOverlay.SetActive(true);
-            settingsOverlay.transform.SetAsLastSibling();
+            settingsPopup.SetActive(true);
+            settingsPopup.transform.SetAsLastSibling();
         }
 
         private void CloseSettings()
         {
             sceneLoader.buttonsound();
-            settingsOverlay.SetActive(false);
+            settingsPopup.SetActive(false);
         }
 
-        private void QuitGame()
-        {
-            sceneLoader.quit();
-        }
+        private void QuitGame() => sceneLoader.quit();
 
         private void ToggleSound()
         {
-            bool muted = AudioListener.volume <= 0.001f;
-            muted = !muted;
-
-            AudioListener.volume = muted ? 0f : 1f;
-            PlayerPrefs.SetInt(SOUND_PREF_KEY, muted ? 1 : 0);
+            bool mute = AudioListener.volume > 0.001f;
+            AudioListener.volume = mute ? 0 : 1;
+            PlayerPrefs.SetInt(SOUND_PREF_KEY, mute ? 1 : 0);
             PlayerPrefs.Save();
-
-            RefreshSoundLabel();
-
-            if (!muted)
-                sceneLoader.buttonsound();
+            RefreshSound();
+            if (!mute) sceneLoader.buttonsound();
         }
 
-        private void ApplySavedSoundState()
+        private void ApplyStoredSoundState()
         {
-            bool muted = PlayerPrefs.GetInt(SOUND_PREF_KEY, 0) == 1;
-            AudioListener.volume = muted ? 0f : 1f;
-            RefreshSoundLabel();
+            AudioListener.volume = PlayerPrefs.GetInt(SOUND_PREF_KEY, 0) == 1 ? 0 : 1;
+            RefreshSound();
         }
 
-        private void RefreshSoundLabel()
+        private void RefreshSound()
         {
-            if (soundStateText != null)
-                soundStateText.text = AudioListener.volume <= 0.001f ? "SOUND: OFF" : "SOUND: ON";
+            if (soundLabel != null)
+                soundLabel.text = AudioListener.volume <= 0.001f ? "SOUND: OFF" : "SOUND: ON";
         }
 
-        private IEnumerator EntranceRoutine()
+        private IEnumerator Entrance()
         {
-            logoGroup.alpha = 0f;
-            heroGroup.alpha = 0f;
-            playGroup.alpha = 0f;
-
-            logoRoot.localScale = Vector3.one * 0.90f;
-            heroRoot.localScale = Vector3.one * 0.94f;
-            playButtonRoot.localScale = Vector3.one * 0.92f;
-
-            float elapsed = 0f;
-            const float duration = 0.55f;
-
-            while (elapsed < duration)
+            logoGroup.alpha = heroGroup.alpha = playGroup.alpha = 0;
+            logo.localScale = hero.localScale = playArea.localScale = Vector3.one * 0.90f;
+            float t = 0;
+            while (t < 0.60f)
             {
-                elapsed += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
-                float eased = Mathf.SmoothStep(0f, 1f, t);
-
-                logoGroup.alpha = Mathf.Clamp01(t * 1.7f);
-                heroGroup.alpha = Mathf.Clamp01((t - 0.12f) * 1.8f);
-                playGroup.alpha = Mathf.Clamp01((t - 0.28f) * 2.3f);
-
-                logoRoot.localScale = Vector3.one * Mathf.Lerp(0.90f, 1f, eased);
-                heroRoot.localScale = Vector3.one * Mathf.Lerp(0.94f, 1f, eased);
-                playButtonRoot.localScale = Vector3.one * Mathf.Lerp(0.92f, 1f, eased);
-
+                t += Time.unscaledDeltaTime;
+                float p = Mathf.SmoothStep(0, 1, Mathf.Clamp01(t / 0.60f));
+                logoGroup.alpha = Mathf.Clamp01(p * 1.6f);
+                heroGroup.alpha = Mathf.Clamp01((p - 0.10f) * 1.8f);
+                playGroup.alpha = Mathf.Clamp01((p - 0.24f) * 2.3f);
+                logo.localScale = Vector3.one * Mathf.Lerp(0.90f, 1f, p);
+                hero.localScale = Vector3.one * Mathf.Lerp(0.93f, 1f, p);
+                playArea.localScale = Vector3.one * Mathf.Lerp(0.92f, 1f, p);
                 yield return null;
             }
-
-            logoGroup.alpha = 1f;
-            heroGroup.alpha = 1f;
-            playGroup.alpha = 1f;
-            logoRoot.localScale = Vector3.one;
-            heroRoot.localScale = Vector3.one;
-            playButtonRoot.localScale = Vector3.one;
+            logoGroup.alpha = heroGroup.alpha = playGroup.alpha = 1;
+            logo.localScale = hero.localScale = playArea.localScale = Vector3.one;
         }
 
-        private IEnumerator HeroFloatRoutine()
+        private IEnumerator HeroIdle()
         {
-            yield return new WaitForSecondsRealtime(0.6f);
-
-            Vector2 basePosition = heroRoot.anchoredPosition;
-            float phase = 0f;
-
-            while (heroRoot != null)
+            yield return new WaitForSecondsRealtime(0.7f);
+            Vector2 basePos = hero.anchoredPosition;
+            float phase = 0;
+            while (hero != null)
             {
-                phase += Time.unscaledDeltaTime * 1.35f;
-                heroRoot.anchoredPosition = basePosition + Vector2.up * (Mathf.Sin(phase) * 7f);
+                phase += Time.unscaledDeltaTime * 1.3f;
+                hero.anchoredPosition = basePos + Vector2.up * Mathf.Sin(phase) * 7f;
                 yield return null;
             }
         }
 
-        private IEnumerator PlayPulseRoutine()
+        private IEnumerator PlayPulse()
         {
             yield return new WaitForSecondsRealtime(0.8f);
-
-            float phase = 0f;
-            while (playButtonRoot != null)
+            float phase = 0;
+            while (playArea != null)
             {
-                phase += Time.unscaledDeltaTime * 2f;
-                float pulse = (Mathf.Sin(phase) + 1f) * 0.5f;
-                playButtonRoot.localScale = Vector3.one * Mathf.Lerp(1f, 1.022f, pulse);
+                phase += Time.unscaledDeltaTime * 1.8f;
+                playArea.localScale = Vector3.one * Mathf.Lerp(1f, 1.025f, (Mathf.Sin(phase) + 1f) * 0.5f);
                 yield return null;
             }
         }
 
         private void ApplySafeArea()
         {
-            if (safeAreaRoot == null || Screen.width <= 0 || Screen.height <= 0)
-                return;
-
-            Rect safe = Screen.safeArea;
-            lastSafeArea = safe;
-
-            Vector2 min = safe.position;
-            Vector2 max = safe.position + safe.size;
-            min.x /= Screen.width;
-            min.y /= Screen.height;
-            max.x /= Screen.width;
-            max.y /= Screen.height;
-
-            safeAreaRoot.anchorMin = min;
-            safeAreaRoot.anchorMax = max;
-            safeAreaRoot.offsetMin = Vector2.zero;
-            safeAreaRoot.offsetMax = Vector2.zero;
+            if (safeArea == null || Screen.width <= 0 || Screen.height <= 0) return;
+            Rect area = Screen.safeArea;
+            lastSafeArea = area;
+            Vector2 min = area.position;
+            Vector2 max = area.position + area.size;
+            min.x /= Screen.width; min.y /= Screen.height;
+            max.x /= Screen.width; max.y /= Screen.height;
+            safeArea.anchorMin = min;
+            safeArea.anchorMax = max;
+            safeArea.offsetMin = safeArea.offsetMax = Vector2.zero;
         }
 
-        private GameObject FindSceneObject(string objectName)
+        private void EnsureEventSystem()
         {
-            Scene activeScene = SceneManager.GetActiveScene();
-            GameObject[] roots = activeScene.GetRootGameObjects();
-
-            for (int i = 0; i < roots.Length; i++)
-            {
-                Transform[] transforms = roots[i].GetComponentsInChildren<Transform>(true);
-                for (int j = 0; j < transforms.Length; j++)
-                {
-                    if (transforms[j].name == objectName)
-                        return transforms[j].gameObject;
-                }
-            }
-
-            return null;
+            EventSystem[] systems = FindObjectsByType<EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            if (systems.Length > 0) { systems[0].gameObject.SetActive(true); return; }
+            new GameObject("CC_EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
         }
 
-        private RectTransform CreateRect(string objectName, Transform parent)
+        private RectTransform Rect(string name, Transform parent)
         {
-            GameObject gameObject = new GameObject(objectName, typeof(RectTransform));
-            gameObject.layer = LayerMask.NameToLayer("UI");
-            gameObject.transform.SetParent(parent, false);
-            return gameObject.GetComponent<RectTransform>();
+            GameObject go = new GameObject(name, typeof(RectTransform));
+            go.layer = LayerMask.NameToLayer("UI");
+            go.transform.SetParent(parent, false);
+            return go.GetComponent<RectTransform>();
         }
 
-        private Image CreateImage(string objectName, Transform parent, Color color, Sprite sprite)
+        private Image Image(string name, Transform parent, Color color, Sprite sprite)
         {
-            GameObject gameObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            gameObject.layer = LayerMask.NameToLayer("UI");
-            gameObject.transform.SetParent(parent, false);
-
-            Image image = gameObject.GetComponent<Image>();
+            GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            go.layer = LayerMask.NameToLayer("UI");
+            go.transform.SetParent(parent, false);
+            Image image = go.GetComponent<Image>();
             image.color = color;
             image.sprite = sprite;
             image.type = sprite != null ? Image.Type.Sliced : Image.Type.Simple;
@@ -526,13 +408,12 @@ namespace Watermelon.BusStop
             return image;
         }
 
-        private TextMeshProUGUI CreateText(string objectName, Transform parent, string value, float size, Color color, FontStyles style)
+        private TMP_Text Text(string name, Transform parent, string value, float size, Color color, FontStyles style)
         {
-            GameObject gameObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
-            gameObject.layer = LayerMask.NameToLayer("UI");
-            gameObject.transform.SetParent(parent, false);
-
-            TextMeshProUGUI text = gameObject.GetComponent<TextMeshProUGUI>();
+            GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+            go.layer = LayerMask.NameToLayer("UI");
+            go.transform.SetParent(parent, false);
+            TextMeshProUGUI text = go.GetComponent<TextMeshProUGUI>();
             text.text = value;
             text.fontSize = size;
             text.color = color;
@@ -540,62 +421,54 @@ namespace Watermelon.BusStop
             text.alignment = TextAlignmentOptions.Center;
             text.enableWordWrapping = false;
             text.raycastTarget = false;
-            text.overflowMode = TextOverflowModes.Overflow;
-
-            if (legacyFont != null)
-                text.font = legacyFont;
-
+            if (font != null) text.font = font;
             return text;
         }
 
-        private Button CreateButton(string objectName, Transform parent, Color color, Sprite sprite, UnityEngine.Events.UnityAction action)
+        private Button Button(string name, Transform parent, Color color, UnityEngine.Events.UnityAction action)
         {
-            GameObject gameObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
-            gameObject.layer = LayerMask.NameToLayer("UI");
-            gameObject.transform.SetParent(parent, false);
-
-            Image image = gameObject.GetComponent<Image>();
+            GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            go.layer = LayerMask.NameToLayer("UI");
+            go.transform.SetParent(parent, false);
+            Image image = go.GetComponent<Image>();
             image.color = color;
-            image.sprite = sprite;
-            image.type = sprite != null ? Image.Type.Sliced : Image.Type.Simple;
-            image.raycastTarget = true;
-
-            Button button = gameObject.GetComponent<Button>();
+            image.sprite = buttonSprite ?? panelSprite;
+            image.type = image.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+            Button button = go.GetComponent<Button>();
             button.targetGraphic = image;
-            button.transition = Selectable.Transition.ColorTint;
-
-            ColorBlock colors = button.colors;
-            colors.normalColor = White;
-            colors.highlightedColor = new Color(1f, 1f, 1f, 1f);
-            colors.pressedColor = new Color(0.82f, 0.82f, 0.82f, 1f);
-            colors.selectedColor = White;
-            colors.disabledColor = new Color(1f, 1f, 1f, 0.40f);
-            colors.colorMultiplier = 1f;
-            colors.fadeDuration = 0.08f;
-            button.colors = colors;
-
-            if (action != null)
-                button.onClick.AddListener(action);
-
+            button.onClick.AddListener(action);
             return button;
+        }
+
+        private void AddShadow(Image image, Vector2 distance, float alpha)
+        {
+            if (image == null || image.GetComponent<Shadow>() != null) return;
+            Shadow shadow = image.gameObject.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0.12f, 0.05f, 0.02f, alpha);
+            shadow.effectDistance = distance;
+            shadow.useGraphicAlpha = true;
+        }
+
+        private void AddOutline(Image image, Color color, float amount)
+        {
+            if (image == null || image.GetComponent<Outline>() != null) return;
+            Outline outline = image.gameObject.AddComponent<Outline>();
+            outline.effectColor = color;
+            outline.effectDistance = new Vector2(amount, -amount);
+            outline.useGraphicAlpha = true;
         }
 
         private static void Stretch(RectTransform rect)
         {
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
+            rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one;
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
         }
 
-        private static void SetRect(RectTransform rect, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 anchoredPosition, Vector2 sizeDelta)
+        private static void Place(RectTransform rect, Vector2 min, Vector2 max, Vector2 pivot, Vector2 pos, Vector2 size)
         {
-            rect.anchorMin = anchorMin;
-            rect.anchorMax = anchorMax;
-            rect.pivot = pivot;
-            rect.anchoredPosition = anchoredPosition;
-            rect.sizeDelta = sizeDelta;
+            rect.anchorMin = min; rect.anchorMax = max; rect.pivot = pivot;
+            rect.anchoredPosition = pos; rect.sizeDelta = size;
         }
     }
 }
