@@ -65,8 +65,7 @@ namespace Watermelon.BusStop
                 {
                     SuppressScooter();
 
-                    LevelSelectionInteractionRepair[] oldRepairs = FindObjectsByType<LevelSelectionInteractionRepair>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-                    foreach (LevelSelectionInteractionRepair repair in oldRepairs)
+                    foreach (LevelSelectionInteractionRepair repair in FindObjectsByType<LevelSelectionInteractionRepair>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                     {
                         if (repair != null)
                             Destroy(repair.gameObject);
@@ -75,6 +74,10 @@ namespace Watermelon.BusStop
                     GameObject oldControls = GameObject.Find("CC_RealLevelControls");
                     if (oldControls != null)
                         Destroy(oldControls);
+
+                    GameObject oldArtworkControls = GameObject.Find("CC_LevelSelectionArtworkInteractions");
+                    if (oldArtworkControls != null)
+                        Destroy(oldArtworkControls);
 
                     GameObject interactions = new GameObject("CC_LevelSelectionArtworkInteractions");
                     interactions.AddComponent<LevelArtworkInteractions>();
@@ -89,8 +92,7 @@ namespace Watermelon.BusStop
 
             private static void SuppressScooter()
             {
-                ScooterAnimationController[] scooters = FindObjectsByType<ScooterAnimationController>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-                foreach (ScooterAnimationController scooter in scooters)
+                foreach (ScooterAnimationController scooter in FindObjectsByType<ScooterAnimationController>(FindObjectsInactive.Include, FindObjectsSortMode.None))
                 {
                     if (scooter == null)
                         continue;
@@ -114,6 +116,8 @@ namespace Watermelon.BusStop
         private Button button;
         private Coroutine restoreRoutine;
         private Vector3 baseScale;
+        private Color baseColor;
+        private bool transparentTarget;
 
         private void Awake()
         {
@@ -122,7 +126,10 @@ namespace Watermelon.BusStop
             baseScale = transform.localScale;
 
             if (image != null)
-                image.color = new Color(1f, 1f, 1f, 0.001f);
+            {
+                baseColor = image.color;
+                transparentTarget = image.color.a < 0.02f;
+            }
         }
 
         public void OnPointerDown(PointerEventData eventData)
@@ -133,20 +140,19 @@ namespace Watermelon.BusStop
             if (restoreRoutine != null)
                 StopCoroutine(restoreRoutine);
 
-            transform.localScale = baseScale * 0.94f;
+            transform.localScale = baseScale * 0.92f;
+
             if (image != null)
-                image.color = new Color(1f, 1f, 1f, 0.20f);
+            {
+                if (transparentTarget)
+                    image.color = new Color(1f, 1f, 1f, 0.20f);
+                else
+                    image.color = new Color(baseColor.r * 0.82f, baseColor.g * 0.82f, baseColor.b * 0.82f, baseColor.a);
+            }
         }
 
-        public void OnPointerUp(PointerEventData eventData)
-        {
-            RestoreAnimated();
-        }
-
-        public void OnPointerExit(PointerEventData eventData)
-        {
-            RestoreAnimated();
-        }
+        public void OnPointerUp(PointerEventData eventData) => RestoreAnimated();
+        public void OnPointerExit(PointerEventData eventData) => RestoreAnimated();
 
         private void RestoreAnimated()
         {
@@ -162,8 +168,9 @@ namespace Watermelon.BusStop
         private IEnumerator RestoreRoutine()
         {
             Vector3 startScale = transform.localScale;
+            Color startColor = image != null ? image.color : Color.white;
             float elapsed = 0f;
-            const float duration = 0.12f;
+            const float duration = 0.13f;
 
             while (elapsed < duration)
             {
@@ -173,17 +180,14 @@ namespace Watermelon.BusStop
                 transform.localScale = Vector3.Lerp(startScale, baseScale, eased);
 
                 if (image != null)
-                {
-                    float alpha = Mathf.Lerp(0.20f, 0.001f, eased);
-                    image.color = new Color(1f, 1f, 1f, alpha);
-                }
+                    image.color = Color.Lerp(startColor, baseColor, eased);
 
                 yield return null;
             }
 
             transform.localScale = baseScale;
             if (image != null)
-                image.color = new Color(1f, 1f, 1f, 0.001f);
+                image.color = baseColor;
             restoreRoutine = null;
         }
     }
@@ -192,12 +196,25 @@ namespace Watermelon.BusStop
     {
         private const int LevelsPerPage = 12;
         private const int TotalLevels = 50;
+        private const string EditorResetKey = "CC_DYNAMIC_LEVEL_GRID_RESET_V2";
+
+        private static readonly Color CompletedColor = new Color(1f, 0.62f, 0.05f, 1f);
+        private static readonly Color CurrentColor = new Color(0.31f, 0.82f, 0.13f, 1f);
+        private static readonly Color LockedColor = new Color(0.39f, 0.40f, 0.43f, 1f);
+        private static readonly Color DarkText = new Color(0.25f, 0.12f, 0.05f, 1f);
 
         private LevelSelectionController controller;
         private TMP_FontAsset font;
+        private Sprite levelButtonSprite;
+        private Image.Type levelButtonImageType = Image.Type.Simple;
+        private Sprite lockSprite;
+        private Sprite starSprite;
+
         private Button[] levelButtons;
         private TMP_Text[] levelLabels;
         private Image[] levelImages;
+        private Image[][] stars;
+        private Image[] lockIcons;
         private Button backButton;
         private Button nextButton;
         private TMP_Text pageLabel;
@@ -219,11 +236,38 @@ namespace Watermelon.BusStop
                 yield break;
             }
 
+#if UNITY_EDITOR
+            ResetEditorProgressOnce();
+#endif
+
             EnsureEventSystem();
-            CaptureFontAndHideLegacyButtons();
+            CaptureLegacyVisualsAndHideButtons();
             BuildControls();
             Refresh();
         }
+
+#if UNITY_EDITOR
+        private void ResetEditorProgressOnce()
+        {
+            if (PlayerPrefs.GetInt(EditorResetKey, 0) == 1)
+                return;
+
+            LevelSave save = SaveController.GetSaveObject<LevelSave>("level");
+            save.RealLevelNumber = 0;
+            save.DisplayLevelNumber = 0;
+            save.selectedLevelIndex = 0;
+            save.isPlayingFromLevelSelection = false;
+            save.ReplayingLevelAgain = false;
+            save.levelProgress.Clear();
+
+            SaveController.MarkAsSaveIsRequired();
+            SaveController.Save(true);
+            PlayerPrefs.SetInt(EditorResetKey, 1);
+            PlayerPrefs.Save();
+
+            Debug.Log("[Conveyor Chef UI] Editor test progression reset once: Level 1 unlocked, 0 stars.");
+        }
+#endif
 
         private void EnsureEventSystem()
         {
@@ -258,13 +302,12 @@ namespace Watermelon.BusStop
                     continue;
 
                 system.enabled = false;
-                BaseInputModule[] modules = system.GetComponents<BaseInputModule>();
-                foreach (BaseInputModule module in modules)
+                foreach (BaseInputModule module in system.GetComponents<BaseInputModule>())
                     module.enabled = false;
             }
         }
 
-        private void CaptureFontAndHideLegacyButtons()
+        private void CaptureLegacyVisualsAndHideButtons()
         {
             foreach (LevelButton levelButton in FindObjectsByType<LevelButton>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
@@ -272,18 +315,34 @@ namespace Watermelon.BusStop
                 if (font == null && text != null)
                     font = text.font;
 
+                Button sourceButton = levelButton.GetComponentInChildren<Button>(true);
+                if (sourceButton != null && sourceButton.targetGraphic is Image sourceImage && levelButtonSprite == null)
+                {
+                    levelButtonSprite = sourceImage.sprite;
+                    levelButtonImageType = sourceImage.type;
+                }
+
+                foreach (Image childImage in levelButton.GetComponentsInChildren<Image>(true))
+                {
+                    string n = childImage.name.ToLowerInvariant();
+                    if (lockSprite == null && n.Contains("lock") && childImage.sprite != null)
+                        lockSprite = childImage.sprite;
+                    if (starSprite == null && n.Contains("star") && childImage.sprite != null)
+                        starSprite = childImage.sprite;
+                }
+
                 levelButton.gameObject.SetActive(false);
             }
         }
 
         private void BuildControls()
         {
-            GameObject root = new GameObject("CC_LevelArtworkControls", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            GameObject root = new GameObject("CC_DynamicLevelGrid", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             root.transform.SetParent(transform, false);
 
             Canvas canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = 700;
+            canvas.sortingOrder = 900;
 
             CanvasScaler scaler = root.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
@@ -294,6 +353,8 @@ namespace Watermelon.BusStop
             levelButtons = new Button[LevelsPerPage];
             levelLabels = new TMP_Text[LevelsPerPage];
             levelImages = new Image[LevelsPerPage];
+            lockIcons = new Image[LevelsPerPage];
+            stars = new Image[LevelsPerPage][];
 
             float[] xs = { 0.285f, 0.5f, 0.715f };
             float[] ys = { 0.585f, 0.455f, 0.325f, 0.195f };
@@ -305,12 +366,12 @@ namespace Watermelon.BusStop
                     CreateLevelButton(root.transform, slot, xs[column], ys[row]);
             }
 
-            backButton = CreateNavigationButton(root.transform, "BackHitTarget", new Vector2(0.045f, 0.035f), new Vector2(0.205f, 0.115f), PreviousPage);
-            nextButton = CreateNavigationButton(root.transform, "NextHitTarget", new Vector2(0.775f, 0.035f), new Vector2(0.955f, 0.115f), NextPage);
+            backButton = CreateNavigationButton(root.transform, "BackButton", "BACK", new Vector2(0.045f, 0.035f), new Vector2(0.205f, 0.115f), PreviousPage);
+            nextButton = CreateNavigationButton(root.transform, "NextButton", "NEXT", new Vector2(0.775f, 0.035f), new Vector2(0.955f, 0.115f), NextPage);
 
-            pageLabel = CreateText(root.transform, "PageLabel", "", 30f);
+            pageLabel = CreateText(root.transform, "PageLabel", "", 28f);
             RectTransform pageRect = pageLabel.rectTransform;
-            pageRect.anchorMin = new Vector2(0.38f, 0.04f);
+            pageRect.anchorMin = new Vector2(0.38f, 0.045f);
             pageRect.anchorMax = new Vector2(0.62f, 0.095f);
             pageRect.offsetMin = Vector2.zero;
             pageRect.offsetMax = Vector2.zero;
@@ -319,32 +380,78 @@ namespace Watermelon.BusStop
 
         private void CreateLevelButton(Transform parent, int slot, float x, float y)
         {
-            GameObject go = new GameObject("LevelHitTarget_" + slot, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            GameObject go = new GameObject("DynamicLevel_" + slot, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
 
             RectTransform rect = go.GetComponent<RectTransform>();
             rect.anchorMin = rect.anchorMax = new Vector2(x, y);
-            rect.sizeDelta = new Vector2(190f, 180f);
+            rect.sizeDelta = new Vector2(205f, 190f);
 
             Image image = go.GetComponent<Image>();
-            image.color = new Color(1f, 1f, 1f, 0.001f);
+            image.sprite = levelButtonSprite;
+            image.type = levelButtonSprite != null ? levelButtonImageType : Image.Type.Simple;
+            image.color = LockedColor;
             levelImages[slot] = image;
+
+            Shadow shadow = go.AddComponent<Shadow>();
+            shadow.effectColor = new Color(0.13f, 0.06f, 0.02f, 0.42f);
+            shadow.effectDistance = new Vector2(0f, -7f);
 
             Button button = go.GetComponent<Button>();
             button.targetGraphic = image;
+            button.transition = Selectable.Transition.ColorTint;
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1f, 1f, 1f, 0.96f);
+            colors.pressedColor = new Color(0.78f, 0.78f, 0.78f, 1f);
+            colors.disabledColor = new Color(0.78f, 0.78f, 0.78f, 1f);
+            colors.fadeDuration = 0.07f;
+            button.colors = colors;
+
             int capturedSlot = slot;
             button.onClick.AddListener(() => OpenLevel(capturedSlot));
             levelButtons[slot] = button;
+            go.AddComponent<ArtworkButtonFeedback>();
 
-            ArtworkButtonFeedback feedback = go.AddComponent<ArtworkButtonFeedback>();
-            _ = feedback;
-
-            TMP_Text label = CreateText(go.transform, "LevelLabel", "", 54f);
-            label.raycastTarget = false;
+            TMP_Text label = CreateText(go.transform, "LevelNumber", "", 62f);
+            RectTransform labelRect = label.rectTransform;
+            labelRect.anchorMin = new Vector2(0.08f, 0.28f);
+            labelRect.anchorMax = new Vector2(0.92f, 0.92f);
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
             levelLabels[slot] = label;
+
+            GameObject lockObject = new GameObject("Lock", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            lockObject.transform.SetParent(go.transform, false);
+            RectTransform lockRect = lockObject.GetComponent<RectTransform>();
+            lockRect.anchorMin = lockRect.anchorMax = new Vector2(0.5f, 0.42f);
+            lockRect.sizeDelta = new Vector2(62f, 70f);
+            Image lockImage = lockObject.GetComponent<Image>();
+            lockImage.sprite = lockSprite;
+            lockImage.preserveAspect = true;
+            lockImage.color = Color.white;
+            lockImage.raycastTarget = false;
+            lockIcons[slot] = lockImage;
+
+            stars[slot] = new Image[3];
+            for (int i = 0; i < 3; i++)
+            {
+                GameObject starObject = new GameObject("Star_" + i, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                starObject.transform.SetParent(go.transform, false);
+                RectTransform starRect = starObject.GetComponent<RectTransform>();
+                starRect.anchorMin = starRect.anchorMax = new Vector2(0.34f + i * 0.16f, 0.16f);
+                starRect.sizeDelta = new Vector2(46f, 46f);
+                Image starImage = starObject.GetComponent<Image>();
+                starImage.sprite = starSprite;
+                starImage.preserveAspect = true;
+                starImage.color = new Color(1f, 0.84f, 0.05f, 1f);
+                starImage.raycastTarget = false;
+                starObject.SetActive(false);
+                stars[slot][i] = starImage;
+            }
         }
 
-        private Button CreateNavigationButton(Transform parent, string objectName, Vector2 min, Vector2 max, UnityEngine.Events.UnityAction action)
+        private Button CreateNavigationButton(Transform parent, string objectName, string labelText, Vector2 min, Vector2 max, UnityEngine.Events.UnityAction action)
         {
             GameObject go = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
@@ -356,12 +463,17 @@ namespace Watermelon.BusStop
             rect.offsetMax = Vector2.zero;
 
             Image image = go.GetComponent<Image>();
-            image.color = new Color(1f, 1f, 1f, 0.001f);
+            image.sprite = levelButtonSprite;
+            image.type = levelButtonSprite != null ? levelButtonImageType : Image.Type.Simple;
+            image.color = new Color(1f, 0.94f, 0.80f, 1f);
 
             Button button = go.GetComponent<Button>();
             button.targetGraphic = image;
             button.onClick.AddListener(action);
             go.AddComponent<ArtworkButtonFeedback>();
+
+            TMP_Text text = CreateText(go.transform, objectName + "Label", labelText, 27f);
+            text.color = DarkText;
             return button;
         }
 
@@ -381,7 +493,7 @@ namespace Watermelon.BusStop
             text.fontSize = fontSize;
             text.fontStyle = FontStyles.Bold;
             text.alignment = TextAlignmentOptions.Center;
-            text.color = new Color(0.25f, 0.12f, 0.05f, 1f);
+            text.color = DarkText;
             text.raycastTarget = false;
             if (font != null)
                 text.font = font;
@@ -391,7 +503,6 @@ namespace Watermelon.BusStop
         private void Refresh()
         {
             int startIndex = pageIndex * LevelsPerPage;
-            bool firstPage = pageIndex == 0;
 
             for (int i = 0; i < LevelsPerPage; i++)
             {
@@ -403,25 +514,24 @@ namespace Watermelon.BusStop
 
                 bool unlocked = LevelController.IsLevelUnlocked(levelIndex);
                 bool completed = LevelController.IsLevelCompleted(levelIndex);
+                int starsEarned = LevelController.GetLevelStars(levelIndex);
+
                 levelButtons[i].interactable = unlocked;
+                levelImages[i].color = !unlocked ? LockedColor : completed ? CompletedColor : CurrentColor;
+                levelLabels[i].text = (levelIndex + 1).ToString();
+                levelLabels[i].color = unlocked ? DarkText : Color.white;
 
-                if (firstPage)
+                if (lockIcons[i] != null)
                 {
-                    // Preserve the approved first-page artwork exactly. The real button
-                    // is transparent but still provides press feedback.
-                    levelImages[i].color = new Color(1f, 1f, 1f, 0.001f);
-                    levelLabels[i].text = string.Empty;
+                    lockIcons[i].gameObject.SetActive(!unlocked);
+                    if (lockSprite == null)
+                        lockIcons[i].gameObject.SetActive(false);
                 }
-                else
-                {
-                    levelImages[i].color = !unlocked
-                        ? new Color(0.31f, 0.32f, 0.35f, 0.96f)
-                        : completed
-                            ? new Color(1f, 0.63f, 0.05f, 0.96f)
-                            : new Color(0.31f, 0.82f, 0.13f, 0.96f);
 
-                    levelLabels[i].text = unlocked ? (levelIndex + 1).ToString() : "LOCK";
-                    levelLabels[i].color = unlocked ? new Color(0.25f, 0.12f, 0.05f, 1f) : Color.white;
+                for (int star = 0; star < 3; star++)
+                {
+                    bool showStar = completed && star < starsEarned && starSprite != null;
+                    stars[i][star].gameObject.SetActive(showStar);
                 }
             }
 
@@ -437,11 +547,14 @@ namespace Watermelon.BusStop
             if (levelIndex >= TotalLevels || !LevelController.IsLevelUnlocked(levelIndex))
                 return;
 
+            AudioController.PlaySound(AudioController.Sounds.buttonSound);
             controller.LoadSelectedLevel(levelIndex);
         }
 
         private void PreviousPage()
         {
+            AudioController.PlaySound(AudioController.Sounds.buttonSound);
+
             if (pageIndex <= 0)
             {
                 SceneManager.LoadScene("menu");
@@ -458,6 +571,7 @@ namespace Watermelon.BusStop
             if (pageIndex >= totalPages - 1)
                 return;
 
+            AudioController.PlaySound(AudioController.Sounds.buttonSound);
             pageIndex++;
             Refresh();
         }
