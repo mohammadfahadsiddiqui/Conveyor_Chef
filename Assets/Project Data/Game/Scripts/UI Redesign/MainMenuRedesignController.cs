@@ -13,7 +13,8 @@ namespace Watermelon.BusStop
     {
         private const string RootName = "CC_MainMenu_Approved";
         private const string SoundPrefKey = "CC_SOUND_MUTED";
-        private const string ArtworkResource = "UIReference/MenuReference.b64";
+        private const string FullQualityArtworkResource = "UIReference/MenuReference";
+        private const string FallbackArtworkResource = "UIReference/MenuReference.b64";
 
         private sceneloading sceneLoader;
         private Canvas legacyCanvas;
@@ -83,7 +84,17 @@ namespace Watermelon.BusStop
             scaler.matchWidthOrHeight = 0.5f;
 
             RectTransform canvasRect = root.GetComponent<RectTransform>();
-            Texture2D artwork = UIReferenceImageLoader.LoadTexture(ArtworkResource);
+
+            Texture2D artwork = Resources.Load<Texture2D>(FullQualityArtworkResource);
+            if (artwork == null)
+            {
+                artwork = UIReferenceImageLoader.LoadTexture(FallbackArtworkResource);
+                Debug.LogWarning("[Conveyor Chef UI] Full-quality MenuReference.png was not found. Using fallback artwork.");
+            }
+            else
+            {
+                Debug.Log($"[Conveyor Chef UI] Using full-quality MenuReference.png ({artwork.width}x{artwork.height}).");
+            }
 
             GameObject backgroundObject = new GameObject("ApprovedMainMenuArtwork", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
             backgroundObject.layer = LayerMask.NameToLayer("UI");
@@ -97,13 +108,12 @@ namespace Watermelon.BusStop
             safeArea = CreateRect("SafeArea", canvasRect);
             ApplySafeArea();
 
-            // The approved artwork already contains the visible PLAY button. This is
-            // an invisible hit target placed directly over it.
-            Button playButton = CreateHitButton("PlayHitTarget", safeArea, PlayGame);
+            // These hit targets are aligned to the full-screen artwork, so they live
+            // on the Canvas itself rather than the safe-area rect.
+            Button playButton = CreateHitButton("PlayHitTarget", canvasRect, PlayGame);
             Place(playButton.GetComponent<RectTransform>(), new Vector2(0.17f, 0.055f), new Vector2(0.83f, 0.185f));
 
-            // Same approach for the settings icon drawn in the artwork.
-            Button settingsButton = CreateHitButton("SettingsHitTarget", safeArea, OpenSettings);
+            Button settingsButton = CreateHitButton("SettingsHitTarget", canvasRect, OpenSettings);
             Place(settingsButton.GetComponent<RectTransform>(), new Vector2(0.84f, 0.895f), new Vector2(0.98f, 0.985f));
 
             BuildSettingsPopup(canvasRect);
@@ -242,7 +252,8 @@ namespace Watermelon.BusStop
             text.alignment = TextAlignmentOptions.Center;
             text.color = color;
             text.raycastTarget = false;
-            if (font != null) text.font = font;
+            if (font != null)
+                text.font = font;
             return text;
         }
 
