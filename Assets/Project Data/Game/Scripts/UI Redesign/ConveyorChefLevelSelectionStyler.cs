@@ -11,7 +11,8 @@ namespace Watermelon.BusStop
     /// </summary>
     public static class ConveyorChefLevelSelectionStyler
     {
-        private const string ArtworkResource = "UIReference/LevelSelectionReference.b64";
+        private const string FullQualityArtworkResource = "UIReference/LevelSelectionReference";
+        private const string FallbackArtworkResource = "UIReference/LevelSelectionReference.b64";
 
         public static void Style(LevelSelectionController controller)
         {
@@ -35,7 +36,17 @@ namespace Watermelon.BusStop
             if (canvas.Find("CC_ApprovedLevelSelectionArtwork") != null)
                 return;
 
-            Texture2D artwork = UIReferenceImageLoader.LoadTexture(ArtworkResource);
+            Texture2D artwork = Resources.Load<Texture2D>(FullQualityArtworkResource);
+            if (artwork == null)
+            {
+                artwork = UIReferenceImageLoader.LoadTexture(FallbackArtworkResource);
+                Debug.LogWarning("[Conveyor Chef UI] Full-quality LevelSelectionReference.png was not found. Using fallback artwork.");
+            }
+            else
+            {
+                Debug.Log($"[Conveyor Chef UI] Using full-quality LevelSelectionReference.png ({artwork.width}x{artwork.height}).");
+            }
+
             GameObject backdrop = new GameObject("CC_ApprovedLevelSelectionArtwork", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
             backdrop.layer = LayerMask.NameToLayer("UI");
             backdrop.transform.SetParent(canvas, false);
