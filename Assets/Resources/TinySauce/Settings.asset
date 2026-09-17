@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: faa11ec82e9746928e211e7f096812ca, type: 3}
+  m_Name: Settings
+  m_EditorClassIdentifier: 
+  gameAnalyticsIosGameKey: 
+  gameAnalyticsIosSecretKey: 
+  gameAnalyticsAndroidGameKey: b889b79efce31ba9261392d120d3c8d3
+  gameAnalyticsAndroidSecretKey: 8fd0361300a20ee633e83923aec679e678d0a3f7
+  facebookAppId: 1361246032054892
+  facebookClientToken: 77201173d2481a154f8ea46558289ba9
+  adjustIOSToken: 
+  adjustAndroidToken: sj5gmuh9yjgg
+  EditorIdfa: 4522c017-5797-4059-aa1c-d75c88b39266
+  UseRemoteConfig: 0
+  UseVoodooAnalytics: 1
+  companyName: GauravGo Games Technologies
+  privacyPolicyURL: https://gauravgo.com/privacy-policy
+  developerContactEmail: gauravgof2p@gmail.com
