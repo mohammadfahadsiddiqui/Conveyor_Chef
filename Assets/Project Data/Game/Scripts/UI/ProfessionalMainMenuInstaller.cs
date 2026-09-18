@@ -144,8 +144,8 @@ namespace Watermelon
                 chefRect.localScale = chefBaseScale * breathe;
             }
 
-            if (Input.GetKeyDown(KeyCode.Escape) && modalRoot != null && modalRoot.activeSelf)
-                HideModal();
+            // Modal close is handled by the visible CLOSE button. Avoid the legacy
+            // UnityEngine.Input API here because this project uses the Input System package.
         }
 
         private void EnsureEventSystem()
