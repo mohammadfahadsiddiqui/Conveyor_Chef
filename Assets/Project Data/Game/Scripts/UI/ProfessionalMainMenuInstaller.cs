@@ -28,6 +28,7 @@ namespace Watermelon
         private static bool bootstrapInstalled;
 
         private readonly Dictionary<string, Sprite> spriteCache = new Dictionary<string, Sprite>();
+        private ProfessionalMainMenuAssetCatalog assetCatalog;
 
         private Canvas canvas;
         private RectTransform canvasRect;
@@ -86,6 +87,10 @@ namespace Watermelon
             yield return null;
 
             EnsureEventSystem();
+            assetCatalog = Resources.Load<ProfessionalMainMenuAssetCatalog>("ProfessionalMainMenuAssets");
+            if (assetCatalog == null)
+                Debug.LogError("[ProfessionalMainMenu] ProfessionalMainMenuAssets catalog is missing.");
+
             DisableLegacyMainMenu();
             BuildMenu();
             RefreshHUD();
@@ -271,17 +276,23 @@ namespace Watermelon
             SetRect(starText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(38f, 0f), new Vector2(74f, 54f), new Vector2(0.5f, 0.5f));
 
             // Coins
+            bool customCoinBar = HasGeneratedResource("coin_bar");
             Image coinBar = CreateImage("Coin Counter", hud, LoadSprite("coin_bar"), false);
             SetRect(coinBar.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(55f, 0f), new Vector2(270f, 96f), new Vector2(0.5f, 0.5f));
             coinText = CreateText("Coin Value", coinBar.rectTransform, "0", 33f, TextAlignmentOptions.Center);
             SetRect(coinText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(12f, 0f), new Vector2(120f, 52f), new Vector2(0.5f, 0.5f));
+            if (!customCoinBar)
+                AddFallbackCounterDecor(coinBar.rectTransform, false);
             AddInvisibleButton("Coin Plus Hitbox", coinBar.rectTransform, new Vector2(1f, 0.5f), new Vector2(-38f, 0f), new Vector2(74f, 76f), OpenShop);
 
             // Diamonds
+            bool customDiamondBar = HasGeneratedResource("diamond_bar");
             Image diamondBar = CreateImage("Diamond Counter", hud, LoadSprite("diamond_bar"), false);
             SetRect(diamondBar.rectTransform, new Vector2(1f, 0.5f), new Vector2(-155f, 0f), new Vector2(270f, 96f), new Vector2(0.5f, 0.5f));
             diamondText = CreateText("Diamond Value", diamondBar.rectTransform, "50", 33f, TextAlignmentOptions.Center);
             SetRect(diamondText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(10f, 0f), new Vector2(118f, 52f), new Vector2(0.5f, 0.5f));
+            if (!customDiamondBar)
+                AddFallbackCounterDecor(diamondBar.rectTransform, true);
             AddInvisibleButton("Diamond Plus Hitbox", diamondBar.rectTransform, new Vector2(1f, 0.5f), new Vector2(-38f, 0f), new Vector2(74f, 76f), OpenShop);
         }
 
@@ -377,8 +388,16 @@ namespace Watermelon
 
         private void CreateMenuButton(string objectName, RectTransform parent, string resourceName, Vector2 anchor, Vector2 position, Vector2 size, UnityEngine.Events.UnityAction action, bool pulse, float introDelay)
         {
+            bool usingGeneratedArt = HasGeneratedResource(resourceName);
             Image image = CreateImage(objectName, parent, LoadSprite(resourceName), true);
             SetRect(image.rectTransform, anchor, position, size, new Vector2(0.5f, 0.5f));
+
+            if (!usingGeneratedArt)
+            {
+                TextMeshProUGUI label = CreateText("Label", image.rectTransform, objectName, objectName == "PLAY" ? 48f : 38f, TextAlignmentOptions.Center);
+                Stretch(label.rectTransform);
+                label.margin = new Vector4(24f, 8f, 24f, 8f);
+            }
 
             Button button = image.gameObject.AddComponent<Button>();
             button.transition = Selectable.Transition.None;
@@ -394,8 +413,16 @@ namespace Watermelon
 
         private void CreateBottomButton(string objectName, RectTransform parent, string resourceName, float x, UnityEngine.Events.UnityAction action, float introDelay)
         {
+            bool usingGeneratedArt = HasGeneratedResource(resourceName);
             Image image = CreateImage(objectName, parent, LoadSprite(resourceName), true);
             SetRect(image.rectTransform, new Vector2(0.5f, 0f), new Vector2(x, 2f), new Vector2(205f, 205f), new Vector2(0.5f, 0f));
+
+            if (!usingGeneratedArt)
+            {
+                TextMeshProUGUI label = CreateText("Label", image.rectTransform, objectName.ToUpperInvariant(), 23f, TextAlignmentOptions.Bottom);
+                Stretch(label.rectTransform);
+                label.margin = new Vector4(5f, 5f, 5f, 14f);
+            }
 
             Button button = image.gameObject.AddComponent<Button>();
             button.transition = Selectable.Transition.None;
@@ -537,7 +564,7 @@ namespace Watermelon
 
             string list = string.Empty;
             for (int i = 0; i < recipes.Length; i++)
-                list += (i < unlocked ? "✓  " : "🔒  ") + recipes[i] + (i == recipes.Length - 1 ? string.Empty : "\n");
+                list += (i < unlocked ? "[DONE]  " : "[LOCKED]  ") + recipes[i] + (i == recipes.Length - 1 ? string.Empty : "\n");
 
             ShowModal(
                 "COLLECTION",
@@ -801,12 +828,12 @@ namespace Watermelon
         {
             bool done = current >= target;
             int shown = Mathf.Min(current, target);
-            return (done ? "✓ " : "• ") + label + $"   {shown}/{target}" + (done ? "   COMPLETE" : string.Empty);
+            return (done ? "[DONE] " : "- ") + label + $"   {shown}/{target}" + (done ? "   COMPLETE" : string.Empty);
         }
 
         private static string AchievementLine(string title, bool unlocked, string description)
         {
-            return (unlocked ? "✓  " : "🔒  ") + title + "\n    " + description;
+            return (unlocked ? "[DONE]  " : "[LOCKED]  ") + title + "\n    " + description;
         }
 
         private void PlayClick()
@@ -842,32 +869,86 @@ namespace Watermelon
             safeArea.offsetMax = Vector2.zero;
         }
 
+        private bool HasGeneratedResource(string resourceName)
+        {
+            return Resources.Load<Texture2D>(ResourceRoot + resourceName) != null;
+        }
+
         private Sprite LoadSprite(string resourceName)
         {
             if (spriteCache.TryGetValue(resourceName, out Sprite cached))
                 return cached;
 
+            // Preferred path: exact approved generated asset dropped into
+            // Assets/.../Resources/ProfessionalMainMenu/<name>.png.
             Texture2D texture = Resources.Load<Texture2D>(ResourceRoot + resourceName);
-            if (texture == null)
+            if (texture != null)
             {
-                Debug.LogError("[ProfessionalMainMenu] Missing texture: " + ResourceRoot + resourceName);
-                return null;
+                texture.wrapMode = TextureWrapMode.Clamp;
+                texture.filterMode = FilterMode.Bilinear;
+
+                Sprite generated = Sprite.Create(
+                    texture,
+                    new Rect(0f, 0f, texture.width, texture.height),
+                    new Vector2(0.5f, 0.5f),
+                    100f,
+                    0,
+                    SpriteMeshType.FullRect);
+
+                generated.name = "PMM_" + resourceName;
+                spriteCache[resourceName] = generated;
+                return generated;
             }
 
-            texture.wrapMode = TextureWrapMode.Clamp;
-            texture.filterMode = FilterMode.Bilinear;
+            // GitHub-safe fallback: use sprites already present in the Unity repository.
+            Sprite fallback = GetCatalogSprite(resourceName);
+            if (fallback == null)
+                Debug.LogError("[ProfessionalMainMenu] Missing generated and fallback sprite for: " + resourceName);
 
-            Sprite sprite = Sprite.Create(
-                texture,
-                new Rect(0f, 0f, texture.width, texture.height),
-                new Vector2(0.5f, 0.5f),
-                100f,
-                0,
-                SpriteMeshType.FullRect);
+            spriteCache[resourceName] = fallback;
+            return fallback;
+        }
 
-            sprite.name = "PMM_" + resourceName;
-            spriteCache[resourceName] = sprite;
-            return sprite;
+        private Sprite GetCatalogSprite(string resourceName)
+        {
+            if (assetCatalog == null)
+                return null;
+
+            switch (resourceName)
+            {
+                case "background": return assetCatalog.background;
+                case "logo": return assetCatalog.logo;
+                case "chef": return assetCatalog.chef;
+                case "avatar": return assetCatalog.avatar;
+                case "play": return assetCatalog.primaryButton;
+                case "story":
+                case "challenges":
+                case "customize":
+                case "settings":
+                    return assetCatalog.secondaryButton;
+                case "star": return assetCatalog.star;
+                case "coin_bar":
+                case "diamond_bar":
+                    return assetCatalog.darkPanel;
+                case "shop": return assetCatalog.shop;
+                case "collection":
+                case "achievements":
+                case "leaderboard":
+                    return assetCatalog.orangeButton;
+                default: return assetCatalog.secondaryButton;
+            }
+        }
+
+        private void AddFallbackCounterDecor(RectTransform parent, bool diamond)
+        {
+            Sprite iconSprite = diamond ? assetCatalog.star : assetCatalog.coin;
+            Image icon = CreateImage(diamond ? "Gem Icon" : "Coin Icon", parent, iconSprite, true);
+            SetRect(icon.rectTransform, new Vector2(0f, 0.5f), new Vector2(38f, 0f), new Vector2(62f, 62f), new Vector2(0.5f, 0.5f));
+            if (diamond)
+                icon.color = new Color(0.15f, 0.85f, 1f, 1f);
+
+            Image plus = CreateImage("Plus Icon", parent, assetCatalog.plus, true);
+            SetRect(plus.rectTransform, new Vector2(1f, 0.5f), new Vector2(-38f, 0f), new Vector2(62f, 62f), new Vector2(0.5f, 0.5f));
         }
 
         private static RectTransform NewRect(string name, Transform parent)
