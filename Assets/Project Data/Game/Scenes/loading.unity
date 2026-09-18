@@ -594,10 +594,10 @@ RectTransform:
   - {fileID: 1178687330}
   m_Father: {fileID: 1880072542}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0.000030518, y: -983}
-  m_SizeDelta: {x: 831.744, y: 99.5261}
+  m_AnchorMin: {x: 0.5, y: 0}
+  m_AnchorMax: {x: 0.5, y: 0}
+  m_AnchoredPosition: {x: 0, y: 340}
+  m_SizeDelta: {x: 830, y: 84}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &495291449
 MonoBehaviour:
@@ -662,12 +662,12 @@ GameObject:
   - component: {fileID: 751124770}
   - component: {fileID: 751124769}
   m_Layer: 5
-  m_Name: progress bar (1)
+  m_Name: Loading Tip
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &751124768
 RectTransform:
   m_ObjectHideFlags: 0
@@ -684,8 +684,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: 0, y: 1084}
-  m_SizeDelta: {x: 200, y: 100}
+  m_AnchoredPosition: {x: 0, y: 125}
+  m_SizeDelta: {x: 900, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &751124769
 MonoBehaviour:
@@ -734,8 +734,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 28
+  m_fontSizeBase: 28
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1139,7 +1139,7 @@ MonoBehaviour:
   scooterTransform: {fileID: 128354069}
   mapTransform: {fileID: 1389523367}
   shadowTransform: {fileID: 1488533240}
-  minimumLoadTime: 2
+  minimumLoadTime: 1.25
   progressSmoothness: 5
   showPercentage: 1
   scooterBounceHeight: 20
@@ -1148,20 +1148,23 @@ MonoBehaviour:
   shadowScaleMin: 0.9
   shadowScaleMax: 1.1
   showOnSceneStart: 1
-  initialLoadDuration: 3
+  initialLoadDuration: 1.25
   autoLoadGameScene: 1
   gameSceneName: menu
   loadingIcon: {fileID: 1625123814}
   iconRotationSpeed: 100
   loadingTips:
-  - Match 3 or more items to complete orders...
-  - Drag items between boxes to organize them...
-  - Use boosters to help clear difficult levels...
-  - Complete all orders before running out of space...
-  - The conveyor belt never stops!
+  - Build recipes in the correct order for a perfect dish.
+  - Keep queue slots free so new ingredients have room.
+  - Check the customer order before sending an ingredient.
+  - A wrong ingredient can spoil the order - choose carefully.
+  - Fast, accurate serving keeps the kitchen moving.
+  tipRotationInterval: 2.75
+  preparingMessage: Preparing your kitchen...
+  readyMessage: Kitchen ready!
   useFadeTransition: 1
-  fadeInDuration: 0.5
-  fadeOutDuration: 0.5
+  fadeInDuration: 0.35
+  fadeOutDuration: 0.25
   loadingCanvasGroup: {fileID: 1880072543}
 --- !u!1 &1119290833
 GameObject:
@@ -2182,7 +2185,7 @@ CanvasGroup:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1880072539}
-  m_Enabled: 0
+  m_Enabled: 1
   m_Alpha: 1
   m_Interactable: 1
   m_BlocksRaycasts: 1
@@ -2200,12 +2203,12 @@ GameObject:
   - component: {fileID: 1969493143}
   - component: {fileID: 1969493142}
   m_Layer: 5
-  m_Name: Panel (2)
+  m_Name: Panel (2) [Legacy Disabled]
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1969493141
 RectTransform:
   m_ObjectHideFlags: 0
