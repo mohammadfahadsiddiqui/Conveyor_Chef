@@ -83,6 +83,7 @@ namespace Watermelon
 
         private bool isLoading;
         private bool isAnimating;
+        private bool bootstrapLoadingFinished;
         private float displayedProgress;
 
         private Vector2 scooterStartPos;
@@ -177,12 +178,55 @@ namespace Watermelon
             }
         }
 
+        private void OnEnable()
+        {
+            GameLoading.OnLoadingFinished += HandleBootstrapLoadingFinished;
+        }
+
+        private void OnDisable()
+        {
+            GameLoading.OnLoadingFinished -= HandleBootstrapLoadingFinished;
+        }
+
         private void Start()
         {
             if (showOnSceneStart && autoLoadGameScene)
             {
-                StartCoroutine(RunLoadingSequence());
+                StartCoroutine(BeginLoadingWhenReady());
             }
+        }
+
+        private void HandleBootstrapLoadingFinished()
+        {
+            bootstrapLoadingFinished = true;
+        }
+
+        private IEnumerator BeginLoadingWhenReady()
+        {
+            // On the very first app launch, Init.unity uses Watermelon's built-in
+            // GameLoading overlay while it activates this loading scene.
+            // Without waiting, this scene can finish loading Menu behind that overlay
+            // and the player never gets a chance to see our custom loading UI.
+            bool hasExplicitTarget =
+                !string.IsNullOrWhiteSpace(pendingSceneName) ||
+                PlayerPrefs.HasKey(PendingSceneKey);
+
+            if (!hasExplicitTarget && SceneManager.GetActiveScene().name == LoadingSceneName)
+            {
+                float fallbackTimeout = 3f;
+                float elapsed = 0f;
+
+                while (!bootstrapLoadingFinished && elapsed < fallbackTimeout)
+                {
+                    elapsed += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+
+                // Give the bootstrap canvas one rendered frame to disappear.
+                yield return null;
+            }
+
+            yield return StartCoroutine(RunLoadingSequence());
         }
 
         private IEnumerator RunLoadingSequence()
