@@ -320,7 +320,7 @@ namespace Watermelon
             SaveController.Save(true);
 
             // Load the level selection scene
-            UnityEngine.SceneManagement.SceneManager.LoadScene("LevelSelection");
+            EnhancedLoadingScreen.LoadViaLoadingScreen("LevelSelection");
         }
 
 
