@@ -28,7 +28,7 @@ namespace Watermelon
             if (loadingOperation != null)
                 progress = loadingOperation.progress;
 
-            OnLoading(progress, message);
+            OnLoading?.Invoke(progress, message);
         }
 
         public static void AddTask(LoadingTask loadingTask)
@@ -160,8 +160,8 @@ namespace Watermelon
 
 // Changelog
 // v 0.2
-// • Loading graphics removed from Init scene
-// • Added GameLoadingSettings Init Module
-// • Added manual control mode (If manual mode is enabled, the loading screen will be active until GameLoading.MarkAsReadyToHide method has been called)
+// â€¢ Loading graphics removed from Init scene
+// â€¢ Added GameLoadingSettings Init Module
+// â€¢ Added manual control mode (If manual mode is enabled, the loading screen will be active until GameLoading.MarkAsReadyToHide method has been called)
 // v 0.1
-// • Added basic version
+// â€¢ Added basic version
