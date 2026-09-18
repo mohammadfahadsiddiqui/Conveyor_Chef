@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a12f6d8d9e6b4b74a6e8ce4f70e6f391, type: 3}
+  m_Name: ProfessionalMainMenuAssets
+  m_EditorClassIdentifier: 
+  background: {fileID: 21300000, guid: 41ca8c14dff047168ee8f105213e0a31, type: 3}
+  logo: {fileID: 21300000, guid: 39ae6e43b0ef4dabb464270a1f2ef7b5, type: 3}
+  chef: {fileID: 21300000, guid: fe51549eba11d41379432067d06b1b44, type: 3}
+  avatar: {fileID: 21300000, guid: fe51549eba11d41379432067d06b1b44, type: 3}
+  primaryButton: {fileID: 21300000, guid: 707f4a8cd16084649b85184ef96d4c21, type: 3}
+  secondaryButton: {fileID: 21300000, guid: f4f13b0726a06724986bbd862bed2a04, type: 3}
+  darkPanel: {fileID: 21300000, guid: 5d657f787c0c45048957d78a386a332e, type: 3}
+  orangeButton: {fileID: 21300000, guid: 914a360ea92b94a47864ace71719243d, type: 3}
+  star: {fileID: 21300000, guid: ba48b895cde381941acbe44bb1938df6, type: 3}
+  coin: {fileID: 21300000, guid: 66be956892120a84bbda15b783d05267, type: 3}
+  plus: {fileID: 21300000, guid: 0147d9ec7c18d7048b49fe0c92bf0206, type: 3}
+  shop: {fileID: 21300000, guid: 5509d351514b11a4bb9b48d1e9a671b6, type: 3}
+  customize: {fileID: 21300000, guid: 7f7fe30286b362d4cba515c12d6b79c9, type: 3}
+  settings: {fileID: 21300000, guid: ccd92b1ba40c775448e7014ded0ced65, type: 3}
