@@ -30,6 +30,12 @@ namespace Watermelon
         public RectTransform scooterTransform;
         public RectTransform mapTransform;
         public RectTransform shadowTransform;
+        public RectTransform logoTransform;
+
+        [Header("Logo Splash")]
+        [Min(0.1f)] public float logoSplashDuration = 0.55f;
+        [Range(0.1f, 1f)] public float logoSplashStartScale = 0.72f;
+        [Range(1f, 1.3f)] public float logoSplashOvershoot = 1.08f;
 
         [Header("Animation Settings")]
         [Min(0.1f)] public float minimumLoadTime = 1.25f;
@@ -89,6 +95,7 @@ namespace Watermelon
         private Vector2 scooterStartPos;
         private Vector3 mapStartRotation;
         private Vector3 shadowStartScale;
+        private Vector3 logoBaseScale;
 
         /// <summary>
         /// Routes a scene change through the dedicated Conveyor Chef loading scene.
@@ -175,6 +182,12 @@ namespace Watermelon
             if (shadowTransform != null)
             {
                 shadowStartScale = shadowTransform.localScale;
+            }
+
+            if (logoTransform != null)
+            {
+                logoBaseScale = logoTransform.localScale;
+                logoTransform.localScale = logoBaseScale * logoSplashStartScale;
             }
         }
 
@@ -369,8 +382,8 @@ namespace Watermelon
             if (progressText != null)
             {
                 progressText.text = showPercentage
-                    ? Mathf.RoundToInt(progress * 100f) + "%"
-                    : string.Empty;
+                    ? "LOADING... " + Mathf.RoundToInt(progress * 100f) + "%"
+                    : "LOADING...";
             }
         }
 
@@ -420,6 +433,11 @@ namespace Watermelon
             {
                 StartCoroutine(AnimateShadowPulse());
             }
+
+            if (logoTransform != null)
+            {
+                StartCoroutine(AnimateLogoSplash());
+            }
         }
 
         private void StopAnimations()
@@ -440,6 +458,49 @@ namespace Watermelon
             {
                 shadowTransform.localScale = shadowStartScale;
             }
+
+            if (logoTransform != null)
+            {
+                logoTransform.localScale = logoBaseScale;
+            }
+        }
+
+        private IEnumerator AnimateLogoSplash()
+        {
+            if (logoTransform == null)
+                yield break;
+
+            float duration = Mathf.Max(0.1f, logoSplashDuration);
+            float firstPhase = duration * 0.65f;
+            float secondPhase = duration - firstPhase;
+            float elapsed = 0f;
+
+            Vector3 start = logoBaseScale * logoSplashStartScale;
+            Vector3 overshoot = logoBaseScale * logoSplashOvershoot;
+
+            logoTransform.localScale = start;
+
+            while (elapsed < firstPhase)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / firstPhase);
+                float eased = 1f - Mathf.Pow(1f - t, 3f);
+                logoTransform.localScale = Vector3.LerpUnclamped(start, overshoot, eased);
+                yield return null;
+            }
+
+            elapsed = 0f;
+
+            while (elapsed < secondPhase)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(elapsed / Mathf.Max(0.01f, secondPhase));
+                float eased = 1f - Mathf.Pow(1f - t, 3f);
+                logoTransform.localScale = Vector3.LerpUnclamped(overshoot, logoBaseScale, eased);
+                yield return null;
+            }
+
+            logoTransform.localScale = logoBaseScale;
         }
 
         private IEnumerator AnimateScooterBounce()
