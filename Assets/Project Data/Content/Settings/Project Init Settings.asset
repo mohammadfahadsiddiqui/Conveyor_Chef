@@ -128,4 +128,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moduleName: Game Loading Settings
   manualControlMode: 0
-  loadingCanvasObject: {fileID: 3395919838312422690, guid: 74d643b634085684e8429f7b41c490fe, type: 3}
+  loadingCanvasObject: {fileID: 0}
