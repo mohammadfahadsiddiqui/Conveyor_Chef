@@ -215,7 +215,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &128354069
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1136,9 +1136,9 @@ MonoBehaviour:
   progressBarSlider: {fileID: 495291449}
   progressText: {fileID: 1181933643}
   loadingTipText: {fileID: 751124769}
-  scooterTransform: {fileID: 128354069}
-  mapTransform: {fileID: 1389523367}
-  shadowTransform: {fileID: 1488533240}
+  scooterTransform: {fileID: 0}
+  mapTransform: {fileID: 0}
+  shadowTransform: {fileID: 0}
   minimumLoadTime: 1.25
   progressSmoothness: 5
   showPercentage: 1
@@ -1151,7 +1151,7 @@ MonoBehaviour:
   initialLoadDuration: 1.25
   autoLoadGameScene: 1
   gameSceneName: menu
-  loadingIcon: {fileID: 1625123814}
+  loadingIcon: {fileID: 0}
   iconRotationSpeed: 100
   loadingTips:
   - Build recipes in the correct order for a perfect dish.
@@ -1626,7 +1626,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1389523367
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1776,7 +1776,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1488533240
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2108,7 +2108,7 @@ GameObject:
   - component: {fileID: 1880072540}
   - component: {fileID: 1880072543}
   m_Layer: 5
-  m_Name: Panel
+  m_Name: NEW Loading Screen
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2134,8 +2134,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: 6adfdcdbb9f7848c7ac5592dec06dd62, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
