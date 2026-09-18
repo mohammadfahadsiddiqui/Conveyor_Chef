@@ -472,7 +472,7 @@ namespace Watermelon
             AudioController.PlaySound(AudioController.Sounds.buttonSound);
 
             // Simple: just go back to level selection
-            UnityEngine.SceneManagement.SceneManager.LoadScene("LevelSelection");
+            EnhancedLoadingScreen.LoadViaLoadingScreen("LevelSelection");
         }
 
         // public static void LoadNextLevel()
