@@ -125,7 +125,7 @@
 //         //     SaveController.MarkAsSaveIsRequired();
 //         //     SaveController.Save(true);
 
-//         //     SceneManager.LoadScene("Game");
+//         //     Watermelon.EnhancedLoadingScreen.LoadViaLoadingScreen("Game");
 //         // }
 
 //         // public void LoadSelectedLevel(int levelIndex)
@@ -174,7 +174,7 @@
 
 //         public void BackToMainMenu()
 //         {
-//             SceneManager.LoadScene("Menu");
+//             Watermelon.EnhancedLoadingScreen.LoadViaLoadingScreen("menu");
 //         }
 //     }
 // }
