@@ -10,7 +10,7 @@ namespace Watermelon.BusStop
         public void scenechange()
         {
             AudioController.PlaySound(AudioController.Sounds.buttonSound);
-            SceneManager.LoadScene(gameSceneName);
+            Watermelon.EnhancedLoadingScreen.LoadViaLoadingScreen(gameSceneName);
         }
 
         public void quit()

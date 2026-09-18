@@ -320,7 +320,7 @@ namespace Watermelon
             SaveController.Save(true);
 
             // Load the level selection scene
-            UnityEngine.SceneManagement.SceneManager.LoadScene("LevelSelection");
+            EnhancedLoadingScreen.LoadViaLoadingScreen("LevelSelection");
         }
 
 
@@ -472,7 +472,7 @@ namespace Watermelon
             AudioController.PlaySound(AudioController.Sounds.buttonSound);
 
             // Simple: just go back to level selection
-            UnityEngine.SceneManagement.SceneManager.LoadScene("LevelSelection");
+            EnhancedLoadingScreen.LoadViaLoadingScreen("LevelSelection");
         }
 
         // public static void LoadNextLevel()
