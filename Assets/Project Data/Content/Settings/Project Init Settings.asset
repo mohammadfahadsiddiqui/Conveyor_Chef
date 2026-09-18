@@ -66,7 +66,6 @@ MonoBehaviour:
   modules:
   - {fileID: 636860153974001961}
   - {fileID: 2675950043578897128}
-  - {fileID: 2244391927298088815}
 --- !u!114 &636860153974001961
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -81,7 +80,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moduleName: Audio Controller
   audioSettings: {fileID: 11400000, guid: 503b1ff9b67b4c644b15ce25918d2d63, type: 2}
-  playRandomMusic: 1
+  playRandomMusic: 0
 --- !u!114 &2244391927298088815
 MonoBehaviour:
   m_ObjectHideFlags: 0
