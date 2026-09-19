@@ -96,13 +96,17 @@ namespace Watermelon.EditorTools
 
             if (missing.Count == 0)
             {
-                int rebound = RebindArtworkInOpenWorldMap(saveScene: true);
+                int repairedCards = EnsureChapterSelectorComplete(saveScene: false);
+                int rebound = RebindArtworkInOpenWorldMap(saveScene: false);
 
-                if (rebound > 0)
+                if (repairedCards > 0 || rebound > 0)
                 {
+                    EditorSceneManager.MarkSceneDirty(scene);
+                    EditorSceneManager.SaveScene(scene);
+
                     Debug.Log(
-                        "[WorldMap] Automatically rebound " + rebound +
-                        " generated sprites into WorldMap.unity without changing any RectTransforms.");
+                        "[WorldMap] Auto-repair complete. Chapter cards repaired: " + repairedCards +
+                        ", artwork/references rebound: " + rebound + ".");
                 }
             }
             else
@@ -380,6 +384,33 @@ namespace Watermelon.EditorTools
                 "• Entire Canvas hierarchy on the UI layer\n" +
                 "• UI graphics dirtied/refreshed for Scene view\n\n" +
                 "No RectTransform positions or sizes were changed.",
+                "OK");
+        }
+
+        [MenuItem("Conveyor Chef/World Map/8. Repair Chapter Selector (Keeps Layout)", priority = 8)]
+        public static void RepairChapterSelectorCommand()
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            if (!EnsureGeneratedAssetsAvailable())
+                return;
+
+            int repaired = EnsureChapterSelectorComplete(saveScene: false);
+            int rebound = RebindArtworkInOpenWorldMap(saveScene: false);
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            FocusEditableWorldMapInSceneView(scene);
+
+            EditorUtility.DisplayDialog(
+                "Chapter Selector Repaired",
+                "Checked all 6 chapter cards.\n\n" +
+                "Repaired/created: " + repaired + "\n" +
+                "Artwork/references rebound: " + rebound + "\n\n" +
+                "Chapter 3 is connected to Europe (continent index 2) and uses the same lock/unlock progression logic as the other chapters.\n\n" +
+                "Existing valid card positions/sizes were preserved.",
                 "OK");
         }
 
@@ -1204,13 +1235,237 @@ namespace Watermelon.EditorTools
         }
 
 
+        /// <summary>
+        /// Makes sure ChapterCard_1..ChapterCard_6 all exist and are visible without
+        /// rebuilding the World Map or touching valid authored positions/sizes.
+        ///
+        /// This specifically fixes the missing Chapter 3 card while keeping the user's
+        /// edited Canvas layout intact.
+        /// </summary>
+        private static int EnsureChapterSelectorComplete(bool saveScene)
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                return 0;
+
+            Transform selector = FindObjectByExactNameInScene("ChapterSelector");
+            if (selector == null)
+            {
+                Debug.LogWarning("[WorldMap] ChapterSelector was not found. Use Bake/Replace only if the selector hierarchy itself was deleted.");
+                return 0;
+            }
+
+            Sprite activeCardSprite = RequireSprite("glossy_chef_s_game_ui_banner.png");
+            Sprite lockedCardSprite = RequireSprite("locked_culinary_chapter_card.png");
+
+            int repaired = 0;
+
+            for (int i = 0; i < ContinentNames.Length; i++)
+            {
+                int chapterNumber = i + 1;
+                string cardName = "ChapterCard_" + chapterNumber;
+                Transform card = FindDeep(selector, cardName);
+
+                Transform left = chapterNumber > 1
+                    ? FindDeep(selector, "ChapterCard_" + (chapterNumber - 1))
+                    : null;
+                Transform right = chapterNumber < ContinentNames.Length
+                    ? FindDeep(selector, "ChapterCard_" + (chapterNumber + 1))
+                    : null;
+
+                if (card == null)
+                {
+                    Transform template = right != null ? right : left;
+
+                    if (template == null)
+                    {
+                        Debug.LogError("[WorldMap] Could not create " + cardName + " because no neighboring chapter-card template exists.");
+                        continue;
+                    }
+
+                    GameObject clone = UnityEngine.Object.Instantiate(template.gameObject, selector, false);
+                    clone.name = cardName;
+                    card = clone.transform;
+                    Undo.RegisterCreatedObjectUndo(clone, "Repair " + cardName);
+                    repaired++;
+
+                    RectTransform rect = card as RectTransform;
+                    RectTransform templateRect = template as RectTransform;
+
+                    if (rect != null && templateRect != null)
+                    {
+                        Vector2 targetPosition = GetExpectedChapterCardPosition(selector, chapterNumber, templateRect.anchoredPosition.y);
+                        rect.anchoredPosition = targetPosition;
+                        rect.localScale = Vector3.one;
+                    }
+
+                    // Keep the natural visual/sibling order: 1,2,3,4,5,6.
+                    if (right != null)
+                        card.SetSiblingIndex(right.GetSiblingIndex());
+                }
+
+                if (!card.gameObject.activeSelf)
+                {
+                    card.gameObject.SetActive(true);
+                    repaired++;
+                }
+
+                RectTransform cardRect = card as RectTransform;
+                if (cardRect != null)
+                {
+                    // Only repair clearly invalid geometry. Valid designer-authored
+                    // position/size remains untouched.
+                    if (cardRect.rect.width < 1f || cardRect.rect.height < 1f)
+                    {
+                        RectTransform neighborRect =
+                            (right as RectTransform) != null ? (RectTransform)right :
+                            ((left as RectTransform) != null ? (RectTransform)left : null);
+
+                        if (neighborRect != null)
+                        {
+                            cardRect.sizeDelta = neighborRect.sizeDelta;
+                            repaired++;
+                        }
+                    }
+
+                    if (cardRect.localScale.sqrMagnitude < 0.01f)
+                    {
+                        cardRect.localScale = Vector3.one;
+                        repaired++;
+                    }
+
+                    // Chapter 3 must physically sit between Chapters 2 and 4.
+                    if (chapterNumber == 3 && left is RectTransform leftRect && right is RectTransform rightRect)
+                    {
+                        float minX = Mathf.Min(leftRect.anchoredPosition.x, rightRect.anchoredPosition.x);
+                        float maxX = Mathf.Max(leftRect.anchoredPosition.x, rightRect.anchoredPosition.x);
+
+                        if (cardRect.anchoredPosition.x <= minX || cardRect.anchoredPosition.x >= maxX)
+                        {
+                            cardRect.anchoredPosition = new Vector2(
+                                (leftRect.anchoredPosition.x + rightRect.anchoredPosition.x) * 0.5f,
+                                (leftRect.anchoredPosition.y + rightRect.anchoredPosition.y) * 0.5f);
+                            repaired++;
+                        }
+                    }
+                }
+
+                Image image = card.GetComponent<Image>();
+                if (image == null)
+                {
+                    image = card.gameObject.AddComponent<Image>();
+                    repaired++;
+                }
+
+                image.sprite = i == 0 ? activeCardSprite : lockedCardSprite;
+                image.color = Color.white;
+                image.enabled = true;
+                image.preserveAspect = true;
+                image.raycastTarget = true;
+
+                Button button = card.GetComponent<Button>();
+                if (button == null)
+                {
+                    button = card.gameObject.AddComponent<Button>();
+                    repaired++;
+                }
+
+                button.targetGraphic = image;
+
+                TextMeshProUGUI label = card.GetComponentInChildren<TextMeshProUGUI>(true);
+                if (label == null)
+                {
+                    label = CreateText(
+                        "CardLabel",
+                        card,
+                        string.Empty,
+                        15f,
+                        TextAlignmentOptions.Center,
+                        Vector2.zero,
+                        new Vector2(
+                            Mathf.Max(120f, cardRect != null ? cardRect.rect.width - 20f : 144f),
+                            Mathf.Max(80f, cardRect != null ? cardRect.rect.height - 18f : 105f)));
+                    repaired++;
+                }
+
+                label.gameObject.SetActive(true);
+                label.enabled = true;
+                label.text = "CHAPTER " + chapterNumber + "\n" + ContinentNames[i].ToUpperInvariant();
+                label.color = i == 0
+                    ? new Color(0.09f, 0.16f, 0.32f, 1f)
+                    : new Color(0.78f, 0.82f, 0.9f, 1f);
+
+                // Connect the card to the correct continent logic.
+                // Chapter 3 => index 2 => Europe.
+                Transform continentTransform = FindObjectByPrefixInScene("Continent_" + chapterNumber);
+                WorldMapContinentNode continentNode =
+                    continentTransform != null
+                        ? continentTransform.GetComponent<WorldMapContinentNode>()
+                        : null;
+
+                if (continentNode != null)
+                {
+                    SerializedObject nodeSerialized = new SerializedObject(continentNode);
+                    SetSerializedObject(nodeSerialized, "cardButton", button);
+                    SetSerializedObject(nodeSerialized, "cardFrameImage", image);
+                    SetSerializedObject(nodeSerialized, "cardLabel", label);
+                    nodeSerialized.ApplyModifiedPropertiesWithoutUndo();
+                    EditorUtility.SetDirty(continentNode);
+                }
+
+                EditorUtility.SetDirty(card.gameObject);
+                EditorUtility.SetDirty(image);
+                EditorUtility.SetDirty(button);
+                EditorUtility.SetDirty(label);
+            }
+
+            EditorSceneManager.MarkSceneDirty(scene);
+
+            if (saveScene)
+                EditorSceneManager.SaveScene(scene);
+
+            return repaired;
+        }
+
+        private static Vector2 GetExpectedChapterCardPosition(
+            Transform selector,
+            int chapterNumber,
+            float fallbackY)
+        {
+            Transform left = chapterNumber > 1
+                ? FindDeep(selector, "ChapterCard_" + (chapterNumber - 1))
+                : null;
+            Transform right = chapterNumber < ContinentNames.Length
+                ? FindDeep(selector, "ChapterCard_" + (chapterNumber + 1))
+                : null;
+
+            if (left is RectTransform leftRect && right is RectTransform rightRect)
+            {
+                return new Vector2(
+                    (leftRect.anchoredPosition.x + rightRect.anchoredPosition.x) * 0.5f,
+                    (leftRect.anchoredPosition.y + rightRect.anchoredPosition.y) * 0.5f);
+            }
+
+            // Same six-slot spacing used by the baked selector:
+            // -430, -258, -86, 86, 258, 430.
+            const float cardWidth = 164f;
+            const float spacing = 8f;
+            const int cardCount = 6;
+            float totalWidth = cardCount * cardWidth + (cardCount - 1) * spacing;
+            float startX = -totalWidth * 0.5f + cardWidth * 0.5f;
+
+            return new Vector2(
+                startX + (chapterNumber - 1) * (cardWidth + spacing),
+                fallbackY);
+        }
+
         private static int RebindArtworkInOpenWorldMap(bool saveScene)
         {
             Scene scene = SceneManager.GetActiveScene();
             if (!scene.IsValid() || scene.path != ScenePath)
                 return 0;
 
-            int changed = 0;
+            int changed = EnsureChapterSelectorComplete(saveScene: false);
 
             // Support both the new editable hierarchy and the old generated hierarchy,
             // so importing artwork can immediately fix the white/blue placeholder look
