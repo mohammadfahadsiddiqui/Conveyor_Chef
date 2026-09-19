@@ -81,9 +81,8 @@ namespace Watermelon.BusStop
             Wire(soundButton, ToggleSound);
             Wire(vibrationButton, ToggleVibration);
 
-            if (settingsPanel != null)
-                settingsPanel.SetActive(false);
-
+            // Preserve the serialized active/inactive state of SettingsPanel.
+            // The initial runtime frame must match the Scene/Simulator preview.
             RepairContinentReferencesIfNeeded();
 
             if (continents != null)
@@ -221,7 +220,8 @@ namespace Watermelon.BusStop
             if (button == null)
                 return;
 
-            button.interactable = true;
+            // Do not change interactable/visual state on startup. The Button's
+            // serialized state in WorldMap.unity is authoritative.
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(action);
         }
