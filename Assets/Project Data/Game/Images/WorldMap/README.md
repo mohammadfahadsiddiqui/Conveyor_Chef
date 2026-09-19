@@ -74,3 +74,15 @@ North America is available by default.
 Every later continent unlocks after all 15 levels of the previous continent are completed.
 
 Country-map navigation will be connected in the next implementation phase.
+
+## Editable scene workflow
+
+After Unity recompiles the project, the editor bootstrap automatically creates:
+
+`Assets/Project Data/Game/Scenes/WorldMap.unity`
+
+This is a normal serialized Unity scene. Open it from the Project window and edit the Canvas, RectTransforms, continent positions, card positions, sizes, anchors and visual hierarchy directly.
+
+Your manual scene edits are treated as authoritative. The automatic bootstrap will **not** overwrite an existing `WorldMap.unity`. Only run **Conveyor Chef -> World Map -> Rebuild Responsive World Map** when you intentionally want to regenerate the entire scene.
+
+You can also use **Conveyor Chef -> World Map -> Create/Open Editable World Map** to create the scene if it is missing and open it immediately.
