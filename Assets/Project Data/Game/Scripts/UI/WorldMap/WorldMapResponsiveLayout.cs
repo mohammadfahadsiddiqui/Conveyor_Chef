@@ -4,10 +4,18 @@ using UnityEngine.UI;
 namespace Watermelon
 {
     /// <summary>
-    /// Keeps the World Map authored as one fixed 1080x1920 design frame.
-    /// This intentionally mirrors the stable Main Menu strategy: child UI is
-    /// never rearranged at runtime; only the complete design root is uniformly
-    /// scaled into the device safe area.
+    /// Keeps the exact designer-authored World Map composition from WorldMap.unity.
+    ///
+    /// The WorldMapRoot hierarchy is authored at 1080x1920. At runtime we never:
+    /// - reparent its children,
+    /// - move individual elements,
+    /// - resize individual elements,
+    /// - change child anchors,
+    /// - recalculate continent/card spacing.
+    ///
+    /// We only scale the whole WorldMapRoot uniformly so the Simulator/device
+    /// shows the same composition as the Scene view. This intentionally mirrors
+    /// MainMenuResponsiveLayout.
     /// </summary>
     [DisallowMultipleComponent]
     [DefaultExecutionOrder(-500)]
@@ -15,14 +23,16 @@ namespace Watermelon
     {
         private static readonly Vector2 ReferenceResolution = new Vector2(1080f, 1920f);
 
+        [Header("Exact Scene Layout")]
         [SerializeField] private bool fitInsideScreen = true;
         [SerializeField] private bool useSafeArea = true;
-        [SerializeField] private Image backgroundArtwork;
 
         private RectTransform root;
         private Canvas canvas;
         private CanvasScaler scaler;
+
         private RectTransform fullscreenBackdrop;
+        private Image sourceBackgroundImage;
         private Image fullscreenBackdropImage;
 
         private int lastWidth = -1;
@@ -60,8 +70,7 @@ namespace Watermelon
             if (scaler == null)
                 return;
 
-            // Important: exactly the same deterministic approach that fixed the
-            // menu Scene-view-vs-Play-mode layout mismatch.
+            // Same deterministic runtime strategy as the corrected Main Menu.
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
             scaler.scaleFactor = 1f;
             scaler.referencePixelsPerUnit = 100f;
@@ -69,7 +78,17 @@ namespace Watermelon
 
         private void CreateFullscreenBackdrop()
         {
-            if (canvas == null || root == null || backgroundArtwork == null || backgroundArtwork.sprite == null)
+            if (canvas == null || root == null)
+                return;
+
+            // Important: the background is a REAL serialized child of WorldMapRoot,
+            // so it is visible/editable in the Unity Scene view just like Main Menu.
+            Transform backgroundTransform = root.Find("Background Artwork");
+            if (backgroundTransform == null)
+                return;
+
+            sourceBackgroundImage = backgroundTransform.GetComponent<Image>();
+            if (sourceBackgroundImage == null || sourceBackgroundImage.sprite == null)
                 return;
 
             Transform existing = canvas.transform.Find("__Fullscreen World Map Backdrop");
@@ -100,9 +119,9 @@ namespace Watermelon
             fullscreenBackdrop.anchoredPosition = Vector2.zero;
             fullscreenBackdrop.localScale = Vector3.one;
 
-            fullscreenBackdropImage.sprite = backgroundArtwork.sprite;
-            fullscreenBackdropImage.color = backgroundArtwork.color;
-            fullscreenBackdropImage.material = backgroundArtwork.material;
+            fullscreenBackdropImage.sprite = sourceBackgroundImage.sprite;
+            fullscreenBackdropImage.color = sourceBackgroundImage.color;
+            fullscreenBackdropImage.material = sourceBackgroundImage.material;
             fullscreenBackdropImage.raycastTarget = false;
             fullscreenBackdropImage.preserveAspect = false;
 
@@ -189,11 +208,6 @@ namespace Watermelon
             lastWidth = Screen.width;
             lastHeight = Screen.height;
             lastSafeArea = Screen.safeArea;
-        }
-
-        public void EditorConfigure(Image sourceBackground)
-        {
-            backgroundArtwork = sourceBackground;
         }
     }
 }
