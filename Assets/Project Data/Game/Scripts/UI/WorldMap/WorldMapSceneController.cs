@@ -192,9 +192,18 @@ namespace Watermelon.BusStop
 
         private static void EnsureEventSystem()
         {
-            // Normal game flow already has the persistent Initialiser EventSystem.
-            // Do NOT reactivate a scene-local EventSystem just because
-            // EventSystem.current has not been assigned yet during Awake.
+            // Full application flow (Init -> Loading -> Menu -> WorldMap):
+            // the Initialiser owns the ONE persistent EventSystem.
+            // Never activate a scene-local EventSystem in this path, because doing
+            // that even for one frame triggers Unity's "only one active Event System"
+            // warning and can leave pointer/ScrollRect input stuck.
+            if (Initialiser.IsInititalized)
+            {
+                Initialiser.EnsurePersistentEventSystemActive();
+                return;
+            }
+
+            // Direct-scene testing fallback only (when Init was not run).
             EventSystem[] activeSystems = FindObjectsByType<EventSystem>(
                 FindObjectsInactive.Exclude,
                 FindObjectsSortMode.None);
@@ -206,9 +215,7 @@ namespace Watermelon.BusStop
                     return;
             }
 
-            // Direct scene testing fallback: menu/world-map scenes keep their local
-            // EventSystem serialized inactive. Activate it only when no active system
-            // exists anywhere.
+            Scene currentScene = SceneManager.GetActiveScene();
             EventSystem[] allSystems = FindObjectsByType<EventSystem>(
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None);
@@ -216,17 +223,14 @@ namespace Watermelon.BusStop
             for (int i = 0; i < allSystems.Length; i++)
             {
                 EventSystem system = allSystems[i];
-                if (system == null)
+                if (system == null || system.gameObject.scene != currentScene)
                     continue;
 
-                if (!system.gameObject.activeSelf)
-                    system.gameObject.SetActive(true);
-
+                system.gameObject.SetActive(true);
                 system.enabled = true;
                 return;
             }
         }
-
         private static void EnsureSaveControllerReady()
         {
             if (SaveController.IsSaveLoaded)
