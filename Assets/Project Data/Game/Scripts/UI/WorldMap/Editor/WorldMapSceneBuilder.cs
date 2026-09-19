@@ -26,6 +26,13 @@ namespace Watermelon.EditorTools
     /// </summary>
     public static class WorldMapSceneBuilder
     {
+        static WorldMapSceneBuilder()
+        {
+            // Create the editable scene once when this feature first arrives in a project.
+            // Never overwrite an existing WorldMap.unity, so designer changes remain authoritative.
+            EditorApplication.delayCall += EnsureEditableWorldMapSceneExists;
+        }
+
         private const string ScenePath = "Assets/Project Data/Game/Scenes/WorldMap.unity";
         private const string MenuScenePath = "Assets/Project Data/Game/Scenes/menu.unity";
         private const string AssetFolder = "Assets/Project Data/Game/Images/WorldMap";
@@ -72,6 +79,58 @@ namespace Watermelon.EditorTools
             new Vector2(760f, 760f),
             new Vector2(650f, 650f)
         };
+
+        private static void EnsureEditableWorldMapSceneExists()
+        {
+            if (EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
+
+            if (File.Exists(ScenePath))
+            {
+                EnsureSceneInBuildSettings(ScenePath);
+                return;
+            }
+
+            Scene currentScene = SceneManager.GetActiveScene();
+
+            // Do not discard unsaved designer changes just to auto-create a scene.
+            // The explicit menu command remains available at all times.
+            if (currentScene.IsValid() && currentScene.isDirty)
+            {
+                Debug.Log(
+                    "[WorldMapBuilder] WorldMap.unity is not created yet because the current scene has unsaved changes. " +
+                    "Save your scene, then use Conveyor Chef > World Map > Create/Open Editable World Map.");
+                return;
+            }
+
+            string previousScenePath = currentScene.IsValid() ? currentScene.path : string.Empty;
+
+            RebuildWorldMap();
+
+            if (!string.IsNullOrEmpty(previousScenePath) &&
+                previousScenePath != ScenePath &&
+                File.Exists(previousScenePath))
+            {
+                EditorSceneManager.OpenScene(previousScenePath, OpenSceneMode.Single);
+            }
+        }
+
+        [MenuItem("Conveyor Chef/World Map/Create/Open Editable World Map", priority = 1)]
+        public static void CreateOrOpenEditableWorldMap()
+        {
+            if (!File.Exists(ScenePath))
+                RebuildWorldMap();
+
+            EnsureSceneInBuildSettings(ScenePath);
+            EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            GameObject root = GameObject.Find("WorldMapRoot");
+            if (root != null)
+            {
+                Selection.activeGameObject = root;
+                EditorGUIUtility.PingObject(root);
+            }
+        }
 
         [MenuItem("Conveyor Chef/World Map/Rebuild Responsive World Map")]
         public static void RebuildWorldMap()
@@ -137,12 +196,12 @@ namespace Watermelon.EditorTools
             logoImage.preserveAspect = true;
             logoImage.raycastTarget = false;
 
-            TMP_Text chapterText = CreateText(
+            TextMeshProUGUI chapterText = CreateText(
                 "SelectedChapterText", header, "CHAPTER 1  •  NORTH AMERICA",
                 34, TextAlignmentOptions.Center, new Vector2(0f, -92f), new Vector2(800f, 54f));
             chapterText.color = Color.white;
 
-            TMP_Text statusText = CreateText(
+            TextMeshProUGUI statusText = CreateText(
                 "StatusText", header, "UNLOCKED  •  15 LEVELS",
                 22, TextAlignmentOptions.Center, new Vector2(0f, -132f), new Vector2(820f, 40f));
             statusText.color = new Color(0.86f, 0.95f, 1f, 1f);
@@ -232,7 +291,7 @@ namespace Watermelon.EditorTools
                 pin.preserveAspect = true;
                 pin.raycastTarget = false;
 
-                TMP_Text label = CreateText(
+                TextMeshProUGUI label = CreateText(
                     "ContinentName", nodeRoot, ContinentNames[i],
                     34, TextAlignmentOptions.Center,
                     new Vector2(0f, -ContinentSizes[i].y * 0.31f),
@@ -321,7 +380,7 @@ namespace Watermelon.EditorTools
                         ? new Color(1f, 0.84f, 0.24f, 1f)
                         : new Color(0.18f, 0.25f, 0.4f, 1f);
 
-                TMP_Text cardLabel = CreateText(
+                TextMeshProUGUI cardLabel = CreateText(
                     "CardLabel",
                     cardButton.transform,
                     "CHAPTER " + (i + 1) + "\n" + ContinentNames[i].ToUpperInvariant(),
@@ -338,9 +397,9 @@ namespace Watermelon.EditorTools
                 worldRoot,
                 out Button closeSettings,
                 out Button soundButton,
-                out TMP_Text soundLabel,
+                out TextMeshProUGUI soundLabel,
                 out Button vibrationButton,
-                out TMP_Text vibrationLabel);
+                out TextMeshProUGUI vibrationLabel);
             settingsPanel.SetActive(false);
 
             controller.EditorConfigure(
@@ -351,8 +410,8 @@ namespace Watermelon.EditorTools
                 rightButton,
                 backButton,
                 settingsButton,
-                chapterText as TextMeshProUGUI,
-                statusText as TextMeshProUGUI,
+                chapterText,
+                statusText,
                 dragHintGroup,
                 settingsPanel,
                 closeSettings,
@@ -468,9 +527,9 @@ namespace Watermelon.EditorTools
             RectTransform parent,
             out Button close,
             out Button sound,
-            out TMP_Text soundText,
+            out TextMeshProUGUI soundText,
             out Button vibration,
-            out TMP_Text vibrationText)
+            out TextMeshProUGUI vibrationText)
         {
             RectTransform overlay = CreateRect("SettingsPanel", parent);
             Stretch(overlay);
@@ -485,7 +544,7 @@ namespace Watermelon.EditorTools
             Image cardImage = card.gameObject.AddComponent<Image>();
             cardImage.color = new Color(0.04f, 0.24f, 0.55f, 0.98f);
 
-            TMP_Text title = CreateText(
+            TextMeshProUGUI title = CreateText(
                 "Title", card, "SETTINGS", 54,
                 TextAlignmentOptions.Center,
                 new Vector2(0f, 225f), new Vector2(600f, 90f));
@@ -503,7 +562,7 @@ namespace Watermelon.EditorTools
             string name,
             string text,
             Vector2 position,
-            out TMP_Text label)
+            out TextMeshProUGUI label)
         {
             RectTransform rect = CreateRect(name, parent);
             SetRect(rect, new Vector2(0.5f, 0.5f), position, new Vector2(500f, 105f));
@@ -591,7 +650,7 @@ namespace Watermelon.EditorTools
             tmp.text = text;
             tmp.fontSize = fontSize;
             tmp.alignment = alignment;
-            tmp.enableWordWrapping = false;
+            tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.raycastTarget = false;
 
             return tmp;
