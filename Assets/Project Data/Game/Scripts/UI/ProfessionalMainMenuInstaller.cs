@@ -17,7 +17,6 @@ namespace Watermelon
     /// The UI is built from Resources/ProfessionalMainMenu so the menu stays responsive
     /// and does not depend on fragile scene YAML references.
     /// </summary>
-    [ExecuteAlways]
     public sealed class ProfessionalMainMenuInstaller : MonoBehaviour
     {
         private const string MenuSceneName = "menu";
@@ -82,19 +81,8 @@ namespace Watermelon
             installerObject.AddComponent<ProfessionalMainMenuInstaller>();
         }
 
-        private void OnEnable()
-        {
-            if (!Application.isPlaying)
-            {
-                BuildEditorPreview();
-            }
-        }
-
         private void Awake()
         {
-            if (!Application.isPlaying)
-                return;
-
             // Hide the legacy menu immediately when menu.unity becomes active.
             // Waiting until Start() allowed the old UI/loading decoration to flash
             // for a frame before the professional menu was built.
@@ -104,9 +92,6 @@ namespace Watermelon
 
         private IEnumerator Start()
         {
-            if (!Application.isPlaying)
-                yield break;
-
             // Let the Watermelon UI system finish creating its pages first.
             yield return null;
             yield return null;
@@ -119,7 +104,14 @@ namespace Watermelon
                 Debug.LogError("[ProfessionalMainMenu] ProfessionalMainMenuAssets catalog is missing.");
 
             DisableLegacyMainMenu();
-            BuildMenu(true);
+
+            // Prefer the real UI hierarchy baked into menu.unity. Runtime generation
+            // remains only as a safe fallback for older project copies.
+            if (!BindExistingSceneMenu())
+            {
+                BuildMenu(true);
+            }
+
             RefreshHUD();
 
             CurrenciesController.InvokeOrSubcrtibe(() =>
@@ -176,34 +168,6 @@ namespace Watermelon
 
             // Modal close is handled by the visible CLOSE button. Avoid the legacy
             // UnityEngine.Input API here because this project uses the Input System package.
-        }
-
-        private void BuildEditorPreview()
-        {
-            if (Application.isPlaying || !gameObject.scene.IsValid() ||
-                !string.Equals(gameObject.scene.name, MenuSceneName, StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            Transform existingPreview = transform.Find("ConveyorChef_MainMenu_Canvas");
-            if (existingPreview != null)
-            {
-                DestroyImmediate(existingPreview.gameObject);
-            }
-
-            assetCatalog = Resources.Load<ProfessionalMainMenuAssetCatalog>("ProfessionalMainMenuAssets");
-            if (assetCatalog == null)
-                return;
-
-            BuildMenu(false);
-
-            // This is an editor preview. The authoritative layout is rebuilt from this
-            // installer, so the generated preview should not become duplicated scene data.
-            if (canvas != null)
-            {
-                canvas.gameObject.hideFlags = HideFlags.DontSaveInEditor;
-            }
         }
 
         private void EnsureSaveControllerReady()
@@ -266,6 +230,158 @@ namespace Watermelon
                 }
             }
         }
+
+        private bool BindExistingSceneMenu()
+        {
+            Transform bakedCanvas = transform.Find("ConveyorChef_MainMenu_Canvas");
+            if (bakedCanvas == null)
+                return false;
+
+            canvas = bakedCanvas.GetComponent<Canvas>();
+            canvasRect = bakedCanvas as RectTransform;
+            if (canvas == null || canvasRect == null)
+                return false;
+
+            Transform safe = bakedCanvas.Find("SafeArea");
+            if (safe == null)
+                return false;
+
+            safeArea = safe as RectTransform;
+            Transform root = safe.Find("MainMenuContent");
+            if (root == null)
+                return false;
+
+            menuRoot = root.gameObject;
+            menuCanvasGroup = menuRoot.GetComponent<CanvasGroup>();
+
+            logoRect = FindDeepChild(root, "Conveyor Chef Logo") as RectTransform;
+            chefRect = FindDeepChild(root, "Chef Character") as RectTransform;
+
+            if (logoRect != null)
+                logoBasePosition = logoRect.anchoredPosition;
+
+            if (chefRect != null)
+            {
+                chefBasePosition = chefRect.anchoredPosition;
+                chefBaseScale = chefRect.localScale;
+            }
+
+            Transform starValue = FindDeepChild(root, "Star Value");
+            Transform coinValue = FindDeepChild(root, "Coin Value");
+            Transform diamondValue = FindDeepChild(root, "Diamond Value");
+
+            starText = starValue != null ? starValue.GetComponent<TextMeshProUGUI>() : null;
+            coinText = coinValue != null ? coinValue.GetComponent<TextMeshProUGUI>() : null;
+            diamondText = diamondValue != null ? diamondValue.GetComponent<TextMeshProUGUI>() : null;
+
+            Transform modal = bakedCanvas.Find("MainMenu Modal");
+            if (modal != null)
+            {
+                modalRoot = modal.gameObject;
+
+                Transform title = FindDeepChild(modal, "Title");
+                Transform body = FindDeepChild(modal, "Body");
+                Transform controls = FindDeepChild(modal, "Settings Controls");
+
+                modalTitle = title != null ? title.GetComponent<TextMeshProUGUI>() : null;
+                modalBody = body != null ? body.GetComponent<TextMeshProUGUI>() : null;
+                settingsControls = controls != null ? controls.gameObject : null;
+
+                Transform soundLabel = FindDeepChild(modal, "SOUND Button");
+                Transform vibrationLabel = FindDeepChild(modal, "VIBRATION Button");
+                soundButtonText = soundLabel != null ? soundLabel.GetComponentInChildren<TextMeshProUGUI>(true) : null;
+                vibrationButtonText = vibrationLabel != null ? vibrationLabel.GetComponentInChildren<TextMeshProUGUI>(true) : null;
+            }
+
+            WireExistingButton(root, "PLAY", PlayGame, true, true);
+            WireExistingButton(root, "STORY", OpenStory, false, true);
+            WireExistingButton(root, "CHALLENGES", OpenChallenges, false, true);
+            WireExistingButton(root, "CUSTOMIZE", OpenCustomize, false, true);
+            WireExistingButton(root, "SETTINGS", OpenSettings, false, true);
+
+            WireExistingButton(root, "Shop", OpenShop, false, false);
+            WireExistingButton(root, "Collection", OpenCollection, false, false);
+            WireExistingButton(root, "Achievements", OpenAchievements, false, false);
+            WireExistingButton(root, "Leaderboard", OpenLeaderboard, false, false);
+            WireExistingButton(root, "Coin Plus Hitbox", OpenShop, false, false);
+            WireExistingButton(root, "Diamond Plus Hitbox", OpenShop, false, false);
+
+            if (modal != null)
+            {
+                WireExistingButton(modal, "CLOSE Button", HideModal, false, false);
+                WireExistingButton(modal, "SOUND Button", ToggleSound, false, true);
+                WireExistingButton(modal, "VIBRATION Button", ToggleVibration, false, true);
+            }
+
+            ApplySafeArea();
+            return true;
+        }
+
+        private void WireExistingButton(Transform root, string objectName, UnityEngine.Events.UnityAction action, bool pulse, bool shine)
+        {
+            Transform target = FindDeepChild(root, objectName);
+            if (target == null)
+                return;
+
+            Button button = target.GetComponent<Button>();
+            if (button == null)
+                return;
+
+            Image image = target.GetComponent<Image>();
+            if (image != null)
+            {
+                image.raycastTarget = true;
+                button.targetGraphic = image;
+            }
+
+            button.interactable = true;
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(action);
+
+            ProfessionalMainMenuButtonFX fx = target.GetComponent<ProfessionalMainMenuButtonFX>();
+            if (fx == null)
+                fx = target.gameObject.AddComponent<ProfessionalMainMenuButtonFX>();
+
+            fx.Configure(pulse, shine);
+        }
+
+        private static Transform FindDeepChild(Transform parent, string objectName)
+        {
+            if (parent == null)
+                return null;
+
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                Transform child = parent.GetChild(i);
+                if (string.Equals(child.name, objectName, StringComparison.Ordinal))
+                    return child;
+
+                Transform nested = FindDeepChild(child, objectName);
+                if (nested != null)
+                    return nested;
+            }
+
+            return null;
+        }
+
+#if UNITY_EDITOR
+        public void RebuildSceneMenuForEditor()
+        {
+            Transform existing = transform.Find("ConveyorChef_MainMenu_Canvas");
+            if (existing != null)
+                DestroyImmediate(existing.gameObject);
+
+            spriteCache.Clear();
+            assetCatalog = Resources.Load<ProfessionalMainMenuAssetCatalog>("ProfessionalMainMenuAssets");
+            BuildMenu(false);
+
+            if (canvas != null)
+                canvas.gameObject.hideFlags = HideFlags.None;
+
+            UnityEditor.EditorUtility.SetDirty(gameObject);
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+        }
+#endif
 
         private void BuildMenu(bool animate)
         {
@@ -990,6 +1106,19 @@ namespace Watermelon
             if (spriteCache.TryGetValue(resourceName, out Sprite cached))
                 return cached;
 
+#if UNITY_EDITOR
+            if (!Application.isPlaying)
+            {
+                string editorSpritePath = "Assets/Project Data/Game/Images/ProfessionalMainMenuBaked/" + resourceName + ".png";
+                Sprite bakedSprite = UnityEditor.AssetDatabase.LoadAssetAtPath<Sprite>(editorSpritePath);
+                if (bakedSprite != null)
+                {
+                    spriteCache[resourceName] = bakedSprite;
+                    return bakedSprite;
+                }
+            }
+#endif
+
             // Primary path: the exact approved generated art reconstructed from
             // Resources/ProfessionalMainMenuData.
             Sprite embedded = ProfessionalMainMenuEmbeddedAssets.GetSprite(resourceName);
@@ -1268,6 +1397,16 @@ namespace Watermelon
         {
             if (shineRect != null)
                 return;
+
+            Transform existingShine = transform.Find("Shine");
+            if (existingShine != null)
+            {
+                shineRect = existingShine as RectTransform;
+                shineGroup = existingShine.GetComponent<CanvasGroup>();
+                if (shineGroup == null)
+                    shineGroup = existingShine.gameObject.AddComponent<CanvasGroup>();
+                return;
+            }
 
             Image hostImage = GetComponent<Image>();
             if (hostImage != null && GetComponent<Mask>() == null)
