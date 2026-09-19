@@ -157,7 +157,7 @@ namespace Watermelon
         private void PlayGame()
         {
             PlayClick();
-            EnhancedLoadingScreen.LoadViaLoadingScreen("LevelSelection");
+            EnhancedLoadingScreen.LoadViaLoadingScreen("WorldMap");
         }
 
         private void OpenStory()
@@ -172,7 +172,7 @@ namespace Watermelon
                 $"Levels completed: {completed}\n" +
                 $"Best level reached: {bestLevel}\n" +
                 $"Stars collected: {stars}\n\n" +
-                "Press PLAY to continue through the level map.");
+                "Press PLAY to continue through the world map.");
         }
 
         private void OpenChallenges()
