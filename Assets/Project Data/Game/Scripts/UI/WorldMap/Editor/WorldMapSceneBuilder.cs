@@ -24,6 +24,7 @@ namespace Watermelon.EditorTools
     ///
     /// This is the same strategy that fixed the Main Menu simulator mismatch.
     /// </summary>
+    [InitializeOnLoad]
     public static class WorldMapSceneBuilder
     {
         static WorldMapSceneBuilder()
