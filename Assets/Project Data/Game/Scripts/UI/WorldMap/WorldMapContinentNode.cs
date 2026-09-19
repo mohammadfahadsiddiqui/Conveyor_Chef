@@ -98,7 +98,10 @@ namespace Watermelon.BusStop
 
         private void HandlePressed()
         {
-            owner?.HandleContinentPressed(continentIndex);
+            // Explicit Unity null check; null-conditional does not detect
+            // destroyed UnityEngine.Object instances.
+            if (owner != null)
+                owner.HandleContinentPressed(continentIndex);
         }
 
 #if UNITY_EDITOR
