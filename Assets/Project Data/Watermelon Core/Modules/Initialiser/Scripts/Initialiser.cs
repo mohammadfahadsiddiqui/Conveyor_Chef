@@ -68,24 +68,28 @@ namespace Watermelon
             if (eventSystem == null)
                 return;
 
-            if (!eventSystem.gameObject.activeSelf)
-                eventSystem.gameObject.SetActive(true);
-
-            eventSystem.enabled = true;
-
             EventSystem[] systems = FindObjectsByType<EventSystem>(
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None);
 
+            // Disable/deactivate scene-local systems BEFORE enabling the persistent
+            // system. This avoids Unity ever having two active EventSystems in the
+            // same frame.
             foreach (EventSystem system in systems)
             {
                 if (system == null || system == eventSystem)
                     continue;
 
-                // The Initialiser's DontDestroyOnLoad EventSystem is the single
-                // authoritative UI input system for the whole application.
                 system.enabled = false;
+
+                if (system.gameObject.activeSelf)
+                    system.gameObject.SetActive(false);
             }
+
+            if (!eventSystem.gameObject.activeSelf)
+                eventSystem.gameObject.SetActive(true);
+
+            eventSystem.enabled = true;
         }
 
         public void Initialise(bool loadingScene)
