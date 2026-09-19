@@ -83,6 +83,8 @@ namespace Watermelon.EditorTools
             AssetDatabase.Refresh();
             ImportWorldMapTexturesAsSprites();
 
+            NormalizeWorldMapCanvasForEditor(scene);
+
             List<string> missing = GetMissingAssets();
 
             if (missing.Count > 0 && TryImportAssetPackFromKnownLocations())
@@ -351,6 +353,34 @@ namespace Watermelon.EditorTools
                 scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
             FocusEditableWorldMapInSceneView(scene);
+        }
+
+        [MenuItem("Conveyor Chef/World Map/7. Normalize Canvas Like Menu/Loading", priority = 7)]
+        public static void NormalizeCurrentWorldMapCanvas()
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            NormalizeWorldMapCanvasForEditor(scene);
+            RebindArtworkInOpenWorldMap(saveScene: false);
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+
+            FocusEditableWorldMapInSceneView(scene);
+
+            EditorUtility.DisplayDialog(
+                "World Map Canvas",
+                "WorldMap Canvas has been normalized to the same authoring setup as menu/loading:\n\n" +
+                "• Screen Space - Overlay\n" +
+                "• Scale With Screen Size\n" +
+                "• 1080 x 1920\n" +
+                "• Match 0.5\n" +
+                "• Entire Canvas hierarchy on the UI layer\n" +
+                "• UI graphics dirtied/refreshed for Scene view\n\n" +
+                "No RectTransform positions or sizes were changed.",
+                "OK");
         }
 
         [MenuItem("Conveyor Chef/World Map/Open World Map Art Folder", priority = 20)]
@@ -737,6 +767,12 @@ namespace Watermelon.EditorTools
                 typeof(CanvasScaler),
                 typeof(GraphicRaycaster));
 
+            int uiLayer = LayerMask.NameToLayer("UI");
+            if (uiLayer < 0)
+                uiLayer = 5;
+
+            canvasObject.layer = uiLayer;
+
             Canvas canvas = canvasObject.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.pixelPerfect = false;
@@ -955,6 +991,13 @@ namespace Watermelon.EditorTools
         private static RectTransform CreateRect(string name, Transform parent)
         {
             GameObject go = new GameObject(name, typeof(RectTransform));
+
+            int uiLayer = LayerMask.NameToLayer("UI");
+            if (uiLayer < 0)
+                uiLayer = 5;
+
+            go.layer = parent != null ? parent.gameObject.layer : uiLayer;
+
             RectTransform rect = go.GetComponent<RectTransform>();
             rect.SetParent(parent, false);
             rect.localScale = Vector3.one;
@@ -997,6 +1040,82 @@ namespace Watermelon.EditorTools
                 if (button.GetComponent<WorldMapButtonFX>() == null)
                     button.gameObject.AddComponent<WorldMapButtonFX>();
             }
+        }
+
+        private static void NormalizeWorldMapCanvasForEditor(Scene scene)
+        {
+            if (!scene.IsValid())
+                return;
+
+            Canvas canvas = null;
+
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                canvas = root.GetComponentInChildren<Canvas>(true);
+                if (canvas != null)
+                    break;
+            }
+
+            if (canvas == null)
+                return;
+
+            int uiLayer = LayerMask.NameToLayer("UI");
+            if (uiLayer < 0)
+                uiLayer = 5;
+
+            SetLayerRecursively(canvas.gameObject, uiLayer);
+
+            canvas.enabled = true;
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.pixelPerfect = false;
+            canvas.sortingOrder = 0;
+            EditorUtility.SetDirty(canvas);
+
+            CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
+            if (scaler == null)
+                scaler = canvas.gameObject.AddComponent<CanvasScaler>();
+
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(DesignWidth, DesignHeight);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
+            scaler.referencePixelsPerUnit = 100f;
+            EditorUtility.SetDirty(scaler);
+
+            if (canvas.GetComponent<GraphicRaycaster>() == null)
+                canvas.gameObject.AddComponent<GraphicRaycaster>();
+
+            Graphic[] graphics = canvas.GetComponentsInChildren<Graphic>(true);
+            foreach (Graphic graphic in graphics)
+            {
+                if (graphic == null)
+                    continue;
+
+                graphic.SetAllDirty();
+                graphic.SetVerticesDirty();
+                graphic.SetMaterialDirty();
+                EditorUtility.SetDirty(graphic);
+
+                CanvasRenderer renderer = graphic.canvasRenderer;
+                if (renderer != null)
+                    renderer.cullTransparentMesh = false;
+            }
+
+            Canvas.ForceUpdateCanvases();
+            EditorSceneManager.MarkSceneDirty(scene);
+        }
+
+        private static void SetLayerRecursively(GameObject root, int layer)
+        {
+            if (root == null)
+                return;
+
+            root.layer = layer;
+            EditorUtility.SetDirty(root);
+
+            Transform transform = root.transform;
+            for (int i = 0; i < transform.childCount; i++)
+                SetLayerRecursively(transform.GetChild(i).gameObject, layer);
         }
 
         private static void FocusEditableWorldMapInSceneView(Scene scene)
