@@ -170,11 +170,11 @@ namespace Watermelon
             // Make sure the scene-based menu remains the only production menu.
             GameObject legacyGenerated = FindRoot(scene, "ConveyorChef_MainMenu_Canvas");
             if (legacyGenerated != null)
-                legacyGenerated.SetActive(false);
+                UnityEngine.Object.DestroyImmediate(legacyGenerated);
 
             GameObject obsoleteInstaller = FindRoot(scene, "Professional Main Menu");
             if (obsoleteInstaller != null)
-                obsoleteInstaller.SetActive(false);
+                UnityEngine.Object.DestroyImmediate(obsoleteInstaller);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
