@@ -131,12 +131,39 @@ namespace Watermelon
 
         private static void EnsureEventSystem()
         {
-            if (EventSystem.current != null && EventSystem.current.gameObject.activeInHierarchy)
-                return;
+            // Normal game flow already has the persistent Initialiser EventSystem.
+            // Do NOT reactivate a scene-local EventSystem just because
+            // EventSystem.current has not been assigned yet during Awake.
+            EventSystem[] activeSystems = FindObjectsByType<EventSystem>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None);
 
-            EventSystem existing = FindFirstObjectByType<EventSystem>(FindObjectsInactive.Include);
-            if (existing != null)
-                existing.gameObject.SetActive(true);
+            for (int i = 0; i < activeSystems.Length; i++)
+            {
+                EventSystem system = activeSystems[i];
+                if (system != null && system.enabled && system.gameObject.activeInHierarchy)
+                    return;
+            }
+
+            // Direct scene testing fallback: menu/world-map scenes keep their local
+            // EventSystem serialized inactive. Activate it only when no active system
+            // exists anywhere.
+            EventSystem[] allSystems = FindObjectsByType<EventSystem>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None);
+
+            for (int i = 0; i < allSystems.Length; i++)
+            {
+                EventSystem system = allSystems[i];
+                if (system == null)
+                    continue;
+
+                if (!system.gameObject.activeSelf)
+                    system.gameObject.SetActive(true);
+
+                system.enabled = true;
+                return;
+            }
         }
 
         private static void EnsureSaveControllerReady()
