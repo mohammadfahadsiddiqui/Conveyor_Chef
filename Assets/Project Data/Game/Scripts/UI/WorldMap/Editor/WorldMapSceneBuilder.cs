@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using TMPro;
 using UnityEditor;
@@ -51,6 +52,31 @@ namespace Watermelon.EditorTools
         private const string ScenePath = "Assets/Project Data/Game/Scenes/WorldMap.unity";
         private const string MenuScenePath = "Assets/Project Data/Game/Scenes/menu.unity";
         private const string AssetFolder = "Assets/Project Data/Game/Images/WorldMap";
+        private const string AssetPackFileName = "ConveyorChef_WorldMap_Assets_ForUnity.zip";
+
+        private static readonly string[] RequiredAssetFiles =
+        {
+            "tropical_ocean_map_adventure.png",
+            "colorful_cartoon_north_america_map.png",
+            "colourful_south_america_game_map.png",
+            "vibrant_cartoon_europe_map.png",
+            "whimsical_africa_adventure_map.png",
+            "whimsical_isometric_asia_game_map.png",
+            "australia_and_oceania_adventure_map.png",
+            "conveyor_chef_world_map_logo.png",
+            "glossy_blue_game_back_button.png",
+            "glossy_blue_gear_settings_icon.png",
+            "glossy_blue_back_arrow_button.png",
+            "glossy_blue_right_arrow_button.png",
+            "glossy_chef_map_pin_icon.png",
+            "glossy_blue_map_pin_lock_icon.png",
+            "golden_magical_energy_burst.png",
+            "glossy_chef_s_game_ui_banner.png",
+            "locked_culinary_chapter_card.png",
+            "glossy_blue_game_ui_panel.png",
+            "drag_to_explore_game_button.png",
+            "ornate_golden_blue_compass_rose.png"
+        };
 
         private const float DesignWidth = 1080f;
         private const float DesignHeight = 1920f;
@@ -137,7 +163,10 @@ namespace Watermelon.EditorTools
 
             string previousScenePath = currentScene.IsValid() ? currentScene.path : string.Empty;
 
-            RebuildWorldMap();
+            if (!EnsureGeneratedAssetsAvailable(false))
+                return;
+
+            RebuildWorldMapInternal();
 
             if (!string.IsNullOrEmpty(previousScenePath) &&
                 previousScenePath != ScenePath &&
@@ -183,7 +212,10 @@ namespace Watermelon.EditorTools
             // a tiny placeholder so Build Settings can reference WorldMap immediately.
             if (!File.Exists(ScenePath) || IsPlaceholderSceneFile())
             {
-                RebuildWorldMap();
+                if (!EnsureGeneratedAssetsAvailable(true))
+                    return;
+
+                RebuildWorldMapInternal();
             }
             else
             {
@@ -201,6 +233,23 @@ namespace Watermelon.EditorTools
 
         [MenuItem("Conveyor Chef/World Map/Rebuild Responsive World Map")]
         public static void RebuildWorldMap()
+        {
+            if (!EnsureGeneratedAssetsAvailable(true))
+                return;
+
+            RebuildWorldMapInternal();
+        }
+
+        [MenuItem("Conveyor Chef/World Map/Import Generated Asset Pack + Rebuild", priority = 2)]
+        public static void ImportAssetPackAndRebuild()
+        {
+            if (!ImportAssetPackInteractive())
+                return;
+
+            RebuildWorldMapInternal();
+        }
+
+        private static void RebuildWorldMapInternal()
         {
             EnsureFolders();
             ImportWorldMapTexturesAsSprites();
@@ -505,6 +554,14 @@ namespace Watermelon.EditorTools
             {
                 Selection.activeGameObject = worldRoot.gameObject;
                 EditorGUIUtility.PingObject(worldRoot.gameObject);
+
+                SceneView sceneView = SceneView.lastActiveSceneView;
+                if (sceneView != null)
+                {
+                    sceneView.in2DMode = true;
+                    sceneView.FrameSelected();
+                    sceneView.Repaint();
+                }
             }
             else
             {
@@ -924,6 +981,18 @@ namespace Watermelon.EditorTools
                     changed = true;
                 }
 
+                if (importer.maxTextureSize < 4096)
+                {
+                    importer.maxTextureSize = 4096;
+                    changed = true;
+                }
+
+                if (importer.textureCompression != TextureImporterCompression.Uncompressed)
+                {
+                    importer.textureCompression = TextureImporterCompression.Uncompressed;
+                    changed = true;
+                }
+
                 if (changed)
                     importer.SaveAndReimport();
             }
@@ -965,31 +1034,172 @@ namespace Watermelon.EditorTools
 
         private static List<string> GetMissingAssets()
         {
-            string[] all =
+            return RequiredAssetFiles.Where(name => FindSprite(name) == null).ToList();
+        }
+
+        private static bool EnsureGeneratedAssetsAvailable(bool interactive)
+        {
+            EnsureFolders();
+            AssetDatabase.Refresh();
+            ImportWorldMapTexturesAsSprites();
+
+            List<string> missing = GetMissingAssets();
+            if (missing.Count == 0)
+                return true;
+
+            if (TryImportAssetPackFromKnownLocations())
             {
-                "tropical_ocean_map_adventure.png",
-                "colorful_cartoon_north_america_map.png",
-                "colourful_south_america_game_map.png",
-                "vibrant_cartoon_europe_map.png",
-                "whimsical_africa_adventure_map.png",
-                "whimsical_isometric_asia_game_map.png",
-                "australia_and_oceania_adventure_map.png",
-                "conveyor_chef_world_map_logo.png",
-                "glossy_blue_game_back_button.png",
-                "glossy_blue_gear_settings_icon.png",
-                "glossy_blue_back_arrow_button.png",
-                "glossy_blue_right_arrow_button.png",
-                "glossy_chef_map_pin_icon.png",
-                "glossy_blue_map_pin_lock_icon.png",
-                "golden_magical_energy_burst.png",
-                "glossy_chef_s_game_ui_banner.png",
-                "locked_culinary_chapter_card.png",
-                "glossy_blue_game_ui_panel.png",
-                "drag_to_explore_game_button.png",
-                "ornate_golden_blue_compass_rose.png"
+                AssetDatabase.Refresh();
+                ImportWorldMapTexturesAsSprites();
+                missing = GetMissingAssets();
+                if (missing.Count == 0)
+                    return true;
+            }
+
+            if (!interactive)
+            {
+                Debug.LogWarning(
+                    "[WorldMapBuilder] The real generated World Map PNG assets are not in the Unity project yet. " +
+                    "The builder will NOT create placeholder rectangles. Use Conveyor Chef > World Map > " +
+                    "Import Generated Asset Pack + Rebuild and select " + AssetPackFileName + ".");
+                return false;
+            }
+
+            int choice = EditorUtility.DisplayDialogComplex(
+                "World Map artwork is missing",
+                "Unity cannot find " + missing.Count + " of the 20 generated World Map PNG assets.\n\n" +
+                "The blue/green/white blocks in the Simulator are fallback graphics, not the final map.\n\n" +
+                "Select the generated ZIP so Unity can copy the PNGs into:\n" +
+                AssetFolder,
+                "Select ZIP",
+                "Cancel",
+                "Open Asset Folder");
+
+            if (choice == 2)
+            {
+                SelectAssetFolder();
+                return false;
+            }
+
+            if (choice != 0)
+                return false;
+
+            if (!ImportAssetPackInteractive())
+                return false;
+
+            AssetDatabase.Refresh();
+            ImportWorldMapTexturesAsSprites();
+
+            missing = GetMissingAssets();
+            if (missing.Count > 0)
+            {
+                EditorUtility.DisplayDialog(
+                    "World Map assets still missing",
+                    "The selected ZIP did not contain all required World Map PNGs. Missing:\n\n" +
+                    string.Join("\n", missing),
+                    "OK");
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryImportAssetPackFromKnownLocations()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath)?.FullName;
+            string downloads = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Downloads");
+
+            string[] candidates =
+            {
+                string.IsNullOrEmpty(projectRoot) ? null : Path.Combine(projectRoot, AssetPackFileName),
+                string.IsNullOrEmpty(projectRoot) ? null : Path.Combine(projectRoot, "Assets", AssetPackFileName),
+                Path.Combine(downloads, AssetPackFileName)
             };
 
-            return all.Where(name => FindSprite(name) == null).ToList();
+            foreach (string candidate in candidates)
+            {
+                if (!string.IsNullOrEmpty(candidate) && File.Exists(candidate))
+                {
+                    if (ExtractAssetPack(candidate))
+                    {
+                        Debug.Log("[WorldMapBuilder] Imported generated World Map artwork from: " + candidate);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ImportAssetPackInteractive()
+        {
+            string selected = EditorUtility.OpenFilePanel(
+                "Select Conveyor Chef World Map Asset Pack",
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "zip");
+
+            if (string.IsNullOrEmpty(selected))
+                return false;
+
+            return ExtractAssetPack(selected);
+        }
+
+        private static bool ExtractAssetPack(string zipPath)
+        {
+            if (string.IsNullOrEmpty(zipPath) || !File.Exists(zipPath))
+                return false;
+
+            EnsureFolders();
+
+            string absoluteAssetFolder = Path.Combine(
+                Directory.GetParent(Application.dataPath).FullName,
+                AssetFolder.Replace('/', Path.DirectorySeparatorChar));
+
+            Directory.CreateDirectory(absoluteAssetFolder);
+
+            HashSet<string> required = new HashSet<string>(
+                RequiredAssetFiles,
+                StringComparer.OrdinalIgnoreCase);
+
+            int extracted = 0;
+
+            try
+            {
+                using (FileStream stream = File.OpenRead(zipPath))
+                using (ZipArchive archive = new ZipArchive(stream, ZipArchiveMode.Read))
+                {
+                    foreach (ZipArchiveEntry entry in archive.Entries)
+                    {
+                        string fileName = Path.GetFileName(entry.FullName);
+                        if (string.IsNullOrEmpty(fileName) || !required.Contains(fileName))
+                            continue;
+
+                        string destination = Path.Combine(absoluteAssetFolder, fileName);
+                        entry.ExtractToFile(destination, true);
+                        extracted++;
+                    }
+                }
+
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+                ImportWorldMapTexturesAsSprites();
+
+                Debug.Log(
+                    "[WorldMapBuilder] Extracted " + extracted +
+                    " generated World Map PNGs into " + AssetFolder + ".");
+
+                return extracted > 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[WorldMapBuilder] Failed to import World Map asset pack: " + ex);
+                EditorUtility.DisplayDialog(
+                    "World Map import failed",
+                    "Could not import the ZIP.\n\n" + ex.Message,
+                    "OK");
+                return false;
+            }
         }
     }
 }
