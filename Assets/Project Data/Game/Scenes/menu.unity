@@ -3749,7 +3749,6 @@ GameObject:
   - component: {fileID: 910000000000100001}
   - component: {fileID: 910000000000100002}
   - component: {fileID: 910000000000100198}
-  - component: {fileID: 910000000000100199}
   m_Layer: 5
   m_Name: NEW Main Menu
   m_TagString: Untagged
@@ -3828,21 +3827,6 @@ MonoBehaviour:
   soundButtonText: {fileID: 910000000000100188}
   vibrationButton: {fileID: 910000000000100193}
   vibrationButtonText: {fileID: 910000000000100197}
---- !u!114 &910000000000100199
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 910000000000100000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9f46b4d8b8e14f40a3a964cd6fd8b101, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  applySafeArea: 1
-  minimumVisualScale: 0.82
-  maximumVisualScale: 1.08
 --- !u!1 &910000000000100003
 GameObject:
   m_ObjectHideFlags: 0
