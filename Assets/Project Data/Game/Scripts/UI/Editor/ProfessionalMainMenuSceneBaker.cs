@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace Watermelon
 {
@@ -89,12 +90,21 @@ namespace Watermelon
                 UnityEngine.Object.FindFirstObjectByType<ProfessionalMainMenuInstaller>(
                     FindObjectsInactive.Include);
 
-            if (installer == null)
+            if (installer != null)
             {
-                GameObject root = new GameObject("Professional Main Menu");
-                installer = root.AddComponent<ProfessionalMainMenuInstaller>();
+                UnityEngine.Object.DestroyImmediate(installer.gameObject);
             }
 
+            // Build the professional menu exactly like loading.unity:
+            // the UI root itself is a scene-level RectTransform/Canvas.
+            GameObject root = new GameObject(
+                "ConveyorChef_MainMenu_Canvas",
+                typeof(RectTransform),
+                typeof(Canvas),
+                typeof(CanvasScaler),
+                typeof(GraphicRaycaster));
+
+            installer = root.AddComponent<ProfessionalMainMenuInstaller>();
             installer.RebuildSceneMenuForEditor();
 
             DisableLegacySceneObjects(installer.transform);
