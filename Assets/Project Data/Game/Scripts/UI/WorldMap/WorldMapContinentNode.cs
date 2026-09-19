@@ -57,11 +57,17 @@ namespace Watermelon.BusStop
         public void Refresh(bool unlocked, bool selected)
         {
             if (pinImage != null)
-                pinImage.sprite = unlocked ? unlockedPinSprite : lockedPinSprite;
+            {
+                Sprite targetPin = unlocked ? unlockedPinSprite : lockedPinSprite;
+                if (targetPin != null)
+                    pinImage.sprite = targetPin;
+            }
 
             if (cardFrameImage != null)
             {
-                cardFrameImage.sprite = unlocked ? activeCardSprite : lockedCardSprite;
+                Sprite targetCard = unlocked ? activeCardSprite : lockedCardSprite;
+                if (targetCard != null)
+                    cardFrameImage.sprite = targetCard;
                 cardFrameImage.color = selected && unlocked
                     ? Color.white
                     : (unlocked ? new Color(0.86f, 0.9f, 1f, 0.9f) : Color.white);
