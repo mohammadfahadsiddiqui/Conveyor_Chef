@@ -716,7 +716,6 @@ namespace Watermelon.EditorTools
                 return;
 
             sceneView.in2DMode = true;
-            sceneView.LookAt(root.transform.position, Quaternion.identity, 1150f, true, true);
             sceneView.FrameSelected();
             sceneView.Repaint();
         }
