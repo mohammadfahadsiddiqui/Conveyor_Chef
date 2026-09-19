@@ -63,6 +63,16 @@ namespace Watermelon
             EnforceSingleEventSystem();
         }
 
+        public static void EnsurePersistentEventSystemActive()
+        {
+            if (!IsInititalized || InitialiserGameObject == null)
+                return;
+
+            Initialiser instance = InitialiserGameObject.GetComponent<Initialiser>();
+            if (instance != null)
+                instance.EnforceSingleEventSystem();
+        }
+
         private void EnforceSingleEventSystem()
         {
             if (eventSystem == null)
