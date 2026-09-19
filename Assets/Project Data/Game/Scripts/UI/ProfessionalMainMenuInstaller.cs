@@ -233,7 +233,19 @@ namespace Watermelon
 
         private bool BindExistingSceneMenu()
         {
-            Transform bakedCanvas = transform.Find("ConveyorChef_MainMenu_Canvas");
+            Transform bakedCanvas = null;
+
+            // Preferred saved-scene structure: this installer is attached directly
+            // to the top-level professional Canvas, exactly like loading.unity.
+            if (string.Equals(gameObject.name, "ConveyorChef_MainMenu_Canvas", StringComparison.Ordinal))
+            {
+                bakedCanvas = transform;
+            }
+            else
+            {
+                bakedCanvas = transform.Find("ConveyorChef_MainMenu_Canvas");
+            }
+
             if (bakedCanvas == null)
                 return false;
 
@@ -367,17 +379,54 @@ namespace Watermelon
 #if UNITY_EDITOR
         public void RebuildSceneMenuForEditor()
         {
-            Transform existing = transform.Find("ConveyorChef_MainMenu_Canvas");
-            if (existing != null)
-                DestroyImmediate(existing.gameObject);
+            // Clear only previously generated professional-menu children.
+            for (int i = transform.childCount - 1; i >= 0; i--)
+            {
+                DestroyImmediate(transform.GetChild(i).gameObject);
+            }
+
+            gameObject.name = "ConveyorChef_MainMenu_Canvas";
+
+            RectTransform rootRect = GetComponent<RectTransform>();
+            if (rootRect == null)
+            {
+                // A GameObject cannot swap Transform -> RectTransform in place,
+                // so the editor baker is responsible for creating this object
+                // with a RectTransform before this method is called.
+                Debug.LogError("[ProfessionalMainMenu] Scene baker must create the professional menu root as a RectTransform.");
+                return;
+            }
+
+            canvas = GetComponent<Canvas>();
+            if (canvas == null)
+                canvas = gameObject.AddComponent<Canvas>();
+
+            CanvasScaler scaler = GetComponent<CanvasScaler>();
+            if (scaler == null)
+                scaler = gameObject.AddComponent<CanvasScaler>();
+
+            GraphicRaycaster raycaster = GetComponent<GraphicRaycaster>();
+            if (raycaster == null)
+                raycaster = gameObject.AddComponent<GraphicRaycaster>();
+
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = 100;
+
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080f, 1920f);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
+
+            canvasRect = rootRect;
+            canvasRect.localScale = Vector3.one;
 
             spriteCache.Clear();
             assetCatalog = Resources.Load<ProfessionalMainMenuAssetCatalog>("ProfessionalMainMenuAssets");
-            BuildMenu(false);
 
-            if (canvas != null)
-                canvas.gameObject.hideFlags = HideFlags.None;
+            BuildMenuContents(false);
 
+            gameObject.hideFlags = HideFlags.None;
             UnityEditor.EditorUtility.SetDirty(gameObject);
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
         }
@@ -402,7 +451,13 @@ namespace Watermelon
             scaler.matchWidthOrHeight = 0.5f;
 
             canvasRect = canvasObject.GetComponent<RectTransform>();
-            Stretch(canvasRect);
+
+            BuildMenuContents(animate);
+        }
+
+        private void BuildMenuContents(bool animate)
+        {
+            animateGeneratedUI = animate;
 
             // Full-screen background sits outside SafeArea so there are never black notch bars.
             Image background = CreateImage("Background", canvasRect, LoadSprite("background"), false);
