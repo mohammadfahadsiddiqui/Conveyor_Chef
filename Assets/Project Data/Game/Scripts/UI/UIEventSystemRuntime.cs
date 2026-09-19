@@ -6,130 +6,56 @@ using UnityEngine.SceneManagement;
 namespace Watermelon
 {
     /// <summary>
-    /// Owns exactly one EventSystem for the complete application lifetime.
+    /// Guarantees exactly one active EventSystem, owned by the CURRENT scene.
     ///
-    /// Why this exists:
-    /// menu/loading/world-map each contain an inactive local EventSystem so those
-    /// scenes are still testable directly in the editor. During the real flow,
-    /// however, one EventSystem must survive scene changes. Recreating/reenabling a
-    /// different EventSystem during scene activation can cause Unity's
-    /// "There can be only one active Event System" warning and leave UI drag input
-    /// in a bad state.
+    /// Important project behaviour:
+    /// WorldMap input works when WorldMap.unity is started directly, but previously
+    /// stopped working after Menu -> Loading -> WorldMap because a persistent
+    /// Initialiser EventSystem was carried across the transition.
     ///
-    /// This class adopts the Initialiser EventSystem during the normal app flow.
-    /// When a UI scene is run directly, it activates exactly one scene-local
-    /// EventSystem and makes it persistent before any scene transition occurs.
+    /// The reliable solution is to use the same scene-local EventSystem in both cases.
+    /// On every scene load:
+    /// 1) disable every other EventSystem and its input modules;
+    /// 2) activate the EventSystem serialized in the newly loaded scene;
+    /// 3) enable its configured input module;
+    /// 4) make it EventSystem.current.
+    ///
+    /// This makes direct WorldMap testing and the full game flow use identical input.
     /// </summary>
     public static class UIEventSystemRuntime
     {
-        private static EventSystem authoritative;
         private static bool hooked;
 
-        public static EventSystem Current => authoritative;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            hooked = false;
+            EventSystem.current = null;
+        }
 
         public static void Adopt(EventSystem system)
         {
             HookSceneEvents();
 
+            // Initialiser may call this before the first UI scene. It is only a
+            // temporary bootstrap EventSystem; the next loaded scene will replace it
+            // with its own serialized local EventSystem.
             if (system == null)
-            {
-                Ensure();
                 return;
-            }
 
-            authoritative = system;
-            DisableAllExcept(authoritative);
-            EnsureInputModule(authoritative);
-
-            if (!authoritative.gameObject.activeSelf)
-                authoritative.gameObject.SetActive(true);
-
-            authoritative.enabled = true;
+            ActivateExactly(system);
         }
 
         public static EventSystem Ensure()
         {
             HookSceneEvents();
+            return ActivateForScene(SceneManager.GetActiveScene());
+        }
 
-            if (IsUsable(authoritative))
-            {
-                DisableAllExcept(authoritative);
-                EnsureInputModule(authoritative);
-                return authoritative;
-            }
-
-            EventSystem[] all = UnityEngine.Object.FindObjectsByType<EventSystem>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
-
-            // Prefer an already-active system. This is normally the Initialiser one.
-            EventSystem selected = null;
-
-            for (int i = 0; i < all.Length; i++)
-            {
-                EventSystem candidate = all[i];
-                if (candidate == null)
-                    continue;
-
-                if (candidate.enabled && candidate.gameObject.activeInHierarchy)
-                {
-                    selected = candidate;
-                    break;
-                }
-            }
-
-            // Direct-scene test: choose the inactive EventSystem belonging to the
-            // currently active scene, rather than an unrelated inactive object.
-            if (selected == null)
-            {
-                Scene activeScene = SceneManager.GetActiveScene();
-
-                for (int i = 0; i < all.Length; i++)
-                {
-                    EventSystem candidate = all[i];
-                    if (candidate == null)
-                        continue;
-
-                    if (candidate.gameObject.scene == activeScene)
-                    {
-                        selected = candidate;
-                        break;
-                    }
-                }
-            }
-
-            // Last-resort fallback.
-            if (selected == null && all.Length > 0)
-                selected = all[0];
-
-            if (selected == null)
-            {
-                GameObject go = new GameObject("[GLOBAL EVENT SYSTEM]");
-                selected = go.AddComponent<EventSystem>();
-            }
-
-            authoritative = selected;
-
-            // Crucial ordering: all other EventSystems are disabled/deactivated
-            // BEFORE the authoritative one is enabled.
-            DisableAllExcept(authoritative);
-            EnsureInputModule(authoritative);
-
-            if (!authoritative.gameObject.activeSelf)
-                authoritative.gameObject.SetActive(true);
-
-            authoritative.enabled = true;
-
-            // A direct-scene EventSystem must survive Menu -> Loading -> WorldMap.
-            // The Initialiser EventSystem is already a child of a DontDestroyOnLoad
-            // root, so only mark root-level local systems here.
-            if (authoritative.transform.parent == null &&
-                authoritative.gameObject.scene.IsValid())
-            {
-                UnityEngine.Object.DontDestroyOnLoad(authoritative.gameObject);
-            }
-
-            return authoritative;
+        public static EventSystem UseCurrentSceneEventSystem()
+        {
+            HookSceneEvents();
+            return ActivateForScene(SceneManager.GetActiveScene());
         }
 
         private static void HookSceneEvents()
@@ -144,46 +70,94 @@ namespace Watermelon
 
         private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            // Scene-local EventSystems are serialized inactive. Keep the one
-            // persistent authoritative system and explicitly suppress all others.
-            if (IsUsable(authoritative))
+            ActivateForScene(scene);
+        }
+
+        private static EventSystem ActivateForScene(Scene scene)
+        {
+            if (!scene.IsValid())
+                return null;
+
+            EventSystem selected = FindSceneEventSystem(scene);
+
+            if (selected == null)
             {
-                DisableAllExcept(authoritative);
-                EnsureInputModule(authoritative);
-
-                if (!authoritative.gameObject.activeSelf)
-                    authoritative.gameObject.SetActive(true);
-
-                authoritative.enabled = true;
-                return;
+                GameObject go = new GameObject("EventSystem");
+                SceneManager.MoveGameObjectToScene(go, scene);
+                selected = go.AddComponent<EventSystem>();
             }
 
-            Ensure();
+            ActivateExactly(selected);
+            return selected;
         }
 
-        private static bool IsUsable(EventSystem system)
+        private static EventSystem FindSceneEventSystem(Scene scene)
         {
-            return system != null && system.gameObject != null;
-        }
-
-        private static void DisableAllExcept(EventSystem keep)
-        {
-            EventSystem[] systems = UnityEngine.Object.FindObjectsByType<EventSystem>(
+            EventSystem[] all = UnityEngine.Object.FindObjectsByType<EventSystem>(
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None);
 
-            for (int i = 0; i < systems.Length; i++)
+            for (int i = 0; i < all.Length; i++)
             {
-                EventSystem system = systems[i];
+                EventSystem candidate = all[i];
+                if (candidate != null && candidate.gameObject.scene == scene)
+                    return candidate;
+            }
 
-                if (system == null || system == keep)
+            return null;
+        }
+
+        private static void ActivateExactly(EventSystem selected)
+        {
+            if (selected == null)
+                return;
+
+            EventSystem[] all = UnityEngine.Object.FindObjectsByType<EventSystem>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None);
+
+            // Disable everything else FIRST. This prevents the Unity warning and also
+            // prevents an old input module from consuming pointer/drag events.
+            for (int i = 0; i < all.Length; i++)
+            {
+                EventSystem other = all[i];
+                if (other == null || other == selected)
                     continue;
 
-                system.enabled = false;
+                BaseInputModule[] otherModules = other.GetComponents<BaseInputModule>();
+                for (int m = 0; m < otherModules.Length; m++)
+                {
+                    if (otherModules[m] != null)
+                        otherModules[m].enabled = false;
+                }
 
-                if (system.gameObject.activeSelf)
-                    system.gameObject.SetActive(false);
+                other.enabled = false;
+
+                if (other.gameObject.activeSelf)
+                    other.gameObject.SetActive(false);
             }
+
+            EnsureInputModule(selected);
+
+            if (!selected.gameObject.activeSelf)
+                selected.gameObject.SetActive(true);
+
+            selected.enabled = true;
+
+            BaseInputModule[] selectedModules = selected.GetComponents<BaseInputModule>();
+            for (int i = 0; i < selectedModules.Length; i++)
+            {
+                if (selectedModules[i] != null)
+                    selectedModules[i].enabled = true;
+            }
+
+            EventSystem.current = selected;
+            selected.SetSelectedGameObject(null);
+
+            Debug.Log(
+                "[UI Input] Active scene EventSystem: " +
+                selected.gameObject.scene.name + "/" + selected.gameObject.name +
+                " | module=" + GetModuleName(selected));
         }
 
         private static void EnsureInputModule(EventSystem system)
@@ -192,29 +166,29 @@ namespace Watermelon
                 return;
 
             BaseInputModule[] modules = system.GetComponents<BaseInputModule>();
-            for (int i = 0; i < modules.Length; i++)
-            {
-                if (modules[i] != null)
-                {
-                    modules[i].enabled = true;
-                    return;
-                }
-            }
+            if (modules != null && modules.Length > 0)
+                return;
 
-            // Prefer the new Input System when the package exists.
             Type inputSystemModuleType = Type.GetType(
                 "UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem");
 
             if (inputSystemModuleType != null)
             {
-                Component module = system.gameObject.AddComponent(inputSystemModuleType);
-                if (module is Behaviour behaviour)
-                    behaviour.enabled = true;
+                system.gameObject.AddComponent(inputSystemModuleType);
             }
             else
             {
                 system.gameObject.AddComponent<StandaloneInputModule>();
             }
+        }
+
+        private static string GetModuleName(EventSystem system)
+        {
+            if (system == null)
+                return "none";
+
+            BaseInputModule module = system.GetComponent<BaseInputModule>();
+            return module != null ? module.GetType().Name : "none";
         }
     }
 }
