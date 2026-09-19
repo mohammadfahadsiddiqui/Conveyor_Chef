@@ -14,7 +14,7 @@ The World Map builder is intentionally designed like the fixed Main Menu composi
 
 1. tropical_ocean_map_adventure.png
 2. colorful_cartoon_north_america_map.png
-3. colourfull_south_america_game_map.png
+3. colourful_south_america_game_map.png
 4. vibrant_cartoon_europe_map.png
 5. whimsical_africa_adventure_map.png
 6. whimsical_isometric_asia_game_map.png
