@@ -193,44 +193,7 @@ namespace Watermelon.BusStop
 
         private static void EnsureEventSystem()
         {
-            // Full application flow (Init -> Loading -> Menu -> WorldMap):
-            // the Initialiser owns the ONE persistent EventSystem.
-            // Never activate a scene-local EventSystem in this path, because doing
-            // that even for one frame triggers Unity's "only one active Event System"
-            // warning and can leave pointer/ScrollRect input stuck.
-            if (Initialiser.IsInititalized)
-            {
-                Initialiser.EnsurePersistentEventSystemActive();
-                return;
-            }
-
-            // Direct-scene testing fallback only (when Init was not run).
-            EventSystem[] activeSystems = FindObjectsByType<EventSystem>(
-                FindObjectsInactive.Exclude,
-                FindObjectsSortMode.None);
-
-            for (int i = 0; i < activeSystems.Length; i++)
-            {
-                EventSystem system = activeSystems[i];
-                if (system != null && system.enabled && system.gameObject.activeInHierarchy)
-                    return;
-            }
-
-            Scene currentScene = SceneManager.GetActiveScene();
-            EventSystem[] allSystems = FindObjectsByType<EventSystem>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
-
-            for (int i = 0; i < allSystems.Length; i++)
-            {
-                EventSystem system = allSystems[i];
-                if (system == null || system.gameObject.scene != currentScene)
-                    continue;
-
-                system.gameObject.SetActive(true);
-                system.enabled = true;
-                return;
-            }
+            UIEventSystemRuntime.Ensure();
         }
         private static void EnsureSaveControllerReady()
         {
