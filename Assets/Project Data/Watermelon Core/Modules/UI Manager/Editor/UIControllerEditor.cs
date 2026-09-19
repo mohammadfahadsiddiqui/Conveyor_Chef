@@ -10,7 +10,7 @@ namespace Watermelon
         [InitializeOnLoadMethod]
         public static void CheckCanvasSize()
         {
-            UIController uiController = FindObjectOfType<UIController>();
+            UIController uiController = FindFirstObjectByType<UIController>(FindObjectsInactive.Include);
             if (uiController != null)
             {
                 CanvasScaler canvasScaler = uiController.gameObject.GetComponent<CanvasScaler>();
