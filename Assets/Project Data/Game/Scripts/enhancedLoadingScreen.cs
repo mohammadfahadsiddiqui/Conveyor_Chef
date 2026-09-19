@@ -17,6 +17,7 @@ namespace Watermelon
         private const string PendingSceneKey = "ConveyorChef.PendingScene";
 
         private static string pendingSceneName;
+        private static bool routeInProgress;
 
         [Header("Loading Screen UI")]
         public GameObject loadingScreenPanel;
@@ -101,6 +102,9 @@ namespace Watermelon
         /// </summary>
         public static void LoadViaLoadingScreen(string targetSceneName)
         {
+            if (routeInProgress)
+                return;
+
             if (string.IsNullOrWhiteSpace(targetSceneName))
             {
                 Debug.LogError("[LoadingScreen] Target scene name is empty.");
@@ -113,6 +117,7 @@ namespace Watermelon
                 return;
             }
 
+            routeInProgress = true;
             pendingSceneName = targetSceneName;
             PlayerPrefs.SetString(PendingSceneKey, targetSceneName);
             PlayerPrefs.Save();
@@ -122,6 +127,10 @@ namespace Watermelon
 
         private void Awake()
         {
+            // We have arrived in the dedicated loading scene; allow the next
+            // transition request after this scene completes.
+            routeInProgress = false;
+
             if (loadingScreenPanel != null)
             {
                 loadingScreenPanel.SetActive(true);
