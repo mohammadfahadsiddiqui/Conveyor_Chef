@@ -1024,15 +1024,40 @@ namespace Watermelon.EditorTools
             if (root == null)
                 return;
 
+            // Clear any editor-only Scene Visibility / picking state first.
+            // The user's symptom (visible in Simulator but invisible in Scene view)
+            // happens when Scene visibility or visible-layer filters hide the UGUI
+            // hierarchy even though the Canvas renders normally at runtime.
+            SceneVisibilityManager.instance.ExitIsolation();
+            SceneVisibilityManager.instance.Show(scene);
+            SceneVisibilityManager.instance.EnableAllPicking();
+
+            // Make every layer visible in the Scene view. This only affects editor
+            // authoring visibility; it does not change GameObject layers or runtime rendering.
+            Tools.visibleLayers = ~0;
+
             Selection.activeGameObject = root;
             EditorGUIUtility.PingObject(root);
 
             SceneView sceneView = SceneView.lastActiveSceneView;
             if (sceneView != null)
             {
+                SceneView.CameraMode textured =
+                    SceneView.GetBuiltinCameraMode(DrawCameraMode.Textured);
+
+                if (sceneView.IsCameraDrawModeSupported(textured))
+                    sceneView.cameraMode = textured;
+
                 sceneView.in2DMode = true;
+                sceneView.orthographic = true;
+                sceneView.showGrid = false;
+
+                if (sceneView.camera != null)
+                    sceneView.camera.cullingMask = ~0;
+
                 sceneView.FrameSelected();
                 sceneView.Repaint();
+                SceneView.RepaintAll();
             }
         }
 
