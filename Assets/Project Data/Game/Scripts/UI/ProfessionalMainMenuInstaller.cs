@@ -871,6 +871,10 @@ namespace Watermelon
 
         private bool HasGeneratedResource(string resourceName)
         {
+            // Embedded atlas/background are the approved generated artwork.
+            if (ProfessionalMainMenuEmbeddedAssets.GetSprite(resourceName) != null)
+                return true;
+
             return Resources.Load<Texture2D>(ResourceRoot + resourceName) != null;
         }
 
@@ -879,8 +883,16 @@ namespace Watermelon
             if (spriteCache.TryGetValue(resourceName, out Sprite cached))
                 return cached;
 
-            // Preferred path: exact approved generated asset dropped into
-            // Assets/.../Resources/ProfessionalMainMenu/<name>.png.
+            // Primary path: the exact approved generated art reconstructed from
+            // Resources/ProfessionalMainMenuData.
+            Sprite embedded = ProfessionalMainMenuEmbeddedAssets.GetSprite(resourceName);
+            if (embedded != null)
+            {
+                spriteCache[resourceName] = embedded;
+                return embedded;
+            }
+
+            // Optional future override: a directly imported PNG/JPG in Resources.
             Texture2D texture = Resources.Load<Texture2D>(ResourceRoot + resourceName);
             if (texture != null)
             {
@@ -900,10 +912,10 @@ namespace Watermelon
                 return generated;
             }
 
-            // GitHub-safe fallback: use sprites already present in the Unity repository.
+            // Last-resort compatibility fallback to existing repository art.
             Sprite fallback = GetCatalogSprite(resourceName);
             if (fallback == null)
-                Debug.LogError("[ProfessionalMainMenu] Missing generated and fallback sprite for: " + resourceName);
+                Debug.LogError("[ProfessionalMainMenu] Missing sprite for: " + resourceName);
 
             spriteCache[resourceName] = fallback;
             return fallback;
