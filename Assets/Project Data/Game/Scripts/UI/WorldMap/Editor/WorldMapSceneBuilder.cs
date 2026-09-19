@@ -53,7 +53,6 @@ namespace Watermelon.EditorTools
         }
 
         private const string ScenePath = "Assets/Project Data/Game/Scenes/WorldMap.unity";
-        private const string MenuScenePath = "Assets/Project Data/Game/Scenes/menu.unity";
         private const string AssetFolder = "Assets/Project Data/Game/Images/WorldMap";
         private const string AssetPackFileName = "ConveyorChef_WorldMap_Assets_ForUnity.zip";
 
@@ -944,61 +943,6 @@ namespace Watermelon.EditorTools
 
                 if (changed)
                     EditorBuildSettings.scenes = scenes.ToArray();
-            }
-        }
-
-        private static void UpdateLegacyMenuRoute()
-        {
-            if (!File.Exists(MenuScenePath))
-                return;
-
-            Scene activeBefore = SceneManager.GetActiveScene();
-            Scene menuScene = default;
-            bool openedTemporarily = false;
-
-            try
-            {
-                // Never open menu.unity in Single mode from the WorldMap builder.
-                // Doing that destroys the freshly-created Canvas/RectTransforms and
-                // caused MissingReferenceException at the end of RebuildWorldMap.
-                if (activeBefore.IsValid() && activeBefore.path == MenuScenePath)
-                {
-                    menuScene = activeBefore;
-                }
-                else
-                {
-                    menuScene = EditorSceneManager.OpenScene(MenuScenePath, OpenSceneMode.Additive);
-                    openedTemporarily = true;
-                }
-
-                bool changed = false;
-
-                foreach (GameObject root in menuScene.GetRootGameObjects())
-                {
-                    Watermelon.BusStop.sceneloading[] routers =
-                        root.GetComponentsInChildren<Watermelon.BusStop.sceneloading>(true);
-
-                    foreach (Watermelon.BusStop.sceneloading router in routers)
-                    {
-                        if (router != null && router.gameSceneName == "LevelSelection")
-                        {
-                            router.gameSceneName = "WorldMap";
-                            EditorUtility.SetDirty(router);
-                            changed = true;
-                        }
-                    }
-                }
-
-                if (changed)
-                    EditorSceneManager.SaveScene(menuScene);
-            }
-            finally
-            {
-                if (openedTemporarily && menuScene.IsValid())
-                    EditorSceneManager.CloseScene(menuScene, true);
-
-                if (activeBefore.IsValid() && activeBefore.isLoaded)
-                    SceneManager.SetActiveScene(activeBefore);
             }
         }
 
