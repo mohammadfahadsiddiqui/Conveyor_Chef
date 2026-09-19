@@ -86,10 +86,26 @@ namespace Watermelon.EditorTools
             if (EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode)
                 return;
 
-            if (File.Exists(ScenePath))
+            bool sceneExists = File.Exists(ScenePath);
+            bool isPlaceholder = false;
+
+            if (sceneExists)
             {
+                try
+                {
+                    isPlaceholder = File.ReadAllText(ScenePath).Contains("__WORLD_MAP_PLACEHOLDER__");
+                }
+                catch
+                {
+                    isPlaceholder = false;
+                }
+
                 EnsureSceneInBuildSettings(ScenePath);
-                return;
+
+                // A normal serialized WorldMap scene already exists, so never overwrite
+                // the designer's Canvas/layout automatically.
+                if (!isPlaceholder)
+                    return;
             }
 
             Scene currentScene = SceneManager.GetActiveScene();
