@@ -496,7 +496,23 @@ namespace Watermelon.EditorTools
             EnsureSceneInBuildSettings(ScenePath);
             UpdateLegacyMenuRoute();
 
-            Selection.activeGameObject = worldRoot.gameObject;
+            // UpdateLegacyMenuRoute no longer replaces the active WorldMap scene,
+            // but still guard the editor selection so scene reloads/imports can never
+            // leave us holding a destroyed RectTransform reference.
+            if (worldRoot != null)
+            {
+                Selection.activeGameObject = worldRoot.gameObject;
+                EditorGUIUtility.PingObject(worldRoot.gameObject);
+            }
+            else
+            {
+                GameObject rebuiltRoot = GameObject.Find("WorldMapRoot");
+                if (rebuiltRoot != null)
+                {
+                    Selection.activeGameObject = rebuiltRoot;
+                    EditorGUIUtility.PingObject(rebuiltRoot);
+                }
+            }
 
             List<string> missing = GetMissingAssets();
             if (missing.Count > 0)
@@ -802,33 +818,54 @@ namespace Watermelon.EditorTools
             if (!File.Exists(MenuScenePath))
                 return;
 
-            Scene current = SceneManager.GetActiveScene();
-            string currentPath = current.path;
+            Scene activeBefore = SceneManager.GetActiveScene();
+            Scene menuScene = default;
+            bool openedTemporarily = false;
 
-            Scene menu = EditorSceneManager.OpenScene(MenuScenePath, OpenSceneMode.Single);
-            Watermelon.BusStop.sceneloading[] routers =
-                UnityEngine.Object.FindObjectsByType<Watermelon.BusStop.sceneloading>(
-                    FindObjectsInactive.Include,
-                    FindObjectsSortMode.None);
-
-            bool changed = false;
-            foreach (Watermelon.BusStop.sceneloading router in routers)
+            try
             {
-                if (router != null && router.gameSceneName == "LevelSelection")
+                // Never open menu.unity in Single mode from the WorldMap builder.
+                // Doing that destroys the freshly-created Canvas/RectTransforms and
+                // caused MissingReferenceException at the end of RebuildWorldMap.
+                if (activeBefore.IsValid() && activeBefore.path == MenuScenePath)
                 {
-                    router.gameSceneName = "WorldMap";
-                    EditorUtility.SetDirty(router);
-                    changed = true;
+                    menuScene = activeBefore;
                 }
+                else
+                {
+                    menuScene = EditorSceneManager.OpenScene(MenuScenePath, OpenSceneMode.Additive);
+                    openedTemporarily = true;
+                }
+
+                bool changed = false;
+
+                foreach (GameObject root in menuScene.GetRootGameObjects())
+                {
+                    Watermelon.BusStop.sceneloading[] routers =
+                        root.GetComponentsInChildren<Watermelon.BusStop.sceneloading>(true);
+
+                    foreach (Watermelon.BusStop.sceneloading router in routers)
+                    {
+                        if (router != null && router.gameSceneName == "LevelSelection")
+                        {
+                            router.gameSceneName = "WorldMap";
+                            EditorUtility.SetDirty(router);
+                            changed = true;
+                        }
+                    }
+                }
+
+                if (changed)
+                    EditorSceneManager.SaveScene(menuScene);
             }
+            finally
+            {
+                if (openedTemporarily && menuScene.IsValid())
+                    EditorSceneManager.CloseScene(menuScene, true);
 
-            if (changed)
-                EditorSceneManager.SaveScene(menu);
-
-            if (!string.IsNullOrEmpty(currentPath) && currentPath != MenuScenePath)
-                EditorSceneManager.OpenScene(currentPath, OpenSceneMode.Single);
-            else
-                EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+                if (activeBefore.IsValid() && activeBefore.isLoaded)
+                    SceneManager.SetActiveScene(activeBefore);
+            }
         }
 
         private static void EnsureFolders()
