@@ -37,6 +37,10 @@ namespace Watermelon.EditorTools
         {
             EditorSceneManager.sceneOpened -= OnWorldMapSceneOpened;
             EditorSceneManager.sceneOpened += OnWorldMapSceneOpened;
+
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+
             QueueWorldMapArtworkRepair();
         }
 
@@ -44,6 +48,15 @@ namespace Watermelon.EditorTools
         {
             if (scene.path == ScenePath)
                 QueueWorldMapArtworkRepair();
+        }
+
+        private static void OnPlayModeStateChanged(PlayModeStateChange state)
+        {
+            if (state != PlayModeStateChange.EnteredEditMode)
+                return;
+
+            if (SceneManager.GetActiveScene().path == ScenePath)
+                EditorApplication.delayCall += FocusCurrentWorldMapCanvasIn2D;
         }
 
         private static void QueueWorldMapArtworkRepair()
@@ -328,6 +341,16 @@ namespace Watermelon.EditorTools
 
             Debug.Log("[WorldMapValidator]\n" + message);
             EditorUtility.DisplayDialog("Conveyor Chef World Map", message, "OK");
+        }
+
+        [MenuItem("Conveyor Chef/World Map/6. Focus World Map Canvas in 2D", priority = 6)]
+        public static void FocusCurrentWorldMapCanvasIn2D()
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            FocusEditableWorldMapInSceneView(scene);
         }
 
         [MenuItem("Conveyor Chef/World Map/Open World Map Art Folder", priority = 20)]
@@ -1095,6 +1118,12 @@ namespace Watermelon.EditorTools
                 false,
                 "SelectorPanel");
 
+            Sprite unlockedPinSprite = RequireSprite("glossy_chef_map_pin_icon.png");
+            Sprite lockedPinSprite = RequireSprite("glossy_blue_map_pin_lock_icon.png");
+            Sprite glowSprite = RequireSprite("golden_magical_energy_burst.png");
+            Sprite activeCardSprite = RequireSprite("glossy_chef_s_game_ui_banner.png");
+            Sprite lockedCardSprite = RequireSprite("locked_culinary_chapter_card.png");
+
             for (int i = 0; i < ContinentNames.Length; i++)
             {
                 Transform node = FindObjectByPrefixInScene("Continent_" + (i + 1));
@@ -1109,40 +1138,60 @@ namespace Watermelon.EditorTools
                 Image pin = FindImageUnder(node, "ChapterPin", "StatePin");
                 if (pin != null)
                 {
-                    Sprite pinSprite = i == 0
-                        ? RequireSprite("glossy_chef_map_pin_icon.png")
-                        : RequireSprite("glossy_blue_map_pin_lock_icon.png");
-                    changed += AssignSprite(pin, pinSprite, true);
+                    Sprite visiblePin = i == 0 ? unlockedPinSprite : lockedPinSprite;
+                    changed += AssignSprite(pin, visiblePin, true);
                 }
 
                 Image glow = FindImageUnder(node, "CurrentGlow");
                 if (glow != null)
-                    changed += AssignSprite(glow, RequireSprite("golden_magical_energy_burst.png"), true);
-            }
+                    changed += AssignSprite(glow, glowSprite, true);
 
-            for (int i = 0; i < ContinentNames.Length; i++)
-            {
                 Transform card = FindObjectByExactNameInScene("ChapterCard_" + (i + 1));
-                if (card == null)
-                    continue;
+                Image cardImage = card != null ? card.GetComponent<Image>() : null;
+                Button cardButton = card != null ? card.GetComponent<Button>() : null;
+                TextMeshProUGUI cardLabel =
+                    card != null ? card.GetComponentInChildren<TextMeshProUGUI>(true) : null;
 
-                Image image = card.GetComponent<Image>();
-                if (image == null)
-                    continue;
+                if (cardImage != null)
+                {
+                    Sprite visibleCard = i == 0 ? activeCardSprite : lockedCardSprite;
+                    changed += AssignSprite(cardImage, visibleCard, true);
+                }
 
-                Sprite cardSprite = i == 0
-                    ? RequireSprite("glossy_chef_s_game_ui_banner.png")
-                    : RequireSprite("locked_culinary_chapter_card.png");
+                WorldMapContinentNode continentNode = node.GetComponent<WorldMapContinentNode>();
+                if (continentNode != null)
+                {
+                    Button mapButton =
+                        continentImage != null ? continentImage.GetComponent<Button>() : null;
+                    TextMeshProUGUI mapLabel =
+                        node.GetComponentsInChildren<TextMeshProUGUI>(true)
+                            .FirstOrDefault(label => label != null && label.gameObject.name == "ContinentName");
 
-                changed += AssignSprite(image, cardSprite, true);
+                    RepairContinentNodeSerializedReferences(
+                        continentNode,
+                        i,
+                        ContinentNames[i],
+                        continentImage,
+                        mapButton,
+                        pin,
+                        glow,
+                        mapLabel,
+                        cardButton,
+                        cardImage,
+                        cardLabel,
+                        unlockedPinSprite,
+                        lockedPinSprite,
+                        activeCardSprite,
+                        lockedCardSprite);
+
+                    changed++;
+                }
             }
 
-            if (changed > 0)
-            {
-                EditorSceneManager.MarkSceneDirty(scene);
-                if (saveScene)
-                    EditorSceneManager.SaveScene(scene);
-            }
+            EditorSceneManager.MarkSceneDirty(scene);
+
+            if (saveScene)
+                EditorSceneManager.SaveScene(scene);
 
             return changed;
         }
@@ -1163,6 +1212,80 @@ namespace Watermelon.EditorTools
             }
 
             return changed;
+        }
+
+        private static void RepairContinentNodeSerializedReferences(
+            WorldMapContinentNode node,
+            int index,
+            string displayName,
+            Image continentImage,
+            Button mapButton,
+            Image pinImage,
+            Image glowImage,
+            TextMeshProUGUI mapLabel,
+            Button cardButton,
+            Image cardFrameImage,
+            TextMeshProUGUI cardLabel,
+            Sprite unlockedPinSprite,
+            Sprite lockedPinSprite,
+            Sprite activeCardSprite,
+            Sprite lockedCardSprite)
+        {
+            if (node == null)
+                return;
+
+            SerializedObject serialized = new SerializedObject(node);
+
+            SetSerializedInt(serialized, "continentIndex", index);
+            SetSerializedString(serialized, "continentName", displayName);
+
+            SetSerializedObject(serialized, "continentImage", continentImage);
+            SetSerializedObject(serialized, "mapButton", mapButton);
+            SetSerializedObject(serialized, "pinImage", pinImage);
+            SetSerializedObject(serialized, "glowImage", glowImage);
+            SetSerializedObject(serialized, "mapLabel", mapLabel);
+
+            SetSerializedObject(serialized, "cardButton", cardButton);
+            SetSerializedObject(serialized, "cardFrameImage", cardFrameImage);
+            SetSerializedObject(serialized, "cardLabel", cardLabel);
+
+            SetSerializedObject(serialized, "unlockedPinSprite", unlockedPinSprite);
+            SetSerializedObject(serialized, "lockedPinSprite", lockedPinSprite);
+            SetSerializedObject(serialized, "activeCardSprite", activeCardSprite);
+            SetSerializedObject(serialized, "lockedCardSprite", lockedCardSprite);
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(node);
+        }
+
+        private static void SetSerializedObject(
+            SerializedObject serialized,
+            string propertyName,
+            UnityEngine.Object value)
+        {
+            SerializedProperty property = serialized.FindProperty(propertyName);
+            if (property != null)
+                property.objectReferenceValue = value;
+        }
+
+        private static void SetSerializedInt(
+            SerializedObject serialized,
+            string propertyName,
+            int value)
+        {
+            SerializedProperty property = serialized.FindProperty(propertyName);
+            if (property != null)
+                property.intValue = value;
+        }
+
+        private static void SetSerializedString(
+            SerializedObject serialized,
+            string propertyName,
+            string value)
+        {
+            SerializedProperty property = serialized.FindProperty(propertyName);
+            if (property != null)
+                property.stringValue = value;
         }
 
         private static int AssignSprite(Image image, Sprite sprite, bool preserveAspect)
