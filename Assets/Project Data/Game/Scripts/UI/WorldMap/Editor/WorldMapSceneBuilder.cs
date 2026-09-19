@@ -115,9 +115,13 @@ namespace Watermelon.EditorTools
             List<string> missing = GetMissingAssets();
             if (missing.Count == 0)
             {
+                if (SceneManager.GetActiveScene().path == ScenePath)
+                    RebindArtworkInOpenWorldMap(saveScene: false);
+
                 EditorUtility.DisplayDialog(
                     "World Map Art",
-                    "All 20 generated World Map sprites are now available in the project.",
+                    "All 20 generated World Map sprites are now available in the project.\n\n" +
+                    "If WorldMap.unity is open, the artwork has also been rebound without moving any RectTransforms.",
                     "OK");
             }
             else
@@ -156,7 +160,28 @@ namespace Watermelon.EditorTools
             BakeScene();
         }
 
-        [MenuItem("Conveyor Chef/World Map/3. Open Editable World Map", priority = 3)]
+        [MenuItem("Conveyor Chef/World Map/3. Rebind Artwork In Current World Map (Keeps Layout)", priority = 3)]
+        public static void RebindArtworkCommand()
+        {
+            if (!EnsureGeneratedAssetsAvailable())
+                return;
+
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            int rebound = RebindArtworkInOpenWorldMap(saveScene: true);
+
+            EditorUtility.DisplayDialog(
+                "World Map Artwork",
+                "Rebound " + rebound + " Image components to the generated World Map sprites.\n\n" +
+                "No RectTransform position, size, anchor, pivot or scale was changed.",
+                "OK");
+
+            FocusEditableWorldMapInSceneView(scene);
+        }
+
+        [MenuItem("Conveyor Chef/World Map/4. Open Editable World Map", priority = 4)]
         public static void OpenEditableWorldMap()
         {
             if (!File.Exists(ScenePath))
@@ -170,10 +195,22 @@ namespace Watermelon.EditorTools
 
             Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             EnsureSceneInBuildSettings(ScenePath);
+
+            GameObject newRoot = GameObject.Find("NEW World Map");
+            GameObject oldRoot = GameObject.Find("WorldMapRoot");
+
+            if (newRoot == null && oldRoot != null)
+            {
+                Debug.LogWarning(
+                    "[WorldMap] This project copy is still using the OLD generated WorldMapRoot hierarchy. " +
+                    "Use Conveyor Chef > World Map > 2. Bake/Replace Editable World Map Scene once to convert it " +
+                    "to the same editable Canvas > NEW World Map architecture as menu/loading.");
+            }
+
             FocusEditableWorldMapInSceneView(scene);
         }
 
-        [MenuItem("Conveyor Chef/World Map/4. Validate Editable World Map", priority = 4)]
+        [MenuItem("Conveyor Chef/World Map/5. Validate Editable World Map", priority = 5)]
         public static void ValidateEditableWorldMap()
         {
             List<string> missing = GetMissingAssets();
@@ -189,7 +226,13 @@ namespace Watermelon.EditorTools
             if (active.IsValid() && active.path == ScenePath)
             {
                 GameObject root = GameObject.Find("NEW World Map");
-                hierarchyState = root != null ? "OK" : "MISSING NEW World Map ROOT";
+                GameObject oldRoot = GameObject.Find("WorldMapRoot");
+
+                hierarchyState = root != null
+                    ? "OK - EDITABLE NEW WORLD MAP"
+                    : (oldRoot != null
+                        ? "OLD GENERATED WorldMapRoot - BAKE/REPLACE ONCE"
+                        : "MISSING NEW World Map ROOT");
 
                 if (root != null)
                 {
@@ -914,6 +957,217 @@ namespace Watermelon.EditorTools
         private static string SafeName(string value)
         {
             return value.Replace(" ", string.Empty).Replace("/", string.Empty);
+        }
+
+
+        private static int RebindArtworkInOpenWorldMap(bool saveScene)
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                return 0;
+
+            int changed = 0;
+
+            // Support both the new editable hierarchy and the old generated hierarchy,
+            // so importing artwork can immediately fix the white/blue placeholder look
+            // without touching the designer's RectTransforms.
+            changed += BindSpriteByNames(
+                RequireSprite("tropical_ocean_map_adventure.png"),
+                false,
+                "Background Artwork",
+                "World Map Backdrop",
+                "ScrollableOcean");
+
+            changed += BindSpriteByNames(
+                RequireSprite("conveyor_chef_world_map_logo.png"),
+                true,
+                "WorldMapLogo");
+
+            changed += BindSpriteByNames(
+                RequireSprite("glossy_blue_game_back_button.png"),
+                true,
+                "BackButton");
+
+            changed += BindSpriteByNames(
+                RequireSprite("glossy_blue_gear_settings_icon.png"),
+                true,
+                "SettingsButton");
+
+            changed += BindSpriteByNames(
+                RequireSprite("glossy_blue_back_arrow_button.png"),
+                true,
+                "PreviousContinent");
+
+            changed += BindSpriteByNames(
+                RequireSprite("glossy_blue_right_arrow_button.png"),
+                true,
+                "NextContinent");
+
+            changed += BindSpriteByNames(
+                RequireSprite("ornate_golden_blue_compass_rose.png"),
+                true,
+                "Compass");
+
+            changed += BindSpriteByNames(
+                RequireSprite("drag_to_explore_game_button.png"),
+                true,
+                "DragHint");
+
+            changed += BindSpriteByNames(
+                RequireSprite("glossy_blue_game_ui_panel.png"),
+                false,
+                "SelectorPanel");
+
+            for (int i = 0; i < ContinentNames.Length; i++)
+            {
+                Transform node = FindObjectByPrefixInScene("Continent_" + (i + 1));
+                if (node == null)
+                    continue;
+
+                Sprite continentSprite = RequireSprite(ContinentFiles[i]);
+                Image continentImage = FindImageUnder(node, "ContinentArtwork", "ContinentButton");
+                if (continentImage != null)
+                    changed += AssignSprite(continentImage, continentSprite, true);
+
+                Image pin = FindImageUnder(node, "ChapterPin", "StatePin");
+                if (pin != null)
+                {
+                    Sprite pinSprite = i == 0
+                        ? RequireSprite("glossy_chef_map_pin_icon.png")
+                        : RequireSprite("glossy_blue_map_pin_lock_icon.png");
+                    changed += AssignSprite(pin, pinSprite, true);
+                }
+
+                Image glow = FindImageUnder(node, "CurrentGlow");
+                if (glow != null)
+                    changed += AssignSprite(glow, RequireSprite("golden_magical_energy_burst.png"), true);
+            }
+
+            for (int i = 0; i < ContinentNames.Length; i++)
+            {
+                Transform card = FindObjectByExactNameInScene("ChapterCard_" + (i + 1));
+                if (card == null)
+                    continue;
+
+                Image image = card.GetComponent<Image>();
+                if (image == null)
+                    continue;
+
+                Sprite cardSprite = i == 0
+                    ? RequireSprite("glossy_chef_s_game_ui_banner.png")
+                    : RequireSprite("locked_culinary_chapter_card.png");
+
+                changed += AssignSprite(image, cardSprite, true);
+            }
+
+            if (changed > 0)
+            {
+                EditorSceneManager.MarkSceneDirty(scene);
+                if (saveScene)
+                    EditorSceneManager.SaveScene(scene);
+            }
+
+            return changed;
+        }
+
+        private static int BindSpriteByNames(Sprite sprite, bool preserveAspect, params string[] names)
+        {
+            int changed = 0;
+
+            foreach (string name in names)
+            {
+                Transform target = FindObjectByExactNameInScene(name);
+                if (target == null)
+                    continue;
+
+                Image image = target.GetComponent<Image>();
+                if (image != null)
+                    changed += AssignSprite(image, sprite, preserveAspect);
+            }
+
+            return changed;
+        }
+
+        private static int AssignSprite(Image image, Sprite sprite, bool preserveAspect)
+        {
+            if (image == null || sprite == null)
+                return 0;
+
+            bool changed =
+                image.sprite != sprite ||
+                image.color != Color.white ||
+                image.preserveAspect != preserveAspect ||
+                !image.enabled;
+
+            image.sprite = sprite;
+            image.color = Color.white;
+            image.preserveAspect = preserveAspect;
+            image.enabled = true;
+
+            EditorUtility.SetDirty(image);
+            EditorUtility.SetDirty(image.gameObject);
+
+            return changed ? 1 : 0;
+        }
+
+        private static Transform FindObjectByExactNameInScene(string objectName)
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid())
+                return null;
+
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                Transform found = FindDeep(root.transform, objectName);
+                if (found != null)
+                    return found;
+            }
+
+            return null;
+        }
+
+        private static Transform FindObjectByPrefixInScene(string prefix)
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid())
+                return null;
+
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                Transform[] all = root.GetComponentsInChildren<Transform>(true);
+                foreach (Transform tr in all)
+                {
+                    if (tr != null && tr.name.StartsWith(prefix, StringComparison.Ordinal))
+                        return tr;
+                }
+            }
+
+            return null;
+        }
+
+        private static Image FindImageUnder(Transform parent, params string[] names)
+        {
+            if (parent == null)
+                return null;
+
+            Transform[] all = parent.GetComponentsInChildren<Transform>(true);
+            foreach (Transform tr in all)
+            {
+                if (tr == null)
+                    continue;
+
+                for (int i = 0; i < names.Length; i++)
+                {
+                    if (!string.Equals(tr.name, names[i], StringComparison.Ordinal))
+                        continue;
+
+                    Image image = tr.GetComponent<Image>();
+                    if (image != null)
+                        return image;
+                }
+            }
+
+            return null;
         }
 
         private static void EnsureSceneInBuildSettings(string path)
