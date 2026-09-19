@@ -10,12 +10,16 @@ namespace Watermelon.BusStop
 
         public void OnBeginDrag(PointerEventData eventData)
         {
-            controller?.NotifyMapDragged();
+            // Explicit Unity null check: a destroyed UnityEngine.Object is not
+            // managed-null, so null-conditional can still invoke it.
+            if (controller != null)
+                controller.NotifyMapDragged();
         }
 
         public void OnEndDrag(PointerEventData eventData)
         {
-            controller?.SelectNearestToViewport();
+            if (controller != null)
+                controller.SelectNearestToViewport();
         }
 
 #if UNITY_EDITOR
