@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Watermelon.BusStop
@@ -55,6 +56,7 @@ namespace Watermelon.BusStop
 
         private void Awake()
         {
+            EnsureEventSystem();
             EnsureSaveControllerReady();
 
             Wire(leftButton, PreviousContinent);
@@ -94,6 +96,16 @@ namespace Watermelon.BusStop
         {
             if (mapScrollRect != null)
                 mapScrollRect.onValueChanged.RemoveListener(OnMapScrollValueChanged);
+        }
+
+        private static void EnsureEventSystem()
+        {
+            if (EventSystem.current != null && EventSystem.current.gameObject.activeInHierarchy)
+                return;
+
+            EventSystem existing = FindFirstObjectByType<EventSystem>(FindObjectsInactive.Include);
+            if (existing != null)
+                existing.gameObject.SetActive(true);
         }
 
         private static void EnsureSaveControllerReady()
