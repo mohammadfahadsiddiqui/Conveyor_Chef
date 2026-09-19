@@ -37,11 +37,16 @@ namespace Watermelon
                 SystemCanvas = systemCanvas;
                 InitialiserGameObject = gameObject;
 
+                // Only add a bootstrap input module when the prefab does not
+                // already contain one. UI scenes will use their own local EventSystem.
+                if (eventSystem != null && eventSystem.GetComponent<BaseInputModule>() == null)
+                {
 #if MODULE_INPUT_SYSTEM
-                eventSystem.gameObject.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+                    eventSystem.gameObject.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
 #else
-                eventSystem.gameObject.AddComponent<StandaloneInputModule>();
+                    eventSystem.gameObject.AddComponent<StandaloneInputModule>();
 #endif
+                }
 
                 DontDestroyOnLoad(gameObject);
 
