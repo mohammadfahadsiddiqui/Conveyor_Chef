@@ -244,7 +244,7 @@ namespace Watermelon.BusStop
 
         private static void EnsureEventSystem()
         {
-            UIEventSystemRuntime.Ensure();
+            UIEventSystemRuntime.UseCurrentSceneEventSystem();
         }
         private static void EnsureSaveControllerReady()
         {
