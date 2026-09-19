@@ -89,7 +89,6 @@ namespace Watermelon
 
         private bool isLoading;
         private bool isAnimating;
-        private bool bootstrapLoadingFinished;
         private float displayedProgress;
 
         private Vector2 scooterStartPos;
@@ -193,27 +192,12 @@ namespace Watermelon
             }
         }
 
-        private void OnEnable()
-        {
-            GameLoading.OnLoadingFinished += HandleBootstrapLoadingFinished;
-        }
-
-        private void OnDisable()
-        {
-            GameLoading.OnLoadingFinished -= HandleBootstrapLoadingFinished;
-        }
-
         private void Start()
         {
             if (showOnSceneStart && autoLoadGameScene)
             {
                 StartCoroutine(BeginLoadingWhenReady());
             }
-        }
-
-        private void HandleBootstrapLoadingFinished()
-        {
-            bootstrapLoadingFinished = true;
         }
 
         private IEnumerator BeginLoadingWhenReady()
