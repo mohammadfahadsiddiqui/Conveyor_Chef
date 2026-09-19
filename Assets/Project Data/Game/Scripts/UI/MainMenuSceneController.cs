@@ -132,7 +132,7 @@ namespace Watermelon
 
         private static void EnsureEventSystem()
         {
-            UIEventSystemRuntime.Ensure();
+            UIEventSystemRuntime.UseCurrentSceneEventSystem();
         }
         private static void EnsureSaveControllerReady()
         {
