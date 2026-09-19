@@ -28,8 +28,79 @@ namespace Watermelon.EditorTools
     /// After baking, edit WorldMap.unity directly in the Scene/Inspector like menu.unity.
     /// Do NOT rebake unless you intentionally want to replace the World Map layout.
     /// </summary>
+    [InitializeOnLoad]
     public static class WorldMapSceneBuilder
     {
+        private static bool repairQueued;
+
+        static WorldMapSceneBuilder()
+        {
+            EditorSceneManager.sceneOpened -= OnWorldMapSceneOpened;
+            EditorSceneManager.sceneOpened += OnWorldMapSceneOpened;
+            QueueWorldMapArtworkRepair();
+        }
+
+        private static void OnWorldMapSceneOpened(Scene scene, OpenSceneMode mode)
+        {
+            if (scene.path == ScenePath)
+                QueueWorldMapArtworkRepair();
+        }
+
+        private static void QueueWorldMapArtworkRepair()
+        {
+            if (repairQueued)
+                return;
+
+            repairQueued = true;
+            EditorApplication.delayCall += RepairOpenWorldMapArtworkAndView;
+        }
+
+        private static void RepairOpenWorldMapArtworkAndView()
+        {
+            repairQueued = false;
+
+            if (EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
+
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                return;
+
+            EnsureFolders();
+            AssetDatabase.Refresh();
+            ImportWorldMapTexturesAsSprites();
+
+            List<string> missing = GetMissingAssets();
+
+            if (missing.Count > 0 && TryImportAssetPackFromKnownLocations())
+            {
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+                ImportWorldMapTexturesAsSprites();
+                missing = GetMissingAssets();
+            }
+
+            if (missing.Count == 0)
+            {
+                int rebound = RebindArtworkInOpenWorldMap(saveScene: true);
+
+                if (rebound > 0)
+                {
+                    Debug.Log(
+                        "[WorldMap] Automatically rebound " + rebound +
+                        " generated sprites into WorldMap.unity without changing any RectTransforms.");
+                }
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[WorldMap] Generated artwork is not in the Unity project yet. " +
+                    "Download/select " + AssetPackFileName + " using Conveyor Chef > World Map > 1. Import Generated Art Pack. " +
+                    "Until those PNGs exist, Unity can only show blank/white placeholder Images.");
+            }
+
+            FocusEditableWorldMapInSceneView(scene);
+        }
+
         private const string ScenePath = "Assets/Project Data/Game/Scenes/WorldMap.unity";
         private const string AssetFolder = "Assets/Project Data/Game/Images/WorldMap";
         private const string AssetPackFileName = "ConveyorChef_WorldMap_Assets_ForUnity.zip";
@@ -911,9 +982,15 @@ namespace Watermelon.EditorTools
                 return;
 
             GameObject root = null;
+
             foreach (GameObject candidate in scene.GetRootGameObjects())
             {
                 Transform found = FindDeep(candidate.transform, "NEW World Map");
+                if (found == null)
+                    found = FindDeep(candidate.transform, "WorldMapRoot");
+                if (found == null)
+                    found = FindDeep(candidate.transform, "Canvas");
+
                 if (found != null)
                 {
                     root = found.gameObject;
@@ -1253,16 +1330,32 @@ namespace Watermelon.EditorTools
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                 "Downloads");
 
-            string[] candidates =
-            {
-                string.IsNullOrEmpty(projectRoot) ? null : Path.Combine(projectRoot, AssetPackFileName),
-                string.IsNullOrEmpty(projectRoot) ? null : Path.Combine(projectRoot, "Assets", AssetPackFileName),
-                Path.Combine(downloads, AssetPackFileName)
-            };
+            List<string> candidates = new List<string>();
 
-            foreach (string candidate in candidates)
+            if (!string.IsNullOrEmpty(projectRoot))
             {
-                if (string.IsNullOrEmpty(candidate) || !File.Exists(candidate))
+                candidates.Add(Path.Combine(projectRoot, AssetPackFileName));
+                candidates.Add(Path.Combine(projectRoot, "Assets", AssetPackFileName));
+
+                candidates.AddRange(
+                    Directory.Exists(projectRoot)
+                        ? Directory.GetFiles(projectRoot, "ConveyorChef_WorldMap_Assets_ForUnity*.zip", SearchOption.TopDirectoryOnly)
+                        : Array.Empty<string>());
+            }
+
+            if (Directory.Exists(downloads))
+            {
+                candidates.Add(Path.Combine(downloads, AssetPackFileName));
+                candidates.AddRange(
+                    Directory.GetFiles(downloads, "ConveyorChef_WorldMap_Assets_ForUnity*.zip", SearchOption.TopDirectoryOnly)
+                        .OrderByDescending(File.GetLastWriteTimeUtc));
+            }
+
+            foreach (string candidate in candidates
+                         .Where(path => !string.IsNullOrWhiteSpace(path))
+                         .Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (!File.Exists(candidate))
                     continue;
 
                 if (ExtractAssetPack(candidate))
