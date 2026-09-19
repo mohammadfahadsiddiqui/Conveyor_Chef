@@ -80,6 +80,15 @@ namespace Watermelon
             installerObject.AddComponent<ProfessionalMainMenuInstaller>();
         }
 
+        private void Awake()
+        {
+            // Hide the legacy menu immediately when menu.unity becomes active.
+            // Waiting until Start() allowed the old UI/loading decoration to flash
+            // for a frame before the professional menu was built.
+            EnsureEventSystem();
+            DisableLegacyMainMenu();
+        }
+
         private IEnumerator Start()
         {
             // Let the Watermelon UI system finish creating its pages first.
@@ -399,7 +408,13 @@ namespace Watermelon
                 label.margin = new Vector4(24f, 8f, 24f, 8f);
             }
 
+            // CreateImage() defaults to raycastTarget=false for decorative art.
+            // These images are the actual hit targets, so they must receive UI raycasts.
+            image.raycastTarget = true;
+
             Button button = image.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            button.interactable = true;
             button.transition = Selectable.Transition.None;
             button.onClick.AddListener(action);
 
@@ -424,7 +439,13 @@ namespace Watermelon
                 label.margin = new Vector4(5f, 5f, 5f, 14f);
             }
 
+            // CreateImage() defaults to raycastTarget=false for decorative art.
+            // These images are the actual hit targets, so they must receive UI raycasts.
+            image.raycastTarget = true;
+
             Button button = image.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            button.interactable = true;
             button.transition = Selectable.Transition.None;
             button.onClick.AddListener(action);
 
