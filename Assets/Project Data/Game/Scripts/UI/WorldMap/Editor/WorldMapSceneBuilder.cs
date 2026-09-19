@@ -223,7 +223,6 @@ namespace Watermelon.EditorTools
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             CreateCamera();
-            CreateEventSystem();
 
             Canvas canvas = CreateCanvas();
 
@@ -494,9 +493,12 @@ namespace Watermelon.EditorTools
             AssetDatabase.Refresh();
 
             EnsureSceneInBuildSettings(ScenePath);
-            UpdateLegacyMenuRoute();
 
-            // UpdateLegacyMenuRoute no longer replaces the active WorldMap scene,
+            // The menu route is serialized directly in menu.unity. Never open another
+            // scene additively from the builder; that can temporarily create duplicate
+            // EventSystems/AudioListeners and pollute the Console.
+
+            // WorldMapRoot is still valid because no other scene is opened here.
             // but still guard the editor selection so scene reloads/imports can never
             // leave us holding a destroyed RectTransform reference.
             if (worldRoot != null)
@@ -590,7 +592,9 @@ namespace Watermelon.EditorTools
 
         private static void CreateCamera()
         {
-            GameObject go = new GameObject("Main Camera", typeof(Camera), typeof(AudioListener));
+            // AudioController owns one persistent AudioListener for the entire app.
+            // Do not serialize another listener into WorldMap.
+            GameObject go = new GameObject("Main Camera", typeof(Camera));
             Camera camera = go.GetComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.02f, 0.22f, 0.44f, 1f);
