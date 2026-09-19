@@ -3,6 +3,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 
 namespace Watermelon
 {
@@ -44,6 +45,10 @@ namespace Watermelon
 
                 DontDestroyOnLoad(gameObject);
 
+                SceneManager.sceneLoaded -= OnSceneLoaded;
+                SceneManager.sceneLoaded += OnSceneLoaded;
+                EnforceSingleEventSystem();
+
                 initSettings.Initialise(this);
             }
         }
@@ -51,6 +56,36 @@ namespace Watermelon
         public void Start()
         {
             Initialise(true);
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            EnforceSingleEventSystem();
+        }
+
+        private void EnforceSingleEventSystem()
+        {
+            if (eventSystem == null)
+                return;
+
+            if (!eventSystem.gameObject.activeSelf)
+                eventSystem.gameObject.SetActive(true);
+
+            eventSystem.enabled = true;
+
+            EventSystem[] systems = FindObjectsByType<EventSystem>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None);
+
+            foreach (EventSystem system in systems)
+            {
+                if (system == null || system == eventSystem)
+                    continue;
+
+                // The Initialiser's DontDestroyOnLoad EventSystem is the single
+                // authoritative UI input system for the whole application.
+                system.enabled = false;
+            }
         }
 
         public void Initialise(bool loadingScene)
@@ -111,6 +146,8 @@ namespace Watermelon
 
         private void OnDestroy()
         {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+
             IsInititalized = false;
 
 #if UNITY_EDITOR
