@@ -41,14 +41,12 @@ namespace Watermelon.BusStop
 
             if (mapButton != null)
             {
-                mapButton.interactable = true;
                 mapButton.onClick.RemoveAllListeners();
                 mapButton.onClick.AddListener(HandlePressed);
             }
 
             if (cardButton != null)
             {
-                cardButton.interactable = true;
                 cardButton.onClick.RemoveAllListeners();
                 cardButton.onClick.AddListener(HandlePressed);
             }
