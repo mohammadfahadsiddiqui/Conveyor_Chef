@@ -35,40 +35,10 @@ namespace Watermelon
             "leaderboard"
         };
 
-        [InitializeOnLoadMethod]
-        private static void ScheduleAutomaticBake()
-        {
-            if (SessionState.GetBool(AutoBakeSessionKey, false))
-                return;
-
-            SessionState.SetBool(AutoBakeSessionKey, true);
-            EditorApplication.delayCall += AutoBakeIfSceneIsStillLegacy;
-        }
-
-        private static void AutoBakeIfSceneIsStillLegacy()
-        {
-            if (EditorApplication.isPlayingOrWillChangePlaymode ||
-                EditorApplication.isCompiling ||
-                EditorApplication.isUpdating)
-            {
-                EditorApplication.delayCall += AutoBakeIfSceneIsStillLegacy;
-                return;
-            }
-
-            if (!File.Exists(MenuScenePath))
-                return;
-
-            string sceneText = File.ReadAllText(MenuScenePath);
-
-            // A real baked scene must contain the Canvas itself, not only the installer root.
-            if (sceneText.Contains("m_Name: ConveyorChef_MainMenu_Canvas"))
-                return;
-
-            Debug.Log("[ProfessionalMainMenu] menu.unity still contains the legacy UI. Baking the professional menu into the scene now.");
-            RebuildProfessionalMainMenuScene();
-        }
-
-        [MenuItem("Tools/Conveyor Chef/Rebuild Professional Main Menu Scene")]
+        // Legacy runtime-generated menu baker retained only for manual recovery.
+        // Automatic execution is intentionally disabled because menu.unity now contains
+        // the authoritative editable Canvas -> NEW Main Menu hierarchy, matching loading.unity.
+        [MenuItem("Tools/Conveyor Chef/Legacy/Rebuild Runtime-Generated Main Menu")]
         public static void RebuildProfessionalMainMenuScene()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
