@@ -10,6 +10,7 @@ namespace Watermelon
 {
     public static class ProfessionalMainMenuSceneBaker
     {
+        private const string AutoBakeSessionKey = "ConveyorChef.ProfessionalMainMenu.AutoBake.v2";
         private const string MenuScenePath = "Assets/Project Data/Game/Scenes/menu.unity";
         private const string BakedImageFolder = "Assets/Project Data/Game/Images/ProfessionalMainMenuBaked";
 
@@ -32,6 +33,39 @@ namespace Watermelon
             "achievements",
             "leaderboard"
         };
+
+        [InitializeOnLoadMethod]
+        private static void ScheduleAutomaticBake()
+        {
+            if (SessionState.GetBool(AutoBakeSessionKey, false))
+                return;
+
+            SessionState.SetBool(AutoBakeSessionKey, true);
+            EditorApplication.delayCall += AutoBakeIfSceneIsStillLegacy;
+        }
+
+        private static void AutoBakeIfSceneIsStillLegacy()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode ||
+                EditorApplication.isCompiling ||
+                EditorApplication.isUpdating)
+            {
+                EditorApplication.delayCall += AutoBakeIfSceneIsStillLegacy;
+                return;
+            }
+
+            if (!File.Exists(MenuScenePath))
+                return;
+
+            string sceneText = File.ReadAllText(MenuScenePath);
+
+            // A real baked scene must contain the Canvas itself, not only the installer root.
+            if (sceneText.Contains("m_Name: ConveyorChef_MainMenu_Canvas"))
+                return;
+
+            Debug.Log("[ProfessionalMainMenu] menu.unity still contains the legacy UI. Baking the professional menu into the scene now.");
+            RebuildProfessionalMainMenuScene();
+        }
 
         [MenuItem("Tools/Conveyor Chef/Rebuild Professional Main Menu Scene")]
         public static void RebuildProfessionalMainMenuScene()
