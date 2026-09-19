@@ -70,10 +70,18 @@ namespace Watermelon.BusStop
             if (settingsPanel != null)
                 settingsPanel.SetActive(false);
 
+            RepairContinentReferencesIfNeeded();
+
             if (continents != null)
             {
                 foreach (WorldMapContinentNode node in continents)
-                    node?.Bind(this);
+                {
+                    // Do not use ?. with UnityEngine.Object references.
+                    // A destroyed Unity object is not managed-null, so ?. can still
+                    // call into its destroyed native object and throw MissingReferenceException.
+                    if (node != null)
+                        node.Bind(this);
+                }
             }
 
             if (mapScrollRect != null)
@@ -96,6 +104,58 @@ namespace Watermelon.BusStop
         {
             if (mapScrollRect != null)
                 mapScrollRect.onValueChanged.RemoveListener(OnMapScrollValueChanged);
+        }
+
+        private void RepairContinentReferencesIfNeeded()
+        {
+            bool needsRepair = continents == null || continents.Length == 0;
+
+            if (!needsRepair)
+            {
+                for (int i = 0; i < continents.Length; i++)
+                {
+                    // Unity's overloaded == correctly treats destroyed objects as null.
+                    if (continents[i] == null)
+                    {
+                        needsRepair = true;
+                        break;
+                    }
+                }
+            }
+
+            if (mapContent == null)
+                return;
+
+            WorldMapContinentNode[] liveNodes =
+                mapContent.GetComponentsInChildren<WorldMapContinentNode>(true);
+
+            if (liveNodes == null || liveNodes.Length == 0)
+                return;
+
+            if (!needsRepair && continents.Length == liveNodes.Length)
+                return;
+
+            Array.Sort(
+                liveNodes,
+                (a, b) =>
+                {
+                    if (a == null && b == null) return 0;
+                    if (a == null) return 1;
+                    if (b == null) return -1;
+                    return a.ContinentIndex.CompareTo(b.ContinentIndex);
+                });
+
+            continents = liveNodes;
+
+            for (int i = 0; i < continents.Length; i++)
+            {
+                WorldMapContinentNode node = continents[i];
+                if (node != null)
+                    node.Bind(this);
+            }
+
+            Debug.Log(
+                "[WorldMap] Repaired continent references from the live serialized MapContent hierarchy.");
         }
 
         private static void EnsureEventSystem()
@@ -206,6 +266,8 @@ namespace Watermelon.BusStop
 
         private void RefreshAll()
         {
+            RepairContinentReferencesIfNeeded();
+
             if (continents == null || continents.Length == 0)
                 return;
 
@@ -214,7 +276,10 @@ namespace Watermelon.BusStop
             for (int i = 0; i < continents.Length; i++)
             {
                 bool unlocked = IsContinentUnlocked(i);
-                continents[i]?.Refresh(unlocked, i == selectedContinent);
+                WorldMapContinentNode node = continents[i];
+
+                if (node != null)
+                    node.Refresh(unlocked, i == selectedContinent);
             }
 
             WorldMapContinentNode selectedNode = continents[selectedContinent];
@@ -222,9 +287,13 @@ namespace Watermelon.BusStop
 
             if (selectedChapterText != null)
             {
+                string displayName = selectedNode != null
+                    ? selectedNode.ContinentName.ToUpperInvariant()
+                    : "CONTINENT " + (selectedContinent + 1);
+
                 selectedChapterText.text =
                     "CHAPTER " + (selectedContinent + 1) + "  •  " +
-                    selectedNode.ContinentName.ToUpperInvariant();
+                    displayName;
             }
 
             if (statusText != null)
@@ -243,6 +312,8 @@ namespace Watermelon.BusStop
 
         public void FocusContinent(int index, bool animated)
         {
+            RepairContinentReferencesIfNeeded();
+
             if (mapScrollRect == null || mapContent == null || continents == null ||
                 index < 0 || index >= continents.Length || continents[index] == null)
             {
@@ -297,6 +368,8 @@ namespace Watermelon.BusStop
 
         public void SelectNearestToViewport()
         {
+            RepairContinentReferencesIfNeeded();
+
             if (continents == null || continents.Length == 0 || mapContent == null)
                 return;
 
@@ -306,7 +379,14 @@ namespace Watermelon.BusStop
 
             for (int i = 0; i < continents.Length; i++)
             {
-                RectTransform target = continents[i]?.MapTarget;
+                WorldMapContinentNode node = continents[i];
+
+                // Explicit Unity null check is required here. Null-conditional (?.)
+                // does not respect UnityEngine.Object's destroyed-object semantics.
+                if (node == null)
+                    continue;
+
+                RectTransform target = node.MapTarget;
                 if (target == null)
                     continue;
 
