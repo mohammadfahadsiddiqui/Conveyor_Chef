@@ -47,7 +47,7 @@ namespace Watermelon
                 return;
 
             if(poolManager == null)
-                poolManager = FindObjectOfType<PoolManager>();
+                poolManager = FindFirstObjectByType<PoolManager>();
 
             if (poolManager != null)
             {
