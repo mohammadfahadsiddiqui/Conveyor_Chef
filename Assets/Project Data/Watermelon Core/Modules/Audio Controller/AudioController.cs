@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Watermelon
 {
@@ -91,18 +92,47 @@ namespace Watermelon
 
         public static void CreateAudioListener()
         {
-            if (audioListener != null)
+            if (audioListener == null)
+            {
+                // Create one application-wide listener.
+                GameObject listenerObject = new GameObject("[AUDIO LISTENER]");
+                listenerObject.transform.position = Vector3.zero;
+                GameObject.DontDestroyOnLoad(listenerObject);
+                audioListener = listenerObject.AddComponent<AudioListener>();
+            }
+
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            SceneManager.sceneLoaded += OnSceneLoaded;
+
+            EnforceSingleAudioListener();
+        }
+
+        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            EnforceSingleAudioListener();
+        }
+
+        private static void EnforceSingleAudioListener()
+        {
+            if (audioListener == null)
                 return;
 
-            // Create game object for listener
-            GameObject listenerObject = new GameObject("[AUDIO LISTENER]");
-            listenerObject.transform.position = Vector3.zero;
+            audioListener.enabled = true;
 
-            // Mark as non-destroyable
-            GameObject.DontDestroyOnLoad(listenerObject);
+            AudioListener[] listeners = UnityEngine.Object.FindObjectsByType<AudioListener>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None);
 
-            // Add listener component to created object
-            audioListener = listenerObject.AddComponent<AudioListener>();
+            foreach (AudioListener listener in listeners)
+            {
+                if (listener == null || listener == audioListener)
+                    continue;
+
+                // Scene cameras may still contain legacy AudioListener components.
+                // Keep them serialized for compatibility, but disable them at runtime
+                // because AudioController owns the one persistent listener.
+                listener.enabled = false;
+            }
         }
 
         public static bool IsVibrationModuleEnabled()
