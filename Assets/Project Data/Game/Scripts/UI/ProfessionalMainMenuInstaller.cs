@@ -74,6 +74,11 @@ namespace Watermelon
             if (!string.Equals(scene.name, MenuSceneName, StringComparison.OrdinalIgnoreCase))
                 return;
 
+            // menu.unity now owns a real serialized, editable menu hierarchy.
+            // Never create the old runtime-generated menu when that controller exists.
+            if (FindFirstObjectByType<MainMenuSceneController>(FindObjectsInactive.Include) != null)
+                return;
+
             if (FindFirstObjectByType<ProfessionalMainMenuInstaller>(FindObjectsInactive.Include) != null)
                 return;
 
@@ -83,9 +88,21 @@ namespace Watermelon
 
         private void Awake()
         {
-            // Hide the legacy menu immediately when menu.unity becomes active.
-            // Waiting until Start() allowed the old UI/loading decoration to flash
-            // for a frame before the professional menu was built.
+            // If the real scene-based menu exists, this object is obsolete.
+            // Disable it before Start() so it cannot create, move, animate or
+            // otherwise alter the menu the designer saved in menu.unity.
+            MainMenuSceneController sceneMenu =
+                FindFirstObjectByType<MainMenuSceneController>(FindObjectsInactive.Include);
+
+            if (sceneMenu != null && sceneMenu.gameObject != gameObject)
+            {
+                enabled = false;
+                Destroy(gameObject);
+                return;
+            }
+
+            // Legacy fallback only for old menu scenes that do not contain the
+            // scene-based MainMenuSceneController.
             EnsureEventSystem();
             DisableLegacyMainMenu();
         }
