@@ -45,9 +45,9 @@ namespace Watermelon
 
                 DontDestroyOnLoad(gameObject);
 
-                SceneManager.sceneLoaded -= OnSceneLoaded;
-                SceneManager.sceneLoaded += OnSceneLoaded;
-                EnforceSingleEventSystem();
+                // Adopt the Initialiser EventSystem as the single persistent UI
+                // input owner for Menu -> Loading -> WorldMap.
+                UIEventSystemRuntime.Adopt(eventSystem);
 
                 initSettings.Initialise(this);
             }
@@ -58,48 +58,9 @@ namespace Watermelon
             Initialise(true);
         }
 
-        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-        {
-            EnforceSingleEventSystem();
-        }
-
         public static void EnsurePersistentEventSystemActive()
         {
-            if (!IsInititalized || InitialiserGameObject == null)
-                return;
-
-            Initialiser instance = InitialiserGameObject.GetComponent<Initialiser>();
-            if (instance != null)
-                instance.EnforceSingleEventSystem();
-        }
-
-        private void EnforceSingleEventSystem()
-        {
-            if (eventSystem == null)
-                return;
-
-            EventSystem[] systems = FindObjectsByType<EventSystem>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
-
-            // Disable/deactivate scene-local systems BEFORE enabling the persistent
-            // system. This avoids Unity ever having two active EventSystems in the
-            // same frame.
-            foreach (EventSystem system in systems)
-            {
-                if (system == null || system == eventSystem)
-                    continue;
-
-                system.enabled = false;
-
-                if (system.gameObject.activeSelf)
-                    system.gameObject.SetActive(false);
-            }
-
-            if (!eventSystem.gameObject.activeSelf)
-                eventSystem.gameObject.SetActive(true);
-
-            eventSystem.enabled = true;
+            UIEventSystemRuntime.Ensure();
         }
 
         public void Initialise(bool loadingScene)
@@ -160,8 +121,6 @@ namespace Watermelon
 
         private void OnDestroy()
         {
-            SceneManager.sceneLoaded -= OnSceneLoaded;
-
             IsInititalized = false;
 
 #if UNITY_EDITOR
