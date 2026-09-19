@@ -17,6 +17,7 @@ namespace Watermelon
     /// The UI is built from Resources/ProfessionalMainMenu so the menu stays responsive
     /// and does not depend on fragile scene YAML references.
     /// </summary>
+    [ExecuteAlways]
     public sealed class ProfessionalMainMenuInstaller : MonoBehaviour
     {
         private const string MenuSceneName = "menu";
@@ -56,6 +57,7 @@ namespace Watermelon
         private Type externalPageType;
         private bool externalPageSubscribed;
         private bool introFinished;
+        private bool animateGeneratedUI = true;
         private Rect lastSafeArea;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -80,8 +82,19 @@ namespace Watermelon
             installerObject.AddComponent<ProfessionalMainMenuInstaller>();
         }
 
+        private void OnEnable()
+        {
+            if (!Application.isPlaying)
+            {
+                BuildEditorPreview();
+            }
+        }
+
         private void Awake()
         {
+            if (!Application.isPlaying)
+                return;
+
             // Hide the legacy menu immediately when menu.unity becomes active.
             // Waiting until Start() allowed the old UI/loading decoration to flash
             // for a frame before the professional menu was built.
@@ -91,6 +104,9 @@ namespace Watermelon
 
         private IEnumerator Start()
         {
+            if (!Application.isPlaying)
+                yield break;
+
             // Let the Watermelon UI system finish creating its pages first.
             yield return null;
             yield return null;
@@ -103,7 +119,7 @@ namespace Watermelon
                 Debug.LogError("[ProfessionalMainMenu] ProfessionalMainMenuAssets catalog is missing.");
 
             DisableLegacyMainMenu();
-            BuildMenu();
+            BuildMenu(true);
             RefreshHUD();
 
             CurrenciesController.InvokeOrSubcrtibe(() =>
@@ -117,6 +133,9 @@ namespace Watermelon
 
         private void OnDestroy()
         {
+            if (!Application.isPlaying)
+                return;
+
             try
             {
                 CurrenciesController.UnsubscribeGlobalCallback(OnCurrencyChanged);
@@ -157,6 +176,34 @@ namespace Watermelon
 
             // Modal close is handled by the visible CLOSE button. Avoid the legacy
             // UnityEngine.Input API here because this project uses the Input System package.
+        }
+
+        private void BuildEditorPreview()
+        {
+            if (Application.isPlaying || !gameObject.scene.IsValid() ||
+                !string.Equals(gameObject.scene.name, MenuSceneName, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            Transform existingPreview = transform.Find("ConveyorChef_MainMenu_Canvas");
+            if (existingPreview != null)
+            {
+                DestroyImmediate(existingPreview.gameObject);
+            }
+
+            assetCatalog = Resources.Load<ProfessionalMainMenuAssetCatalog>("ProfessionalMainMenuAssets");
+            if (assetCatalog == null)
+                return;
+
+            BuildMenu(false);
+
+            // This is an editor preview. The authoritative layout is rebuilt from this
+            // installer, so the generated preview should not become duplicated scene data.
+            if (canvas != null)
+            {
+                canvas.gameObject.hideFlags = HideFlags.DontSaveInEditor;
+            }
         }
 
         private void EnsureSaveControllerReady()
@@ -220,8 +267,10 @@ namespace Watermelon
             }
         }
 
-        private void BuildMenu()
+        private void BuildMenu(bool animate)
         {
+            animateGeneratedUI = animate;
+
             GameObject canvasObject = new GameObject("ConveyorChef_MainMenu_Canvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvasObject.transform.SetParent(transform, false);
 
@@ -441,8 +490,16 @@ namespace Watermelon
             fx.Configure(pulse, true);
 
             CanvasGroup cg = image.gameObject.AddComponent<CanvasGroup>();
-            cg.alpha = 0f;
-            StartCoroutine(AnimateButtonIn(image.rectTransform, cg, position, introDelay));
+            if (animateGeneratedUI)
+            {
+                cg.alpha = 0f;
+                StartCoroutine(AnimateButtonIn(image.rectTransform, cg, position, introDelay));
+            }
+            else
+            {
+                cg.alpha = 1f;
+                image.rectTransform.anchoredPosition = position;
+            }
         }
 
         private void CreateBottomButton(string objectName, RectTransform parent, string resourceName, float x, UnityEngine.Events.UnityAction action, float introDelay)
@@ -471,8 +528,15 @@ namespace Watermelon
             image.gameObject.AddComponent<ProfessionalMainMenuButtonFX>().Configure(false, false);
 
             CanvasGroup cg = image.gameObject.AddComponent<CanvasGroup>();
-            cg.alpha = 0f;
-            StartCoroutine(AnimateBottomIn(image.rectTransform, cg, introDelay));
+            if (animateGeneratedUI)
+            {
+                cg.alpha = 0f;
+                StartCoroutine(AnimateBottomIn(image.rectTransform, cg, introDelay));
+            }
+            else
+            {
+                cg.alpha = 1f;
+            }
         }
 
         private IEnumerator PlayIntro()
