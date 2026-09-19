@@ -96,6 +96,8 @@ namespace Watermelon
             yield return null;
 
             EnsureEventSystem();
+            EnsureSaveControllerReady();
+
             assetCatalog = Resources.Load<ProfessionalMainMenuAssetCatalog>("ProfessionalMainMenuAssets");
             if (assetCatalog == null)
                 Debug.LogError("[ProfessionalMainMenu] ProfessionalMainMenuAssets catalog is missing.");
@@ -155,6 +157,23 @@ namespace Watermelon
 
             // Modal close is handled by the visible CLOSE button. Avoid the legacy
             // UnityEngine.Input API here because this project uses the Input System package.
+        }
+
+        private void EnsureSaveControllerReady()
+        {
+            if (SaveController.IsSaveLoaded)
+                return;
+
+            try
+            {
+                // GameController previously initialised saving only after Game.unity loaded.
+                // The professional main menu needs LevelSave data earlier in menu.unity.
+                SaveController.Initialise(useAutoSave: false);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[ProfessionalMainMenu] Failed to initialise SaveController: " + ex.Message);
+            }
         }
 
         private void EnsureEventSystem()
@@ -817,6 +836,9 @@ namespace Watermelon
             completed = 0;
             stars = 0;
             bestLevel = 0;
+
+            if (!SaveController.IsSaveLoaded)
+                return;
 
             try
             {
