@@ -140,7 +140,9 @@ namespace Watermelon
             if (loadingCanvasGroup != null)
             {
                 loadingCanvasGroup.enabled = true;
-                loadingCanvasGroup.alpha = useFadeTransition ? 0f : 1f;
+                // The loading scene must cover the screen immediately. Starting at alpha 0
+                // exposed the camera clear color (blue) while bootstrap initialization ran.
+                loadingCanvasGroup.alpha = 1f;
                 loadingCanvasGroup.interactable = false;
                 loadingCanvasGroup.blocksRaycasts = true;
             }
@@ -216,29 +218,10 @@ namespace Watermelon
 
         private IEnumerator BeginLoadingWhenReady()
         {
-            // On the very first app launch, Init.unity uses Watermelon's built-in
-            // GameLoading overlay while it activates this loading scene.
-            // Without waiting, this scene can finish loading Menu behind that overlay
-            // and the player never gets a chance to see our custom loading UI.
-            bool hasExplicitTarget =
-                !string.IsNullOrWhiteSpace(pendingSceneName) ||
-                PlayerPrefs.HasKey(PendingSceneKey);
-
-            if (!hasExplicitTarget && SceneManager.GetActiveScene().name == LoadingSceneName)
-            {
-                float fallbackTimeout = 3f;
-                float elapsed = 0f;
-
-                while (!bootstrapLoadingFinished && elapsed < fallbackTimeout)
-                {
-                    elapsed += Time.unscaledDeltaTime;
-                    yield return null;
-                }
-
-                // Give the bootstrap canvas one rendered frame to disappear.
-                yield return null;
-            }
-
+            // The dedicated loading scene now owns the screen immediately.
+            // Do not hide it while waiting for the legacy bootstrap loader: doing so
+            // produced a visible blue camera frame and made the loading screen appear twice.
+            yield return null;
             yield return StartCoroutine(RunLoadingSequence());
         }
 
@@ -277,7 +260,10 @@ namespace Watermelon
                 }
             }
 
-            yield return StartCoroutine(FadeCanvas(loadingCanvasGroup != null ? loadingCanvasGroup.alpha : 1f, 1f, fadeInDuration));
+            if (loadingCanvasGroup != null && loadingCanvasGroup.alpha < 0.999f)
+            {
+                yield return StartCoroutine(FadeCanvas(loadingCanvasGroup.alpha, 1f, fadeInDuration));
+            }
 
             StartAnimations();
             Coroutine tipRoutine = StartCoroutine(RotateTips());
