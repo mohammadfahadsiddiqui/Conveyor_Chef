@@ -73,6 +73,7 @@ namespace Watermelon.BusStop
 
             EnsureEventSystem();
             EnsureSaveControllerReady();
+            EnsureMapInteractionReady();
 
             Wire(leftButton, PreviousContinent);
             Wire(rightButton, NextContinent);
@@ -189,6 +190,56 @@ namespace Watermelon.BusStop
 
             Debug.Log(
                 "[WorldMap] Repaired continent references from the live serialized MapContent hierarchy.");
+        }
+
+
+        private void EnsureMapInteractionReady()
+        {
+            // Interaction-only repair. This never changes positions, sizes, anchors,
+            // pivots, scale or any other authored visual layout.
+            if (mapScrollRect == null)
+                return;
+
+            mapScrollRect.enabled = true;
+            mapScrollRect.horizontal = true;
+            mapScrollRect.vertical = true;
+
+            if (mapContent != null && mapScrollRect.content != mapContent)
+                mapScrollRect.content = mapContent;
+
+            RectTransform viewport = mapScrollRect.viewport;
+            if (viewport == null)
+                viewport = mapScrollRect.transform as RectTransform;
+
+            if (viewport != null)
+            {
+                mapScrollRect.viewport = viewport;
+
+                Graphic viewportGraphic = viewport.GetComponent<Graphic>();
+                if (viewportGraphic != null)
+                    viewportGraphic.raycastTarget = true;
+
+                Canvas canvas = viewport.GetComponentInParent<Canvas>();
+                if (canvas != null)
+                {
+                    GraphicRaycaster raycaster = canvas.GetComponent<GraphicRaycaster>();
+                    if (raycaster == null)
+                        raycaster = canvas.gameObject.AddComponent<GraphicRaycaster>();
+
+                    raycaster.enabled = true;
+                }
+            }
+
+            mapScrollRect.StopMovement();
+
+            Debug.Log(
+                "[WorldMap Input] Ready. EventSystem=" +
+                (EventSystem.current != null ? EventSystem.current.name : "NULL") +
+                ", ScrollRect=" + mapScrollRect.enabled +
+                ", Horizontal=" + mapScrollRect.horizontal +
+                ", Vertical=" + mapScrollRect.vertical +
+                ", Content=" + (mapScrollRect.content != null ? mapScrollRect.content.name : "NULL") +
+                ", Viewport=" + (mapScrollRect.viewport != null ? mapScrollRect.viewport.name : "NULL"));
         }
 
         private static void EnsureEventSystem()
