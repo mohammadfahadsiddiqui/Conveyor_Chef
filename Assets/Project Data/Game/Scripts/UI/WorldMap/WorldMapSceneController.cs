@@ -48,14 +48,25 @@ namespace Watermelon.BusStop
         [Header("Motion")]
         [SerializeField, Min(0.05f)] private float focusDuration = 0.35f;
 
+        [Header("Scene-authored startup")]
+        [Tooltip("Keep this OFF to make Play mode start with the exact MapContent position saved in WorldMap.unity.")]
+        [SerializeField] private bool focusSelectedContinentOnStart = false;
+
         private int selectedContinent;
         private Coroutine focusRoutine;
         private Coroutine hintRoutine;
+
+        // Captured from the serialized WorldMap.unity before any runtime navigation.
+        // This is the position designers see and edit in the Scene/Simulator before Play.
+        private Vector2 authoredMapContentPosition;
 
         public int SelectedContinent => selectedContinent;
 
         private void Awake()
         {
+            if (mapContent != null)
+                authoredMapContentPosition = mapContent.anchoredPosition;
+
             EnsureEventSystem();
             EnsureSaveControllerReady();
 
@@ -93,8 +104,20 @@ namespace Watermelon.BusStop
             selectedContinent = RestoreSelectedContinent();
             RefreshAll();
 
+            // CRITICAL: do not move MapContent automatically on scene start.
+            // menu.unity/loading.unity keep their serialized visual composition when
+            // Play begins, and WorldMap must behave the same way. The old code called
+            // FocusContinent here, which changed MapContent.anchoredPosition and made
+            // the Simulator jump from the full world layout to North America.
+            if (mapContent != null)
+                mapContent.anchoredPosition = authoredMapContentPosition;
+
             Canvas.ForceUpdateCanvases();
-            FocusContinent(selectedContinent, false);
+
+            // Optional for future use only. It is deliberately OFF by default so the
+            // runtime starts exactly where the designer saved WorldMap.unity.
+            if (focusSelectedContinentOnStart)
+                FocusContinent(selectedContinent, false);
 
             bool hintSeen = PlayerPrefs.GetInt(DragHintSeenKey, 0) == 1;
             SetDragHintVisible(!hintSeen, immediate: true);
