@@ -42,7 +42,7 @@ namespace Watermelon
         {
             foreach (var type in registeredTypes)
             {
-                UnityEngine.Object[] sceneObjects = GameObject.FindObjectsOfType(type, true);
+                UnityEngine.Object[] sceneObjects = UnityEngine.Object.FindObjectsByType(type, FindObjectsInactive.Include, FindObjectsSortMode.None);
                 foreach (UnityEngine.Object sceneObject in sceneObjects)
                 {
                     ISceneSavingCallback sceneSavingCallback = (ISceneSavingCallback)sceneObject;
