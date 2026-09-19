@@ -20,7 +20,7 @@ namespace Watermelon.EditorTools
     ///
     /// Design rule:
     /// - The visual composition is authored once at 1080x1920.
-    /// - Runtime responsiveness scales the complete WorldMapRoot uniformly.
+    /// - Runtime responsiveness scales the complete NEW World Map uniformly.
     /// - Individual authored children are never rearranged in Play mode.
     ///
     /// This is the same strategy that fixed the Main Menu simulator mismatch.
@@ -45,8 +45,11 @@ namespace Watermelon.EditorTools
 
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
         {
-            if (scene.path == ScenePath)
-                QueueWorldMapBootstrap();
+            if (scene.path != ScenePath)
+                return;
+
+            QueueWorldMapBootstrap();
+            EditorApplication.delayCall += FocusEditableWorldMapInSceneView;
         }
 
         private const string ScenePath = "Assets/Project Data/Game/Scenes/WorldMap.unity";
@@ -223,11 +226,12 @@ namespace Watermelon.EditorTools
                 EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             }
 
-            GameObject root = GameObject.Find("WorldMapRoot");
+            GameObject root = GameObject.Find("NEW World Map");
             if (root != null)
             {
                 Selection.activeGameObject = root;
                 EditorGUIUtility.PingObject(root);
+                FocusEditableWorldMapInSceneView();
             }
         }
 
@@ -272,12 +276,22 @@ namespace Watermelon.EditorTools
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             CreateCamera();
+            CreateSceneEventSystem();
 
             Canvas canvas = CreateCanvas();
 
+            // Match the working menu/loading scene pattern:
+            // Canvas -> one serialized editable 1080x1920 visual root.
+            RectTransform worldRoot = CreateRect("NEW World Map", canvas.transform);
+            worldRoot.anchorMin = worldRoot.anchorMax = worldRoot.pivot = new Vector2(0.5f, 0.5f);
+            worldRoot.sizeDelta = new Vector2(DesignWidth, DesignHeight);
+            worldRoot.anchoredPosition = Vector2.zero;
+
+            WorldMapResponsiveLayout responsive = worldRoot.gameObject.AddComponent<WorldMapResponsiveLayout>();
+
             Image fullBackdrop = CreateImage(
-                "World Map Backdrop",
-                canvas.transform,
+                "Background Artwork",
+                worldRoot,
                 ocean,
                 new Vector2(0.5f, 0.5f),
                 Vector2.zero,
@@ -285,16 +299,6 @@ namespace Watermelon.EditorTools
             Stretch(fullBackdrop.rectTransform);
             fullBackdrop.preserveAspect = false;
             fullBackdrop.raycastTarget = false;
-            if (ocean == null)
-                fullBackdrop.color = new Color(0.02f, 0.48f, 0.86f, 1f);
-
-            RectTransform worldRoot = CreateRect("WorldMapRoot", canvas.transform);
-            worldRoot.anchorMin = worldRoot.anchorMax = worldRoot.pivot = new Vector2(0.5f, 0.5f);
-            worldRoot.sizeDelta = new Vector2(DesignWidth, DesignHeight);
-            worldRoot.anchoredPosition = Vector2.zero;
-
-            WorldMapResponsiveLayout responsive = worldRoot.gameObject.AddComponent<WorldMapResponsiveLayout>();
-            responsive.EditorConfigure(fullBackdrop);
 
             // HEADER
             RectTransform header = CreateRect("Header", worldRoot);
@@ -358,7 +362,7 @@ namespace Watermelon.EditorTools
             oceanMap.rectTransform.SetAsFirstSibling();
 
             // Controller exists before nodes so we can wire scroll events.
-            GameObject controllerObject = new GameObject("WorldMapController");
+            GameObject controllerObject = new GameObject("World Map Controller");
             controllerObject.transform.SetParent(worldRoot, false);
             WorldMapSceneController controller = controllerObject.AddComponent<WorldMapSceneController>();
 
@@ -547,25 +551,18 @@ namespace Watermelon.EditorTools
             // scene additively from the builder; that can temporarily create duplicate
             // EventSystems/AudioListeners and pollute the Console.
 
-            // WorldMapRoot is still valid because no other scene is opened here.
+            // NEW World Map is still valid because no other scene is opened here.
             // but still guard the editor selection so scene reloads/imports can never
             // leave us holding a destroyed RectTransform reference.
             if (worldRoot != null)
             {
                 Selection.activeGameObject = worldRoot.gameObject;
                 EditorGUIUtility.PingObject(worldRoot.gameObject);
-
-                SceneView sceneView = SceneView.lastActiveSceneView;
-                if (sceneView != null)
-                {
-                    sceneView.in2DMode = true;
-                    sceneView.FrameSelected();
-                    sceneView.Repaint();
-                }
+                FocusEditableWorldMapInSceneView();
             }
             else
             {
-                GameObject rebuiltRoot = GameObject.Find("WorldMapRoot");
+                GameObject rebuiltRoot = GameObject.Find("NEW World Map");
                 if (rebuiltRoot != null)
                 {
                     Selection.activeGameObject = rebuiltRoot;
@@ -612,6 +609,44 @@ namespace Watermelon.EditorTools
             EditorUtility.DisplayDialog("Conveyor Chef World Map", message, "OK");
         }
 
+        [MenuItem("Conveyor Chef/World Map/Validate Editable World Map Visuals", priority = 3)]
+        public static void ValidateEditableWorldMapVisuals()
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            GameObject root = GameObject.Find("NEW World Map");
+            if (root == null)
+            {
+                EditorUtility.DisplayDialog(
+                    "World Map validation",
+                    "NEW World Map root is missing. Run Import Generated Asset Pack + Rebuild.",
+                    "OK");
+                return;
+            }
+
+            Image[] images = root.GetComponentsInChildren<Image>(true);
+            int withSprite = images.Count(image => image != null && image.sprite != null);
+            int withoutSprite = images.Count(image => image != null && image.sprite == null);
+
+            List<string> missingAssets = GetMissingAssets();
+
+            string message =
+                "Editable visual root: OK\n" +
+                "Images with Sprite: " + withSprite + "\n" +
+                "Images without Sprite: " + withoutSprite + "\n" +
+                "Generated PNG assets found: " + (RequiredAssetFiles.Length - missingAssets.Count) +
+                "/" + RequiredAssetFiles.Length;
+
+            if (missingAssets.Count > 0)
+                message += "\n\nMissing generated PNGs:\n- " + string.Join("\n- ", missingAssets);
+
+            Debug.Log("[WorldMapValidator]\n" + message);
+            EditorUtility.DisplayDialog("World Map validation", message, "OK");
+            FocusEditableWorldMapInSceneView();
+        }
+
         [MenuItem("Conveyor Chef/World Map/Open World Map Asset Folder")]
         public static void SelectAssetFolder()
         {
@@ -645,6 +680,45 @@ namespace Watermelon.EditorTools
             scaler.referencePixelsPerUnit = 100f;
 
             return canvas;
+        }
+
+        private static void CreateSceneEventSystem()
+        {
+            // Exactly like the working menu/loading scenes: keep a scene-local
+            // EventSystem serialized for direct scene testing, but disabled by default.
+            // When the app starts from Init, the persistent Initialiser EventSystem owns input.
+            GameObject eventObject = new GameObject("EventSystem", typeof(EventSystem));
+
+            Type inputModuleType = Type.GetType(
+                "UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem");
+
+            if (inputModuleType != null)
+                eventObject.AddComponent(inputModuleType);
+            else
+                eventObject.AddComponent<StandaloneInputModule>();
+
+            eventObject.SetActive(false);
+        }
+
+        private static void FocusEditableWorldMapInSceneView()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
+
+            GameObject root = GameObject.Find("NEW World Map");
+            if (root == null)
+                return;
+
+            Selection.activeGameObject = root;
+
+            SceneView sceneView = SceneView.lastActiveSceneView;
+            if (sceneView == null)
+                return;
+
+            sceneView.in2DMode = true;
+            sceneView.LookAt(root.transform.position, Quaternion.identity, 1150f, true, true);
+            sceneView.FrameSelected();
+            sceneView.Repaint();
         }
 
         private static void CreateCamera()
