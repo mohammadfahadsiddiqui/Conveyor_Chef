@@ -49,7 +49,10 @@ namespace Watermelon.BusStop
         [SerializeField, Min(0.05f)] private float focusDuration = 0.35f;
 
         [Header("Scene-authored startup")]
-        [Tooltip("Keep this OFF to make Play mode start with the exact MapContent position saved in WorldMap.unity.")]
+        [Tooltip("When enabled, Play mode starts with exactly the sprites, colors, active states, sizes and positions saved in WorldMap.unity.")]
+        [SerializeField] private bool preserveAuthoredStartupVisuals = true;
+        [SerializeField, Range(0, 5)] private int authoredSelectedContinent = 0;
+        [Tooltip("Normally OFF. Enabling this intentionally moves MapContent when Play begins.")]
         [SerializeField] private bool focusSelectedContinentOnStart = false;
 
         private int selectedContinent;
@@ -101,26 +104,33 @@ namespace Watermelon.BusStop
 
         private void Start()
         {
-            selectedContinent = RestoreSelectedContinent();
-            RefreshAll();
+            if (preserveAuthoredStartupVisuals)
+            {
+                // The serialized scene is authoritative. Do not call RefreshAll here:
+                // RefreshAll swaps pin/card sprites, changes colors, toggles glows and
+                // changes button interactable states, which was the visible jump in the
+                // supplied recording immediately after entering Play mode.
+                selectedContinent = Mathf.Clamp(
+                    authoredSelectedContinent,
+                    0,
+                    continents != null && continents.Length > 0 ? continents.Length - 1 : 0);
 
-            // CRITICAL: do not move MapContent automatically on scene start.
-            // menu.unity/loading.unity keep their serialized visual composition when
-            // Play begins, and WorldMap must behave the same way. The old code called
-            // FocusContinent here, which changed MapContent.anchoredPosition and made
-            // the Simulator jump from the full world layout to North America.
-            if (mapContent != null)
-                mapContent.anchoredPosition = authoredMapContentPosition;
+                if (mapContent != null)
+                    mapContent.anchoredPosition = authoredMapContentPosition;
+            }
+            else
+            {
+                selectedContinent = RestoreSelectedContinent();
+                RefreshAll();
+            }
 
             Canvas.ForceUpdateCanvases();
 
-            // Optional for future use only. It is deliberately OFF by default so the
-            // runtime starts exactly where the designer saved WorldMap.unity.
             if (focusSelectedContinentOnStart)
                 FocusContinent(selectedContinent, false);
 
-            bool hintSeen = PlayerPrefs.GetInt(DragHintSeenKey, 0) == 1;
-            SetDragHintVisible(!hintSeen, immediate: true);
+            // Do not hide/show DragHint from PlayerPrefs on the first runtime frame.
+            // Its serialized CanvasGroup state is part of the designer-authored UI.
         }
 
         private void OnDestroy()
