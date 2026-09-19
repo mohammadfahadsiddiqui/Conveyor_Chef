@@ -29,9 +29,23 @@ namespace Watermelon.EditorTools
     {
         static WorldMapSceneBuilder()
         {
-            // Create the editable scene once when this feature first arrives in a project.
-            // Never overwrite an existing WorldMap.unity, so designer changes remain authoritative.
+            // Keep the committed placeholder from ever becoming a dead-end scene.
+            // Once a real WorldMap has been generated, it is never auto-overwritten.
+            EditorSceneManager.sceneOpened -= OnSceneOpened;
+            EditorSceneManager.sceneOpened += OnSceneOpened;
+            QueueWorldMapBootstrap();
+        }
+
+        private static void QueueWorldMapBootstrap()
+        {
+            EditorApplication.delayCall -= EnsureEditableWorldMapSceneExists;
             EditorApplication.delayCall += EnsureEditableWorldMapSceneExists;
+        }
+
+        private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
+        {
+            if (scene.path == ScenePath)
+                QueueWorldMapBootstrap();
         }
 
         private const string ScenePath = "Assets/Project Data/Game/Scenes/WorldMap.unity";
@@ -83,40 +97,41 @@ namespace Watermelon.EditorTools
 
         private static void EnsureEditableWorldMapSceneExists()
         {
-            if (EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode)
+            if (EditorApplication.isCompiling)
+            {
+                QueueWorldMapBootstrap();
+                return;
+            }
+
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
                 return;
 
             bool sceneExists = File.Exists(ScenePath);
-            bool isPlaceholder = false;
+            bool isPlaceholder = IsPlaceholderSceneFile();
 
             if (sceneExists)
-            {
-                try
-                {
-                    isPlaceholder = File.ReadAllText(ScenePath).Contains("__WORLD_MAP_PLACEHOLDER__");
-                }
-                catch
-                {
-                    isPlaceholder = false;
-                }
-
                 EnsureSceneInBuildSettings(ScenePath);
 
-                // A normal serialized WorldMap scene already exists, so never overwrite
-                // the designer's Canvas/layout automatically.
-                if (!isPlaceholder)
-                    return;
-            }
+            // A normal serialized WorldMap scene already exists, so never overwrite
+            // the designer's Canvas/layout automatically.
+            if (sceneExists && !isPlaceholder)
+                return;
 
             Scene currentScene = SceneManager.GetActiveScene();
+            bool placeholderIsCurrentlyOpen =
+                currentScene.IsValid() &&
+                currentScene.path == ScenePath &&
+                IsPlaceholderSceneLoaded(currentScene);
 
-            // Do not discard unsaved designer changes just to auto-create a scene.
-            // The explicit menu command remains available at all times.
-            if (currentScene.IsValid() && currentScene.isDirty)
+            // Protect unrelated unsaved scenes. The WorldMap placeholder itself is safe
+            // to replace even if Unity has marked it dirty during import/open.
+            if (currentScene.IsValid() &&
+                currentScene.isDirty &&
+                !placeholderIsCurrentlyOpen)
             {
                 Debug.Log(
-                    "[WorldMapBuilder] WorldMap.unity is not created yet because the current scene has unsaved changes. " +
-                    "Save your scene, then use Conveyor Chef > World Map > Create/Open Editable World Map.");
+                    "[WorldMapBuilder] Waiting to generate WorldMap because the currently open scene has unsaved changes. " +
+                    "Save that scene, then open WorldMap.unity or use Conveyor Chef > World Map > Create/Open Editable World Map.");
                 return;
             }
 
@@ -132,14 +147,49 @@ namespace Watermelon.EditorTools
             }
         }
 
+        private static bool IsPlaceholderSceneFile()
+        {
+            if (!File.Exists(ScenePath))
+                return false;
+
+            try
+            {
+                return File.ReadAllText(ScenePath).Contains("__WORLD_MAP_PLACEHOLDER__");
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool IsPlaceholderSceneLoaded(Scene scene)
+        {
+            if (!scene.IsValid())
+                return false;
+
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                if (root != null && root.name == "__WORLD_MAP_PLACEHOLDER__")
+                    return true;
+            }
+
+            return false;
+        }
+
         [MenuItem("Conveyor Chef/World Map/Create/Open Editable World Map", priority = 1)]
         public static void CreateOrOpenEditableWorldMap()
         {
-            if (!File.Exists(ScenePath))
+            // File.Exists alone is not enough because the repository intentionally ships
+            // a tiny placeholder so Build Settings can reference WorldMap immediately.
+            if (!File.Exists(ScenePath) || IsPlaceholderSceneFile())
+            {
                 RebuildWorldMap();
-
-            EnsureSceneInBuildSettings(ScenePath);
-            EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            }
+            else
+            {
+                EnsureSceneInBuildSettings(ScenePath);
+                EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            }
 
             GameObject root = GameObject.Find("WorldMapRoot");
             if (root != null)
@@ -468,10 +518,15 @@ namespace Watermelon.EditorTools
             List<string> missing = GetMissingAssets();
 
             bool sceneExists = File.Exists(ScenePath);
+            bool isPlaceholder = IsPlaceholderSceneFile();
             bool inBuild = EditorBuildSettings.scenes.Any(s => s.enabled && s.path == ScenePath);
 
+            string sceneState = !sceneExists
+                ? "MISSING"
+                : (isPlaceholder ? "PLACEHOLDER - REBUILD REQUIRED" : "OK");
+
             string message =
-                "WorldMap scene: " + (sceneExists ? "OK" : "MISSING") + "\n" +
+                "WorldMap scene: " + sceneState + "\n" +
                 "Build Settings: " + (inBuild ? "OK" : "MISSING") + "\n" +
                 "Generated art: " + (missing.Count == 0 ? "ALL 20 ASSETS FOUND" : (20 - missing.Count) + "/20 FOUND");
 
