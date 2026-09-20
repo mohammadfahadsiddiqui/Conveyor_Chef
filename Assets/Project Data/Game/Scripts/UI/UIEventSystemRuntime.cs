@@ -29,8 +29,10 @@ namespace Watermelon
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
+            // Unity 6 logs "Failed setting EventSystem.current to unknown EventSystem"
+            // when current is explicitly assigned null during subsystem reset.
+            // The next scene/adoption call selects the correct EventSystem anyway.
             hooked = false;
-            EventSystem.current = null;
         }
 
         public static void Adopt(EventSystem system)
