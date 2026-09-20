@@ -281,6 +281,25 @@ namespace Watermelon.EditorTools
             EditorUtility.DisplayDialog("Country Map", message, "OK");
         }
 
+        [MenuItem("Conveyor Chef/Country Map/4. Prepare Asia Play-Mode Preview", priority = 4)]
+        public static void PrepareAsiaPreview()
+        {
+            PlayerPrefs.SetInt("CC_WorldMap_SelectedContinent", 4);
+            PlayerPrefs.SetInt("CC_CountryMap_SelectedCountry", 0);
+            PlayerPrefs.Save();
+
+            if (!File.Exists(ScenePath))
+            {
+                EditorUtility.DisplayDialog("Country Map", "CountryMap.unity does not exist yet.", "OK");
+                return;
+            }
+
+            Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            Focus(scene);
+
+            Debug.Log("[CountryMap] Asia preview state prepared. Press Play to test the generated Asia country map.");
+        }
+
         private static void Bake(bool showDialog)
         {
             EnsureFolders();
