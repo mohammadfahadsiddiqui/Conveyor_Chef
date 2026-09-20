@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using TMPro;
 using UnityEditor;
@@ -125,6 +126,69 @@ namespace Watermelon.EditorTools
                 Bake(false);
             else
                 Focus(active);
+        }
+
+        [MenuItem("Conveyor Chef/Country Map/0. Import Generated Art Pack", priority = 0)]
+        public static void ImportGeneratedArtPack()
+        {
+            string zipPath = EditorUtility.OpenFilePanel(
+                "Select ConveyorChef_CountryMap_Assets_ForUnity.zip",
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "zip");
+
+            if (string.IsNullOrWhiteSpace(zipPath))
+                return;
+
+            EnsureFolders();
+
+            try
+            {
+                using (ZipArchive archive = ZipFile.OpenRead(zipPath))
+                {
+                    foreach (string required in Required)
+                    {
+                        ZipArchiveEntry entry = archive.Entries.FirstOrDefault(e =>
+                            string.Equals(Path.GetFileName(e.FullName), required, StringComparison.OrdinalIgnoreCase));
+
+                        if (entry == null)
+                            continue;
+
+                        string destination = (AssetFolder + "/" + required).Replace('\\', '/');
+                        entry.ExtractToFile(destination, true);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[CountryMap] Generated art import failed: " + ex);
+                EditorUtility.DisplayDialog("Country Map Art", "Import failed:\n\n" + ex.Message, "OK");
+                return;
+            }
+
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            ImportSprites();
+
+            List<string> missing = Missing();
+            if (missing.Count > 0)
+            {
+                EditorUtility.DisplayDialog(
+                    "Country Map Art",
+                    "The selected ZIP is missing:\n\n- " + string.Join("\n- ", missing),
+                    "OK");
+                return;
+            }
+
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+
+            EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            Bake(false);
+
+            EditorUtility.DisplayDialog(
+                "Country Map Ready",
+                "All 30 generated assets were imported and the complete editable CountryMap.unity scene was baked.\n\n" +
+                "Open Canvas > NEW Country Map to adjust every element in Scene/Inspector.",
+                "OK");
         }
 
         [MenuItem("Conveyor Chef/Country Map/1. Bake or Replace Editable Country Map", priority = 1)]
