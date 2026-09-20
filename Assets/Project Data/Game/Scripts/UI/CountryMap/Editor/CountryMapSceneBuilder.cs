@@ -513,10 +513,15 @@ namespace Watermelon.EditorTools
             completed.raycastTarget = false;
             completed.gameObject.SetActive(false);
 
-            Image hit = Solid("Country Hitbox", root, new Color(1f, 1f, 1f, 0.001f));
-            Stretch(hit.rectTransform);
+            // Transparent raycast graphic + Button live on the country ROOT.
+            // WorldMapButtonFX is added to this Button at runtime, so the complete
+            // landmark/label/progress cluster visibly presses instead of scaling
+            // an invisible child hitbox.
+            Image hit = root.gameObject.AddComponent<Image>();
+            hit.color = new Color(1f, 1f, 1f, 0.001f);
             hit.raycastTarget = true;
-            Button button = hit.gameObject.AddComponent<Button>();
+
+            Button button = root.gameObject.AddComponent<Button>();
             button.targetGraphic = hit;
             button.transition = Selectable.Transition.None;
 
