@@ -739,7 +739,18 @@ public static void MarkLevelCompleted(int levelIndex, int starsEarned)
 
         private void LateUpdate()
         {
-            Dock.LateUpdate();
+            // Unity can invoke LateUpdate before LevelController.Initialise() has
+            // created the selected environment and initialised its dock. It can
+            // also run briefly while a stage is being unloaded. Dock update logic
+            // is only meaningful while an actual gameplay stage is loaded.
+            if (!isStageLoaded || Environment == null)
+                return;
+
+            DockBehavior dock = Environment.Dock;
+            if (dock == null)
+                return;
+
+            dock.LateUpdate();
         }
 
         public void OnSlotsFilled()
