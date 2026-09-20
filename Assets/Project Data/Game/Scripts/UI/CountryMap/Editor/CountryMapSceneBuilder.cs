@@ -96,6 +96,16 @@ namespace Watermelon.EditorTools
         static CountryMapSceneBuilder()
         {
             EditorApplication.delayCall += TryAutoBake;
+            EditorSceneManager.sceneOpened -= OnSceneOpened;
+            EditorSceneManager.sceneOpened += OnSceneOpened;
+        }
+
+        private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
+        {
+            if (scene.path != ScenePath)
+                return;
+
+            EditorApplication.delayCall += TryAutoBake;
         }
 
         private static void TryAutoBake()
@@ -103,12 +113,18 @@ namespace Watermelon.EditorTools
             if (EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode)
                 return;
 
+            Scene active = SceneManager.GetActiveScene();
+            if (!active.IsValid() || active.path != ScenePath)
+                return;
+
             EnsureFolders();
             AssetDatabase.Refresh();
             ImportSprites();
 
-            if (Missing().Count == 0 && (!File.Exists(ScenePath) || IsPlaceholder()))
+            if (Missing().Count == 0 && IsPlaceholder())
                 Bake(false);
+            else
+                Focus(active);
         }
 
         [MenuItem("Conveyor Chef/Country Map/1. Bake or Replace Editable Country Map", priority = 1)]
