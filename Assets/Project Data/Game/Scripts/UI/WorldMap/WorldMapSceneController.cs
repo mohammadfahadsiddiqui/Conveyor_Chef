@@ -327,6 +327,7 @@ namespace Watermelon.BusStop
             }
 
             PlayerPrefs.SetInt(SelectedContinentKey, continentIndex);
+            PlayerPrefs.SetInt("CC_CountryMap_LaunchedFromWorldMap", 1);
             PlayerPrefs.Save();
 
             PlayClick();
