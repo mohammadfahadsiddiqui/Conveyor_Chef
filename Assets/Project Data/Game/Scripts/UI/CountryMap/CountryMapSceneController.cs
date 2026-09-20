@@ -20,6 +20,7 @@ namespace Watermelon.BusStop
 
         private const string SelectedContinentKey = "CC_WorldMap_SelectedContinent";
         private const string SelectedCountryKey = "CC_CountryMap_SelectedCountry";
+        private const string LaunchedFromWorldMapKey = "CC_CountryMap_LaunchedFromWorldMap";
         private const int AsiaContinentIndex = 4;
 
         private static readonly string[] ContinentNames =
@@ -92,15 +93,31 @@ namespace Watermelon.BusStop
 
         private void Start()
         {
-            selectedContinent = Mathf.Clamp(
-                PlayerPrefs.GetInt(SelectedContinentKey, authoredContinentIndex),
-                0,
-                ContinentNames.Length - 1);
+            bool launchedFromWorldMap = PlayerPrefs.GetInt(LaunchedFromWorldMapKey, 0) == 1;
+            PlayerPrefs.DeleteKey(LaunchedFromWorldMapKey);
 
-            selectedCountry = Mathf.Clamp(
-                PlayerPrefs.GetInt(SelectedCountryKey, 0),
-                0,
-                CountriesPerContinent - 1);
+            // When CountryMap.unity is started directly from the Editor there is no
+            // WorldMap navigation context. In that case always preview the art pack
+            // actually authored in this scene instead of reusing stale PlayerPrefs
+            // from a previous North America/other-continent session.
+            selectedContinent = launchedFromWorldMap
+                ? Mathf.Clamp(
+                    PlayerPrefs.GetInt(SelectedContinentKey, authoredContinentIndex),
+                    0,
+                    ContinentNames.Length - 1)
+                : Mathf.Clamp(authoredContinentIndex, 0, ContinentNames.Length - 1);
+
+            selectedCountry = launchedFromWorldMap
+                ? Mathf.Clamp(
+                    PlayerPrefs.GetInt(SelectedCountryKey, 0),
+                    0,
+                    CountriesPerContinent - 1)
+                : 0;
+
+            // Keep downstream LevelSelection consistent with the map currently shown.
+            PlayerPrefs.SetInt(SelectedContinentKey, selectedContinent);
+            PlayerPrefs.SetInt(SelectedCountryKey, selectedCountry);
+            PlayerPrefs.Save();
 
             ApplyContinentHeader();
             RefreshHUD();
@@ -355,9 +372,8 @@ namespace Watermelon.BusStop
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(action);
 
-            Watermelon.WorldMapButtonFX fx = button.GetComponent<Watermelon.WorldMapButtonFX>();
-            if (fx == null)
-                button.gameObject.AddComponent<Watermelon.WorldMapButtonFX>();
+            // Visual button feedback is serialized by the editor baker.
+            // Runtime must not add/remove components or mutate the authored hierarchy.
         }
 
         private void BackToWorldMap()
