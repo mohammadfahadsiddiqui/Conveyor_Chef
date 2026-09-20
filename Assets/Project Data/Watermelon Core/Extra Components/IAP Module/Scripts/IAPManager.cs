@@ -77,6 +77,12 @@ namespace Watermelon
 
         public static void RestorePurchases()
         {
+            if (wrapper == null)
+            {
+                Debug.LogWarning("[IAPManager] RestorePurchases ignored because the IAP module is not initialised.");
+                return;
+            }
+
             wrapper.RestorePurchases();
         }
 
@@ -90,17 +96,26 @@ namespace Watermelon
 
         public static void BuyProduct(ProductKeyType productKeyType)
         {
+            if (wrapper == null)
+            {
+                Debug.LogWarning("[IAPManager] Purchase ignored because the IAP module is not initialised.");
+                return;
+            }
+
             wrapper.BuyProduct(productKeyType);
         }
 
         public static ProductData GetProductData(ProductKeyType productKeyType)
         {
+            if (wrapper == null)
+                return null;
+
             return wrapper.GetProductData(productKeyType);
         }
 
         public static bool IsSubscribed(ProductKeyType productKeyType)
         {
-            return wrapper.IsSubscribed(productKeyType);
+            return wrapper != null && wrapper.IsSubscribed(productKeyType);
         }
 
         public static string GetProductLocalPriceString(ProductKeyType productKeyType)
