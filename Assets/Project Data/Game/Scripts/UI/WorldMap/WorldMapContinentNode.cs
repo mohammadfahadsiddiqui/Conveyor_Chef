@@ -54,44 +54,32 @@ namespace Watermelon.BusStop
 
         public void Refresh(bool unlocked, bool selected)
         {
+            // Runtime owns progression state only. Text, colors, sizes and positions
+            // remain exactly as authored in WorldMap.unity so Scene edits are never
+            // overwritten after the player scrolls or changes selection.
+
             if (pinImage != null)
             {
                 Sprite targetPin = unlocked ? unlockedPinSprite : lockedPinSprite;
-                if (targetPin != null)
+                if (targetPin != null && pinImage.sprite != targetPin)
                     pinImage.sprite = targetPin;
             }
 
             if (cardFrameImage != null)
             {
                 Sprite targetCard = unlocked ? activeCardSprite : lockedCardSprite;
-                if (targetCard != null)
+                if (targetCard != null && cardFrameImage.sprite != targetCard)
                     cardFrameImage.sprite = targetCard;
-                cardFrameImage.color = selected && unlocked
-                    ? Color.white
-                    : (unlocked ? new Color(0.86f, 0.9f, 1f, 0.9f) : Color.white);
             }
 
             if (glowImage != null)
                 glowImage.gameObject.SetActive(selected && unlocked);
 
-            if (continentImage != null)
-            {
-                continentImage.color = unlocked
-                    ? Color.white
-                    : new Color(0.55f, 0.62f, 0.72f, 0.82f);
-            }
-
-            if (mapLabel != null)
-            {
-                mapLabel.text = continentName;
-                mapLabel.color = unlocked ? Color.white : new Color(0.82f, 0.86f, 0.93f, 1f);
-            }
-
-            if (cardLabel != null)
-            {
-                cardLabel.text = "CHAPTER " + (continentIndex + 1) + "\n" + continentName.ToUpperInvariant();
-                cardLabel.color = unlocked ? new Color(0.08f, 0.17f, 0.35f, 1f) : new Color(0.78f, 0.82f, 0.9f, 1f);
-            }
+            // Do NOT modify:
+            // continentImage.color
+            // mapLabel.text / mapLabel.color
+            // cardLabel.text / cardLabel.color
+            // Those values belong to the serialized designer-authored scene.
         }
 
         private void HandlePressed()
