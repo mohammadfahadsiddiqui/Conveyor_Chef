@@ -316,13 +316,34 @@ namespace Watermelon.BusStop
             if (continents == null || continentIndex < 0 || continentIndex >= continents.Length)
                 return;
 
+            SelectContinent(continentIndex, true);
+
+            if (!IsContinentUnlocked(continentIndex))
+            {
+                if (statusText != null)
+                    statusText.text = "LOCKED • COMPLETE THE PREVIOUS CONTINENT";
+
+                return;
+            }
+
+            PlayerPrefs.SetInt(SelectedContinentKey, continentIndex);
+            PlayerPrefs.Save();
+
             PlayClick();
-            selectedContinent = continentIndex;
+            Watermelon.EnhancedLoadingScreen.LoadViaLoadingScreen("ContinentMap");
+        }
+
+        private void SelectContinent(int continentIndex, bool animated)
+        {
+            if (continents == null || continents.Length == 0)
+                return;
+
+            selectedContinent = Mathf.Clamp(continentIndex, 0, continents.Length - 1);
             PlayerPrefs.SetInt(SelectedContinentKey, selectedContinent);
             PlayerPrefs.Save();
 
             RefreshAll();
-            FocusContinent(selectedContinent, true);
+            FocusContinent(selectedContinent, animated);
         }
 
         private void PreviousContinent()
@@ -331,7 +352,7 @@ namespace Watermelon.BusStop
                 return;
 
             PlayClick();
-            HandleContinentPressed(Mathf.Max(0, selectedContinent - 1));
+            SelectContinent(Mathf.Max(0, selectedContinent - 1), true);
         }
 
         private void NextContinent()
@@ -340,7 +361,7 @@ namespace Watermelon.BusStop
                 return;
 
             PlayClick();
-            HandleContinentPressed(Mathf.Min(continents.Length - 1, selectedContinent + 1));
+            SelectContinent(Mathf.Min(continents.Length - 1, selectedContinent + 1), true);
         }
 
         private void RefreshAll()
