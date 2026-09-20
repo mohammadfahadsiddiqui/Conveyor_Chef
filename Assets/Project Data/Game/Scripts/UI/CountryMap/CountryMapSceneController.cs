@@ -298,6 +298,13 @@ namespace Watermelon.BusStop
                 statusText.text = countryNodes[countryIndex].CountryName.ToUpperInvariant() +
                                   " SELECTED  •  LEVELS " + firstHumanLevel + "-" + lastHumanLevel;
             }
+
+            // Hand off the selected country to the existing LevelSelection scene.
+            // The level-selection controller reads these keys, opens the page that
+            // contains this country's first level, and routes Back to CountryMap.
+            PlayerPrefs.SetInt("CC_LevelSelection_FromCountryMap", 1);
+            PlayerPrefs.Save();
+            EnhancedLoadingScreen.LoadViaLoadingScreen("LevelSelection");
         }
 
         private bool IsCountryUnlocked(int countryIndex)
