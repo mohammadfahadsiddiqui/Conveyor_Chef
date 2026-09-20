@@ -42,12 +42,20 @@ namespace Watermelon.IAPStore
         {
             if (product != null)
             {
-                loadingObject.SetActive(false);
-                priceText.gameObject.SetActive(true);
+                if (button != null)
+                    button.interactable = true;
 
-                backImage.sprite = activeBackSprite;
+                if (loadingObject != null)
+                    loadingObject.SetActive(false);
 
-                priceText.text = IAPManager.GetProductLocalPriceString(key);
+                if (priceText != null)
+                {
+                    priceText.gameObject.SetActive(true);
+                    priceText.text = IAPManager.GetProductLocalPriceString(key);
+                }
+
+                if (backImage != null)
+                    backImage.sprite = activeBackSprite;
             }
             else
             {
@@ -57,16 +65,25 @@ namespace Watermelon.IAPStore
 
         private void SetDisabledState()
         {
-            loadingObject.SetActive(true);
-            priceText.gameObject.SetActive(false);
+            if (button != null)
+                button.interactable = false;
 
-            backImage.sprite = unactiveBackSprite;
+            if (loadingObject != null)
+                loadingObject.SetActive(true);
+
+            if (priceText != null)
+                priceText.gameObject.SetActive(false);
+
+            if (backImage != null)
+                backImage.sprite = unactiveBackSprite;
         }
 
         private void OnButtonClicked()
         {
-            AudioController.PlaySound(AudioController.Sounds.buttonSound);
+            if (product == null || !IAPManager.IsInitialised)
+                return;
 
+            AudioController.PlaySound(AudioController.Sounds.buttonSound);
             IAPManager.BuyProduct(key);
         }
     }
