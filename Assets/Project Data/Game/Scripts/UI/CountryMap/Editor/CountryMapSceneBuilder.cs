@@ -349,6 +349,8 @@ namespace Watermelon.EditorTools
 
             Button backButton = B("BackButton", root, back, new Vector2(0f, 1f), new Vector2(145f, -78f), new Vector2(250f, 84f), true);
             Button settingsButton = B("SettingsButton", root, settings, new Vector2(1f, 1f), new Vector2(-55f, -75f), new Vector2(82f, 82f), true);
+            AddButtonFX(backButton.gameObject);
+            AddButtonFX(settingsButton.gameObject);
 
             Image title = I("CountryMapTitleBoard", root, titleBoard, new Vector2(0.5f, 1f), new Vector2(0f, -105f), new Vector2(520f, 174f), true);
             TextMeshProUGUI titleText = T("ContinentTitle", title.transform, "ASIA", 66f, new Vector2(0f, 14f), new Vector2(380f, 82f));
@@ -366,6 +368,7 @@ namespace Watermelon.EditorTools
             TextMeshProUGUI coinText = T("Coin Value", coinBar.transform, "1,250", 29f, new Vector2(18f, 0f), new Vector2(110f, 54f));
             coinText.fontStyle = FontStyles.Bold;
             Button plusButton = B("Coin Plus Button", coinBar.transform, plus, new Vector2(1f, 0.5f), new Vector2(-34f, 0f), new Vector2(62f, 62f), true);
+            AddButtonFX(plusButton.gameObject);
 
             Image info = I("CountryInfoParchment", root, parchment, new Vector2(0f, 1f), new Vector2(132f, -315f), new Vector2(230f, 288f), true);
             TextMeshProUGUI infoText = T("CountryInfoText", info.transform, "Explore amazing cuisines\nand cultures across Asia!", 25f, new Vector2(0f, -4f), new Vector2(166f, 170f));
@@ -543,6 +546,7 @@ namespace Watermelon.EditorTools
             Button button = root.gameObject.AddComponent<Button>();
             button.targetGraphic = hit;
             button.transition = Selectable.Transition.None;
+            AddButtonFX(root.gameObject);
 
             CountryMapCountryNode node = root.gameObject.AddComponent<CountryMapCountryNode>();
             node.EditorConfigure(index, displayName, button, landmark, flag, glow, label, name, progress, star, progressText, locked.gameObject, completed.gameObject);
@@ -625,6 +629,9 @@ namespace Watermelon.EditorTools
             sound = TextButton("SOUND Button", panel.transform, frame, "SOUND: ON", new Vector2(0f, 85f), out soundText);
             vibration = TextButton("VIBRATION Button", panel.transform, frame, "VIBRATION: ON", new Vector2(0f, -65f), out vibrationText);
             close = TextButton("CLOSE Button", panel.transform, frame, "CLOSE", new Vector2(0f, -225f), out _);
+            AddButtonFX(sound.gameObject);
+            AddButtonFX(vibration.gameObject);
+            AddButtonFX(close.gameObject);
 
             return root.gameObject;
         }
@@ -643,6 +650,15 @@ namespace Watermelon.EditorTools
             text.fontStyle = FontStyles.Bold;
             text.color = new Color(0.08f, 0.18f, 0.34f, 1f);
             return root.gameObject;
+        }
+
+        private static void AddButtonFX(GameObject target)
+        {
+            if (target == null)
+                return;
+
+            if (target.GetComponent<Watermelon.WorldMapButtonFX>() == null)
+                target.AddComponent<Watermelon.WorldMapButtonFX>();
         }
 
         private static Button TextButton(string name, Transform parent, Sprite frame, string label, Vector2 pos, out TextMeshProUGUI text)
