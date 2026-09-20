@@ -1,0 +1,807 @@
+#if UNITY_EDITOR
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using TMPro;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using Watermelon.BusStop;
+
+namespace Watermelon.EditorTools
+{
+    /// <summary>
+    /// One-time editor baker for CountryMap.unity.
+    /// The complete UI is serialized into the scene, exactly like menu/loading.
+    /// Runtime scripts never rebuild or rearrange the authored layout.
+    /// </summary>
+    [InitializeOnLoad]
+    public static class CountryMapSceneBuilder
+    {
+        private const string ScenePath = "Assets/Project Data/Game/Scenes/CountryMap.unity";
+        private const string AssetFolder = "Assets/Project Data/Game/Images/CountryMap";
+        private const float W = 1080f;
+        private const float H = 1920f;
+
+        private static readonly string[] Required =
+        {
+            "glossy_blue_back_button.png",
+            "glossy_blue_gear_settings_icon.png",
+            "glossy_gold_dollar_coin_icon.png",
+            "glossy_green_add_button.png",
+            "glossy_golden_game_star_icon.png",
+            "glossy_blue_locked_level_icon.png",
+            "glossy_blue_game_map_node.png",
+            "glossy_golden_compass_rose_icon.png",
+            "magical_golden_blue_selection_halo.png",
+            "colourful_fantasy_map_of_asia.png",
+            "glossy_chef_s_wooden_title_banner.png",
+            "hanging_culinary_treasure_map_scroll.png",
+            "glossy_country_name_badge_frame.png",
+            "glossy_blue_game_progress_panel.png",
+            "chinese_pagoda_and_dumpling_garden.png",
+            "japanese_island_diorama_with_mount_fuji.png",
+            "india_themed_taj_mahal_garden_diorama.png",
+            "korean_palace_and_bibimbap_diorama.png",
+            "thai_temple_island_adventure.png",
+            "glossy_china_flag_game_badge.png",
+            "glossy_japanese_sun_emblem.png",
+            "glossy_india_flag_badge.png",
+            "glossy_south_korean_flag_badge.png",
+            "glossy_thailand_flag_badge.png",
+            "cheerful_chef_mascot_welcoming_gesture.png",
+            "glossy_chef_s_dialogue_bubble.png",
+            "asia_progress_map_ui_panel.png",
+            "glossy_green_to_gold_progress_bar.png",
+            "crowned_globe_completion_badge.png",
+            "glossy_locked_level_badge.png"
+        };
+
+        private static readonly string[] CountryNames =
+        {
+            "China", "Japan", "India", "South Korea", "Thailand"
+        };
+
+        private static readonly string[] Landmarks =
+        {
+            "chinese_pagoda_and_dumpling_garden.png",
+            "japanese_island_diorama_with_mount_fuji.png",
+            "india_themed_taj_mahal_garden_diorama.png",
+            "korean_palace_and_bibimbap_diorama.png",
+            "thai_temple_island_adventure.png"
+        };
+
+        private static readonly string[] Flags =
+        {
+            "glossy_china_flag_game_badge.png",
+            "glossy_japanese_sun_emblem.png",
+            "glossy_india_flag_badge.png",
+            "glossy_south_korean_flag_badge.png",
+            "glossy_thailand_flag_badge.png"
+        };
+
+        private static readonly Vector2[] Positions =
+        {
+            new Vector2(-285f, 350f),
+            new Vector2(285f, 245f),
+            new Vector2(-305f, -60f),
+            new Vector2(290f, -170f),
+            new Vector2(20f, -495f)
+        };
+
+        static CountryMapSceneBuilder()
+        {
+            EditorApplication.delayCall += TryAutoBake;
+        }
+
+        private static void TryAutoBake()
+        {
+            if (EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
+
+            EnsureFolders();
+            AssetDatabase.Refresh();
+            ImportSprites();
+
+            if (Missing().Count == 0 && (!File.Exists(ScenePath) || IsPlaceholder()))
+                Bake(false);
+        }
+
+        [MenuItem("Conveyor Chef/Country Map/1. Bake or Replace Editable Country Map", priority = 1)]
+        public static void BakeMenu()
+        {
+            EnsureFolders();
+            AssetDatabase.Refresh();
+            ImportSprites();
+
+            List<string> missing = Missing();
+            if (missing.Count > 0)
+            {
+                EditorUtility.DisplayDialog(
+                    "Country Map Art Missing",
+                    "Copy/extract the 30 generated PNG files into:\n\n" + AssetFolder +
+                    "\n\nMissing:\n- " + string.Join("\n- ", missing),
+                    "OK");
+                return;
+            }
+
+            if (File.Exists(ScenePath) && !IsPlaceholder())
+            {
+                bool replace = EditorUtility.DisplayDialog(
+                    "Replace CountryMap.unity?",
+                    "This resets the Country Map layout. Use it only if you intentionally want a fresh scene.",
+                    "Replace",
+                    "Cancel");
+
+                if (!replace)
+                    return;
+            }
+
+            Bake(true);
+        }
+
+        [MenuItem("Conveyor Chef/Country Map/2. Open Editable Country Map", priority = 2)]
+        public static void OpenMenu()
+        {
+            if (!File.Exists(ScenePath))
+            {
+                EditorUtility.DisplayDialog("Country Map", "CountryMap.unity does not exist yet.", "OK");
+                return;
+            }
+
+            Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            EnsureBuildSettings();
+
+            if (IsPlaceholder() && Missing().Count == 0)
+                Bake(false);
+            else
+                Focus(scene);
+        }
+
+        [MenuItem("Conveyor Chef/Country Map/3. Validate Country Map", priority = 3)]
+        public static void ValidateMenu()
+        {
+            List<string> missing = Missing();
+            bool exists = File.Exists(ScenePath);
+            bool inBuild = EditorBuildSettings.scenes.Any(s => s.enabled && s.path == ScenePath);
+
+            string hierarchy = "NOT OPEN";
+            int images = 0;
+            int sprites = 0;
+
+            Scene active = SceneManager.GetActiveScene();
+            if (active.IsValid() && active.path == ScenePath)
+            {
+                GameObject root = GameObject.Find("NEW Country Map");
+                hierarchy = root != null ? "OK - EDITABLE SERIALIZED UI" : "PLACEHOLDER";
+                if (root != null)
+                {
+                    Image[] all = root.GetComponentsInChildren<Image>(true);
+                    images = all.Length;
+                    sprites = all.Count(i => i != null && i.sprite != null);
+                }
+            }
+
+            string message =
+                "CountryMap.unity: " + (exists ? "OK" : "MISSING") + "\n" +
+                "Build Settings: " + (inBuild ? "OK" : "MISSING") + "\n" +
+                "Hierarchy: " + hierarchy + "\n" +
+                "Generated art: " + (Required.Length - missing.Count) + "/" + Required.Length + "\n" +
+                "Scene Images: " + images + "\n" +
+                "Images with Sprite: " + sprites;
+
+            if (missing.Count > 0)
+                message += "\n\nMissing:\n- " + string.Join("\n- ", missing);
+
+            Debug.Log("[CountryMapValidator]\n" + message);
+            EditorUtility.DisplayDialog("Country Map", message, "OK");
+        }
+
+        private static void Bake(bool showDialog)
+        {
+            EnsureFolders();
+            ImportSprites();
+
+            if (Missing().Count > 0)
+                return;
+
+            Sprite back = S("glossy_blue_back_button.png");
+            Sprite settings = S("glossy_blue_gear_settings_icon.png");
+            Sprite coin = S("glossy_gold_dollar_coin_icon.png");
+            Sprite plus = S("glossy_green_add_button.png");
+            Sprite star = S("glossy_golden_game_star_icon.png");
+            Sprite routeLock = S("glossy_blue_locked_level_icon.png");
+            Sprite routeNode = S("glossy_blue_game_map_node.png");
+            Sprite compass = S("glossy_golden_compass_rose_icon.png");
+            Sprite glow = S("magical_golden_blue_selection_halo.png");
+            Sprite background = S("colourful_fantasy_map_of_asia.png");
+            Sprite titleBoard = S("glossy_chef_s_wooden_title_banner.png");
+            Sprite parchment = S("hanging_culinary_treasure_map_scroll.png");
+            Sprite nameFrame = S("glossy_country_name_badge_frame.png");
+            Sprite progressFrame = S("glossy_blue_game_progress_panel.png");
+            Sprite chef = S("cheerful_chef_mascot_welcoming_gesture.png");
+            Sprite bubble = S("glossy_chef_s_dialogue_bubble.png");
+            Sprite bottomPanel = S("asia_progress_map_ui_panel.png");
+            Sprite progressFillSprite = S("glossy_green_to_gold_progress_bar.png");
+            Sprite completedBadge = S("crowned_globe_completion_badge.png");
+            Sprite lockedOverlay = S("glossy_locked_level_badge.png");
+
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            CreateCamera();
+            CreateEventSystem();
+            Canvas canvas = CreateCanvas();
+
+            RectTransform root = R("NEW Country Map", canvas.transform);
+            Stretch(root);
+            root.gameObject.AddComponent<Watermelon.CountryMapResponsiveLayout>();
+
+            Image bg = I("Background Artwork", root, background, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(W, H), false);
+            Stretch(bg.rectTransform);
+            bg.raycastTarget = false;
+
+            RectTransform routeLayer = R("Route Layer", root);
+            Stretch(routeLayer);
+            BuildRoute(routeLayer, routeNode, routeLock);
+
+            Button backButton = B("BackButton", root, back, new Vector2(0f, 1f), new Vector2(145f, -78f), new Vector2(250f, 84f), true);
+            Button settingsButton = B("SettingsButton", root, settings, new Vector2(1f, 1f), new Vector2(-55f, -75f), new Vector2(82f, 82f), true);
+
+            Image title = I("CountryMapTitleBoard", root, titleBoard, new Vector2(0.5f, 1f), new Vector2(0f, -105f), new Vector2(520f, 174f), true);
+            TextMeshProUGUI titleText = T("ContinentTitle", title.transform, "ASIA", 66f, new Vector2(0f, 14f), new Vector2(380f, 82f));
+            titleText.fontStyle = FontStyles.Bold;
+            titleText.color = new Color(0.12f, 0.20f, 0.36f, 1f);
+
+            TextMeshProUGUI subtitleText = T("ContinentSubtitle", title.transform, "CULINARY JOURNEY", 23f, new Vector2(0f, -43f), new Vector2(380f, 42f));
+            subtitleText.fontStyle = FontStyles.Bold;
+            subtitleText.color = new Color(0.32f, 0.19f, 0.08f, 1f);
+
+            Image coinBar = I("Coin Counter", root, progressFrame, new Vector2(1f, 1f), new Vector2(-188f, -76f), new Vector2(245f, 82f), false);
+            Image coinIcon = I("Coin Icon", coinBar.transform, coin, new Vector2(0f, 0.5f), new Vector2(40f, 0f), new Vector2(68f, 68f), true);
+            coinIcon.raycastTarget = false;
+
+            TextMeshProUGUI coinText = T("Coin Value", coinBar.transform, "1,250", 29f, new Vector2(18f, 0f), new Vector2(110f, 54f));
+            coinText.fontStyle = FontStyles.Bold;
+            Button plusButton = B("Coin Plus Button", coinBar.transform, plus, new Vector2(1f, 0.5f), new Vector2(-34f, 0f), new Vector2(62f, 62f), true);
+
+            Image info = I("CountryInfoParchment", root, parchment, new Vector2(0f, 1f), new Vector2(132f, -315f), new Vector2(230f, 288f), true);
+            TextMeshProUGUI infoText = T("CountryInfoText", info.transform, "Explore amazing cuisines\nand cultures across Asia!", 25f, new Vector2(0f, -4f), new Vector2(166f, 170f));
+            infoText.fontStyle = FontStyles.Bold;
+            infoText.color = new Color(0.22f, 0.14f, 0.08f, 1f);
+
+            RectTransform countries = R("Countries", root);
+            Stretch(countries);
+
+            List<CountryMapCountryNode> nodes = new List<CountryMapCountryNode>();
+            for (int i = 0; i < CountryNames.Length; i++)
+            {
+                nodes.Add(CreateCountryNode(
+                    countries,
+                    i,
+                    CountryNames[i],
+                    Positions[i],
+                    S(Landmarks[i]),
+                    S(Flags[i]),
+                    glow,
+                    nameFrame,
+                    progressFrame,
+                    star,
+                    lockedOverlay,
+                    completedBadge,
+                    i == 0,
+                    i == 0));
+            }
+
+            Image compassImage = I("Compass", root, compass, new Vector2(1f, 0f), new Vector2(-95f, 315f), new Vector2(150f, 150f), true);
+            compassImage.raycastTarget = false;
+
+            Image chefImage = I("Chef Guide Mascot", root, chef, new Vector2(0f, 0f), new Vector2(115f, 240f), new Vector2(210f, 280f), true);
+            chefImage.raycastTarget = false;
+
+            Image speech = I("Chef Speech Bubble", root, bubble, new Vector2(0f, 0f), new Vector2(365f, 265f), new Vector2(350f, 117f), false);
+            TextMeshProUGUI guideText = T("Guide Text", speech.transform, "Complete countries to unlock new recipes and levels!", 21f, Vector2.zero, new Vector2(270f, 74f));
+            guideText.fontStyle = FontStyles.Bold;
+            guideText.color = new Color(0.12f, 0.20f, 0.34f, 1f);
+
+            Image progressPanel = I("Continent Progress Panel", root, bottomPanel, new Vector2(0.5f, 0f), new Vector2(35f, 112f), new Vector2(790f, 263f), false);
+            TextMeshProUGUI progressTitle = T("Progress Title", progressPanel.transform, "ASIA PROGRESS", 29f, new Vector2(82f, 78f), new Vector2(360f, 50f));
+            progressTitle.fontStyle = FontStyles.Bold;
+            progressTitle.color = new Color(0.12f, 0.20f, 0.36f, 1f);
+
+            RectTransform track = R("Progress Track", progressPanel.transform);
+            Set(track, new Vector2(0.5f, 0.5f), new Vector2(55f, -28f), new Vector2(390f, 52f));
+            Image trackImage = track.gameObject.AddComponent<Image>();
+            trackImage.color = new Color(0.03f, 0.12f, 0.26f, 0.85f);
+            trackImage.raycastTarget = false;
+
+            Image fill = I("Progress Fill", track, progressFillSprite, new Vector2(0f, 0.5f), Vector2.zero, new Vector2(390f, 44f), false);
+            fill.rectTransform.pivot = new Vector2(0f, 0.5f);
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Horizontal;
+            fill.fillOrigin = 0;
+            fill.fillAmount = 0f;
+            fill.raycastTarget = false;
+
+            TextMeshProUGUI progressValue = T("Progress Value", progressPanel.transform, "0/15", 31f, new Vector2(295f, -28f), new Vector2(120f, 54f));
+            progressValue.fontStyle = FontStyles.Bold;
+            progressValue.color = new Color(0.12f, 0.20f, 0.36f, 1f);
+
+            TextMeshProUGUI status = T("Status Text", root, "CHINA  •  0/3", 22f, new Vector2(0f, -685f), new Vector2(650f, 46f));
+            status.fontStyle = FontStyles.Bold;
+
+            GameObject settingsPanel = BuildSettings(root, nameFrame, out Button closeSettings, out Button sound, out TextMeshProUGUI soundText, out Button vibration, out TextMeshProUGUI vibrationText);
+            settingsPanel.SetActive(false);
+
+            GameObject unsupported = BuildUnsupported(root, nameFrame, out TextMeshProUGUI unsupportedText);
+            unsupported.SetActive(false);
+
+            GameObject controllerObject = new GameObject("Country Map Controller");
+            controllerObject.transform.SetParent(root, false);
+            CountryMapSceneController controller = controllerObject.AddComponent<CountryMapSceneController>();
+            controller.EditorConfigure(
+                nodes.ToArray(),
+                backButton,
+                settingsButton,
+                plusButton,
+                titleText,
+                subtitleText,
+                coinText,
+                infoText,
+                guideText,
+                progressTitle,
+                progressValue,
+                fill,
+                status,
+                settingsPanel,
+                closeSettings,
+                sound,
+                soundText,
+                vibration,
+                vibrationText,
+                unsupported,
+                unsupportedText);
+
+            EditorSceneManager.SaveScene(scene, ScenePath);
+            EnsureBuildSettings();
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Focus(scene);
+
+            Debug.Log("[CountryMap] Baked complete editable CountryMap.unity. Runtime will not rebuild the UI.");
+
+            if (showDialog)
+            {
+                EditorUtility.DisplayDialog(
+                    "Country Map Ready",
+                    "Canvas > NEW Country Map now contains the complete editable 9:16 design.\n\n" +
+                    "Every generated asset is a real Image object and can be adjusted from Scene/Inspector.",
+                    "OK");
+            }
+        }
+
+        private static CountryMapCountryNode CreateCountryNode(
+            RectTransform parent,
+            int index,
+            string displayName,
+            Vector2 position,
+            Sprite landmarkSprite,
+            Sprite flagSprite,
+            Sprite glowSprite,
+            Sprite labelSprite,
+            Sprite progressSprite,
+            Sprite starSprite,
+            Sprite lockedSprite,
+            Sprite completedSprite,
+            bool unlocked,
+            bool selected)
+        {
+            RectTransform root = R("Country_" + (index + 1) + "_" + Safe(displayName), parent);
+            Set(root, new Vector2(0.5f, 0.5f), position, new Vector2(350f, 350f));
+
+            Image glow = I("Selected Glow", root, glowSprite, new Vector2(0.5f, 0.5f), new Vector2(0f, 48f), new Vector2(300f, 300f), true);
+            glow.raycastTarget = false;
+            glow.gameObject.SetActive(selected && unlocked);
+
+            Image landmark = I("Landmark", root, landmarkSprite, new Vector2(0.5f, 0.5f), new Vector2(0f, 62f), new Vector2(270f, 270f), true);
+            landmark.raycastTarget = false;
+            landmark.color = unlocked ? Color.white : new Color(0.58f, 0.64f, 0.72f, 0.9f);
+
+            Image label = I("Country Name Frame", root, labelSprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -78f), new Vector2(270f, 90f), false);
+            Image flag = I("Flag", label.transform, flagSprite, new Vector2(0f, 0.5f), new Vector2(41f, 0f), new Vector2(72f, 72f), true);
+            flag.raycastTarget = false;
+
+            TextMeshProUGUI name = T("Country Name", label.transform, displayName, 29f, new Vector2(34f, 0f), new Vector2(180f, 58f));
+            name.fontStyle = FontStyles.Bold;
+            name.color = new Color(0.12f, 0.20f, 0.34f, 1f);
+
+            Image progress = I("Country Progress Frame", root, progressSprite, new Vector2(0.5f, 0.5f), new Vector2(0f, -145f), new Vector2(195f, 65f), false);
+            Image star = I("Star", progress.transform, starSprite, new Vector2(0f, 0.5f), new Vector2(35f, 0f), new Vector2(48f, 48f), true);
+            star.raycastTarget = false;
+
+            TextMeshProUGUI progressText = T("Progress", progress.transform, "0/3", 26f, new Vector2(32f, 0f), new Vector2(86f, 48f));
+            progressText.fontStyle = FontStyles.Bold;
+
+            Image locked = I("Locked Country Overlay", root, lockedSprite, new Vector2(0.5f, 0.5f), new Vector2(0f, 38f), new Vector2(112f, 112f), true);
+            locked.raycastTarget = false;
+            locked.gameObject.SetActive(!unlocked);
+
+            Image completed = I("Completed Country Badge", root, completedSprite, new Vector2(1f, 1f), new Vector2(-42f, -46f), new Vector2(92f, 92f), true);
+            completed.raycastTarget = false;
+            completed.gameObject.SetActive(false);
+
+            Image hit = Solid("Country Hitbox", root, new Color(1f, 1f, 1f, 0.001f));
+            Stretch(hit.rectTransform);
+            hit.raycastTarget = true;
+            Button button = hit.gameObject.AddComponent<Button>();
+            button.targetGraphic = hit;
+            button.transition = Selectable.Transition.None;
+
+            CountryMapCountryNode node = root.gameObject.AddComponent<CountryMapCountryNode>();
+            node.EditorConfigure(index, displayName, button, landmark, flag, glow, label, name, progress, star, progressText, locked.gameObject, completed.gameObject);
+            return node;
+        }
+
+        private static void BuildRoute(RectTransform parent, Sprite nodeSprite, Sprite lockSprite)
+        {
+            Vector2[] p =
+            {
+                new Vector2(-250f, 260f), new Vector2(-110f, 205f), new Vector2(70f, 175f),
+                new Vector2(215f, 150f), new Vector2(100f, 55f), new Vector2(-80f, 0f),
+                new Vector2(-225f, -35f), new Vector2(-115f, -125f), new Vector2(50f, -145f),
+                new Vector2(205f, -155f), new Vector2(190f, -265f), new Vector2(115f, -375f),
+                new Vector2(35f, -445f)
+            };
+
+            for (int i = 0; i < p.Length - 1; i++)
+                Dotted(parent, p[i], p[i + 1]);
+
+            RouteIcon("Route Node 1", parent, nodeSprite, new Vector2(-110f, 205f), 58f);
+            RouteIcon("Route Lock 1", parent, lockSprite, new Vector2(100f, 55f), 64f);
+            RouteIcon("Route Lock 2", parent, lockSprite, new Vector2(-115f, -125f), 64f);
+            RouteIcon("Route Node 2", parent, nodeSprite, new Vector2(50f, -145f), 58f);
+            RouteIcon("Route Lock 3", parent, lockSprite, new Vector2(190f, -265f), 64f);
+            RouteIcon("Route Node 3", parent, nodeSprite, new Vector2(35f, -445f), 58f);
+        }
+
+        private static void Dotted(RectTransform parent, Vector2 a, Vector2 b)
+        {
+            Vector2 d = b - a;
+            float length = d.magnitude;
+            if (length < 1f)
+                return;
+
+            float angle = Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg;
+            int count = Mathf.Max(1, Mathf.FloorToInt(length / 42f));
+
+            for (int i = 0; i <= count; i++)
+            {
+                RectTransform dash = R("Route Dash", parent);
+                Set(dash, new Vector2(0.5f, 0.5f), Vector2.Lerp(a, b, (float)i / count), new Vector2(24f, 9f));
+                dash.localEulerAngles = new Vector3(0f, 0f, angle);
+                Image img = dash.gameObject.AddComponent<Image>();
+                img.color = new Color(1f, 1f, 1f, 0.95f);
+                img.raycastTarget = false;
+            }
+        }
+
+        private static void RouteIcon(string name, RectTransform parent, Sprite sprite, Vector2 position, float size)
+        {
+            Image image = I(name, parent, sprite, new Vector2(0.5f, 0.5f), position, new Vector2(size, size), true);
+            image.raycastTarget = false;
+        }
+
+        private static GameObject BuildSettings(
+            RectTransform parent,
+            Sprite frame,
+            out Button close,
+            out Button sound,
+            out TextMeshProUGUI soundText,
+            out Button vibration,
+            out TextMeshProUGUI vibrationText)
+        {
+            RectTransform root = R("Settings Panel", parent);
+            Stretch(root);
+
+            Image dim = Solid("Dim", root, new Color(0.01f, 0.05f, 0.13f, 0.74f));
+            Stretch(dim.rectTransform);
+            dim.raycastTarget = true;
+
+            Image panel = Solid("Panel", root, new Color(1f, 0.95f, 0.82f, 1f));
+            Set(panel.rectTransform, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(760f, 660f));
+            panel.raycastTarget = true;
+
+            TextMeshProUGUI title = T("Title", panel.transform, "SETTINGS", 54f, new Vector2(0f, 235f), new Vector2(600f, 90f));
+            title.fontStyle = FontStyles.Bold;
+            title.color = new Color(0.05f, 0.30f, 0.70f, 1f);
+
+            sound = TextButton("SOUND Button", panel.transform, frame, "SOUND: ON", new Vector2(0f, 85f), out soundText);
+            vibration = TextButton("VIBRATION Button", panel.transform, frame, "VIBRATION: ON", new Vector2(0f, -65f), out vibrationText);
+            close = TextButton("CLOSE Button", panel.transform, frame, "CLOSE", new Vector2(0f, -225f), out _);
+
+            return root.gameObject;
+        }
+
+        private static GameObject BuildUnsupported(RectTransform parent, Sprite frame, out TextMeshProUGUI text)
+        {
+            RectTransform root = R("Unsupported Continent Notice", parent);
+            Set(root, new Vector2(0.5f, 0.5f), new Vector2(0f, 40f), new Vector2(830f, 430f));
+
+            Image dim = Solid("Dim", root, new Color(0.01f, 0.05f, 0.13f, 0.82f));
+            Stretch(dim.rectTransform);
+            dim.raycastTarget = false;
+
+            Image banner = I("Notice Frame", root, frame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(740f, 250f), false);
+            text = T("Notice Text", banner.transform, "COUNTRY ART PACK\nNOT INSTALLED YET", 34f, Vector2.zero, new Vector2(610f, 170f));
+            text.fontStyle = FontStyles.Bold;
+            text.color = new Color(0.08f, 0.18f, 0.34f, 1f);
+            return root.gameObject;
+        }
+
+        private static Button TextButton(string name, Transform parent, Sprite frame, string label, Vector2 pos, out TextMeshProUGUI text)
+        {
+            Button b = B(name, parent, frame, new Vector2(0.5f, 0.5f), pos, new Vector2(500f, 105f), false);
+            text = T("Label", b.transform, label, 31f, Vector2.zero, new Vector2(420f, 70f));
+            text.fontStyle = FontStyles.Bold;
+            text.color = new Color(0.08f, 0.18f, 0.34f, 1f);
+            return b;
+        }
+
+        private static void CreateCamera()
+        {
+            GameObject go = new GameObject("Main Camera");
+            Camera c = go.AddComponent<Camera>();
+            c.clearFlags = CameraClearFlags.SolidColor;
+            c.backgroundColor = new Color(0.05f, 0.46f, 0.82f, 1f);
+            c.orthographic = true;
+            c.transform.position = new Vector3(0f, 0f, -10f);
+            go.tag = "MainCamera";
+        }
+
+        private static void CreateEventSystem()
+        {
+            GameObject go = new GameObject("EventSystem");
+            go.AddComponent<EventSystem>();
+            go.SetActive(false);
+        }
+
+        private static Canvas CreateCanvas()
+        {
+            GameObject go = new GameObject("Canvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            int layer = LayerMask.NameToLayer("UI");
+            go.layer = layer >= 0 ? layer : 5;
+
+            Canvas canvas = go.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+            CanvasScaler scaler = go.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(W, H);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
+            scaler.referencePixelsPerUnit = 100f;
+            return canvas;
+        }
+
+        private static RectTransform R(string name, Transform parent)
+        {
+            GameObject go = new GameObject(name, typeof(RectTransform));
+            int layer = LayerMask.NameToLayer("UI");
+            go.layer = layer >= 0 ? layer : 5;
+            RectTransform rect = go.GetComponent<RectTransform>();
+            rect.SetParent(parent, false);
+            rect.localScale = Vector3.one;
+            return rect;
+        }
+
+        private static Image I(string name, Transform parent, Sprite sprite, Vector2 anchor, Vector2 pos, Vector2 size, bool preserve)
+        {
+            RectTransform rect = R(name, parent);
+            Set(rect, anchor, pos, size);
+            Image image = rect.gameObject.AddComponent<Image>();
+            image.sprite = sprite;
+            image.color = Color.white;
+            image.preserveAspect = preserve;
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private static Image Solid(string name, Transform parent, Color color)
+        {
+            RectTransform rect = R(name, parent);
+            Image image = rect.gameObject.AddComponent<Image>();
+            image.color = color;
+            image.raycastTarget = false;
+            return image;
+        }
+
+        private static Button B(string name, Transform parent, Sprite sprite, Vector2 anchor, Vector2 pos, Vector2 size, bool preserve)
+        {
+            Image image = I(name, parent, sprite, anchor, pos, size, preserve);
+            image.raycastTarget = true;
+            Button button = image.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            button.transition = Selectable.Transition.None;
+            return button;
+        }
+
+        private static TextMeshProUGUI T(string name, Transform parent, string value, float fontSize, Vector2 pos, Vector2 size)
+        {
+            RectTransform rect = R(name, parent);
+            Set(rect, new Vector2(0.5f, 0.5f), pos, size);
+            TextMeshProUGUI text = rect.gameObject.AddComponent<TextMeshProUGUI>();
+            text.text = value;
+            text.fontSize = fontSize;
+            text.alignment = TextAlignmentOptions.Center;
+            text.enableWordWrapping = true;
+            text.raycastTarget = false;
+            text.color = Color.white;
+            if (TMP_Settings.defaultFontAsset != null)
+                text.font = TMP_Settings.defaultFontAsset;
+            return text;
+        }
+
+        private static void Set(RectTransform rect, Vector2 anchor, Vector2 pos, Vector2 size)
+        {
+            rect.anchorMin = anchor;
+            rect.anchorMax = anchor;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = pos;
+            rect.sizeDelta = size;
+            rect.localScale = Vector3.one;
+        }
+
+        private static void Stretch(RectTransform rect)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.sizeDelta = Vector2.zero;
+            rect.localScale = Vector3.one;
+        }
+
+        private static Sprite S(string file)
+        {
+            Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(AssetFolder + "/" + file);
+            if (sprite == null)
+                throw new InvalidOperationException("Missing Country Map sprite: " + file);
+            return sprite;
+        }
+
+        private static void ImportSprites()
+        {
+            if (!AssetDatabase.IsValidFolder(AssetFolder))
+                return;
+
+            foreach (string guid in AssetDatabase.FindAssets("t:Texture2D", new[] { AssetFolder }))
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                if (importer == null)
+                    continue;
+
+                bool changed = false;
+
+                if (importer.textureType != TextureImporterType.Sprite)
+                {
+                    importer.textureType = TextureImporterType.Sprite;
+                    changed = true;
+                }
+
+                if (importer.spriteImportMode != SpriteImportMode.Single)
+                {
+                    importer.spriteImportMode = SpriteImportMode.Single;
+                    changed = true;
+                }
+
+                if (importer.mipmapEnabled)
+                {
+                    importer.mipmapEnabled = false;
+                    changed = true;
+                }
+
+                if (!importer.alphaIsTransparency)
+                {
+                    importer.alphaIsTransparency = true;
+                    changed = true;
+                }
+
+                if (importer.maxTextureSize < 4096)
+                {
+                    importer.maxTextureSize = 4096;
+                    changed = true;
+                }
+
+                if (importer.textureCompression != TextureImporterCompression.Uncompressed)
+                {
+                    importer.textureCompression = TextureImporterCompression.Uncompressed;
+                    changed = true;
+                }
+
+                if (changed)
+                    importer.SaveAndReimport();
+            }
+        }
+
+        private static List<string> Missing()
+        {
+            return Required.Where(f => !File.Exists(AssetFolder + "/" + f)).ToList();
+        }
+
+        private static bool IsPlaceholder()
+        {
+            if (!File.Exists(ScenePath))
+                return false;
+
+            try
+            {
+                return File.ReadAllText(ScenePath).Contains("__COUNTRY_MAP_PLACEHOLDER__");
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static void EnsureFolders()
+        {
+            EnsureFolder("Assets/Project Data/Game/Images");
+            EnsureFolder(AssetFolder);
+            EnsureFolder("Assets/Project Data/Game/Scenes");
+        }
+
+        private static void EnsureFolder(string path)
+        {
+            if (AssetDatabase.IsValidFolder(path))
+                return;
+
+            string parent = Path.GetDirectoryName(path)?.Replace('\\', '/');
+            string name = Path.GetFileName(path);
+
+            if (!string.IsNullOrEmpty(parent) && !AssetDatabase.IsValidFolder(parent))
+                EnsureFolder(parent);
+
+            if (!string.IsNullOrEmpty(parent))
+                AssetDatabase.CreateFolder(parent, name);
+        }
+
+        private static void EnsureBuildSettings()
+        {
+            List<EditorBuildSettingsScene> scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+            int index = scenes.FindIndex(s => s.path == ScenePath);
+            if (index >= 0)
+                scenes[index] = new EditorBuildSettingsScene(ScenePath, true);
+            else
+                scenes.Add(new EditorBuildSettingsScene(ScenePath, true));
+            EditorBuildSettings.scenes = scenes.ToArray();
+        }
+
+        private static void Focus(Scene scene)
+        {
+            if (!scene.IsValid() || scene.path != ScenePath)
+                return;
+
+            GameObject root = GameObject.Find("NEW Country Map");
+            if (root == null)
+                return;
+
+            Selection.activeGameObject = root;
+            if (SceneView.lastActiveSceneView != null)
+            {
+                SceneView.lastActiveSceneView.in2DMode = true;
+                SceneView.lastActiveSceneView.FrameSelected();
+                SceneView.lastActiveSceneView.Repaint();
+            }
+        }
+
+        private static string Safe(string value)
+        {
+            return value.Replace(" ", string.Empty).Replace("/", string.Empty);
+        }
+    }
+}
+#endif
