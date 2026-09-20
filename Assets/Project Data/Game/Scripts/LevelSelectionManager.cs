@@ -14,8 +14,8 @@ namespace Watermelon.BusStop
         private const string SelectedContinentKey = "CC_WorldMap_SelectedContinent";
         private const string SelectedCountryKey = "CC_CountryMap_SelectedCountry";
         private const string FromCountryMapKey = "CC_LevelSelection_FromCountryMap";
+        private const string SelectedCountryLevelStartKey = "CC_CountryMap_SelectedLevelStart";
 
-        private const int LevelsPerContinent = 15;
         private const int LevelsPerCountry = 3;
         private const int CountriesPerContinent = 5;
 
@@ -75,19 +75,12 @@ namespace Watermelon.BusStop
             if (PlayerPrefs.GetInt(FromCountryMapKey, 0) != 1)
                 return 0;
 
-            int continent = Mathf.Clamp(
-                PlayerPrefs.GetInt(SelectedContinentKey, 0),
-                0,
-                5);
+            if (pages.Length == 1)
+                return 0;
 
-            int country = Mathf.Clamp(
-                PlayerPrefs.GetInt(SelectedCountryKey, 0),
+            int firstCountryLevel = Mathf.Max(
                 0,
-                CountriesPerContinent - 1);
-
-            int firstCountryLevel =
-                continent * LevelsPerContinent +
-                country * LevelsPerCountry;
+                PlayerPrefs.GetInt(SelectedCountryLevelStartKey, 0));
 
             int safeLevelsPerPage = Mathf.Max(1, levelsPerPage);
             return Mathf.Clamp(
@@ -109,6 +102,28 @@ namespace Watermelon.BusStop
             {
                 Debug.LogError("[LevelSelection] Page prefab or PagesContainer reference is missing.");
                 pages = new LevelPageController[0];
+                return;
+            }
+
+            bool fromCountryMap = PlayerPrefs.GetInt(FromCountryMapKey, 0) == 1;
+
+            if (fromCountryMap)
+            {
+                int startLevelIndex = Mathf.Clamp(
+                    PlayerPrefs.GetInt(SelectedCountryLevelStartKey, 0),
+                    0,
+                    Mathf.Max(0, levelDatabase.Levels.Length - 1));
+
+                int levelsInCountry = Mathf.Min(
+                    LevelsPerCountry,
+                    levelDatabase.Levels.Length - startLevelIndex);
+
+                pages = new LevelPageController[1];
+
+                LevelPageController page = Instantiate(pageControllerPrefab, pagesContainer);
+                page.gameObject.SetActive(false);
+                page.Setup(0, startLevelIndex, levelsInCountry);
+                pages[0] = page;
                 return;
             }
 
