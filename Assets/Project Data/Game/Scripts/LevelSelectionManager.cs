@@ -174,7 +174,16 @@
 
 //         public void BackToMainMenu()
 //         {
-//             Watermelon.EnhancedLoadingScreen.LoadViaLoadingScreen("menu");
+//             if (PlayerPrefs.GetInt(FromCountryMapKey, 0) == 1)
+            {
+                PlayerPrefs.DeleteKey(FromCountryMapKey);
+                PlayerPrefs.Save();
+                Watermelon.EnhancedLoadingScreen.LoadViaLoadingScreen("CountryMap");
+            }
+            else
+            {
+                Watermelon.EnhancedLoadingScreen.LoadViaLoadingScreen("menu");
+            }
 //         }
 //     }
 // }
@@ -374,6 +383,12 @@ namespace Watermelon.BusStop
         private LevelPageController[] pages;
         private int currentPageIndex = 0;
 
+        private const string SelectedContinentKey = "CC_WorldMap_SelectedContinent";
+        private const string SelectedCountryKey = "CC_CountryMap_SelectedCountry";
+        private const string FromCountryMapKey = "CC_LevelSelection_FromCountryMap";
+        private const int LevelsPerContinent = 15;
+        private const int LevelsPerCountry = 3;
+
         private void Awake()
         {
             Instance = this;
@@ -386,7 +401,17 @@ namespace Watermelon.BusStop
         {
             CreatePages();
             InitializeNavigationBar();
-            ShowPage(0);
+
+            int initialPage = 0;
+            if (PlayerPrefs.GetInt(FromCountryMapKey, 0) == 1)
+            {
+                int continent = Mathf.Max(0, PlayerPrefs.GetInt(SelectedContinentKey, 0));
+                int country = Mathf.Clamp(PlayerPrefs.GetInt(SelectedCountryKey, 0), 0, 4);
+                int firstCountryLevel = continent * LevelsPerContinent + country * LevelsPerCountry;
+                initialPage = Mathf.Clamp(firstCountryLevel / Mathf.Max(1, levelsPerPage), 0, pages.Length - 1);
+            }
+
+            ShowPage(initialPage);
             
             // Start animations
             if (scooterAnimationController != null)

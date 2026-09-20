@@ -330,7 +330,7 @@ namespace Watermelon.BusStop
             PlayerPrefs.Save();
 
             PlayClick();
-            Watermelon.EnhancedLoadingScreen.LoadViaLoadingScreen("ContinentMap");
+            Watermelon.EnhancedLoadingScreen.LoadViaLoadingScreen("CountryMap");
         }
 
         private void SelectContinent(int continentIndex, bool animated)
