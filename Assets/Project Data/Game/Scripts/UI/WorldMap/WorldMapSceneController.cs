@@ -107,10 +107,6 @@ namespace Watermelon.BusStop
         {
             if (preserveAuthoredStartupVisuals)
             {
-                // The serialized scene is authoritative. Do not call RefreshAll here:
-                // RefreshAll swaps pin/card sprites, changes colors, toggles glows and
-                // changes button interactable states, which was the visible jump in the
-                // supplied recording immediately after entering Play mode.
                 selectedContinent = Mathf.Clamp(
                     authoredSelectedContinent,
                     0,
@@ -118,6 +114,12 @@ namespace Watermelon.BusStop
 
                 if (mapContent != null)
                     mapContent.anchoredPosition = authoredMapContentPosition;
+
+                // Apply gameplay progression immediately so locked continents are
+                // correct on the first visible frame. RefreshAll is now visual-safe:
+                // it updates lock sprites/glow/button states only and never rewrites
+                // designer-authored labels, text colors or continent artwork colors.
+                RefreshAll();
             }
             else
             {
@@ -130,8 +132,7 @@ namespace Watermelon.BusStop
             if (focusSelectedContinentOnStart)
                 FocusContinent(selectedContinent, false);
 
-            // Do not hide/show DragHint from PlayerPrefs on the first runtime frame.
-            // Its serialized CanvasGroup state is part of the designer-authored UI.
+            // DragHint's serialized state remains scene-authored.
         }
 
         private void OnDestroy()
@@ -383,26 +384,9 @@ namespace Watermelon.BusStop
                     node.Refresh(unlocked, i == selectedContinent);
             }
 
-            WorldMapContinentNode selectedNode = continents[selectedContinent];
-            bool selectedUnlocked = IsContinentUnlocked(selectedContinent);
-
-            if (selectedChapterText != null)
-            {
-                string displayName = selectedNode != null
-                    ? selectedNode.ContinentName.ToUpperInvariant()
-                    : "CONTINENT " + (selectedContinent + 1);
-
-                selectedChapterText.text =
-                    "CHAPTER " + (selectedContinent + 1) + "  •  " +
-                    displayName;
-            }
-
-            if (statusText != null)
-            {
-                statusText.text = selectedUnlocked
-                    ? "UNLOCKED  •  15 LEVELS"
-                    : "LOCKED  •  COMPLETE THE PREVIOUS CONTINENT";
-            }
+            // Do not rewrite selectedChapterText or statusText here.
+            // Those are designer-authored scene elements. Runtime selection/progression
+            // is communicated by lock sprites, glow and button availability.
 
             if (leftButton != null)
                 leftButton.interactable = selectedContinent > 0;
@@ -469,43 +453,11 @@ namespace Watermelon.BusStop
 
         public void SelectNearestToViewport()
         {
-            RepairContinentReferencesIfNeeded();
-
-            if (continents == null || continents.Length == 0 || mapContent == null)
-                return;
-
-            Vector2 visibleCenterInContent = -mapContent.anchoredPosition;
-            int nearest = selectedContinent;
-            float bestDistance = float.MaxValue;
-
-            for (int i = 0; i < continents.Length; i++)
-            {
-                WorldMapContinentNode node = continents[i];
-
-                // Explicit Unity null check is required here. Null-conditional (?.)
-                // does not respect UnityEngine.Object's destroyed-object semantics.
-                if (node == null)
-                    continue;
-
-                RectTransform target = node.MapTarget;
-                if (target == null)
-                    continue;
-
-                float distance = (target.anchoredPosition - visibleCenterInContent).sqrMagnitude;
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    nearest = i;
-                }
-            }
-
-            if (nearest != selectedContinent)
-            {
-                selectedContinent = nearest;
-                PlayerPrefs.SetInt(SelectedContinentKey, selectedContinent);
-                PlayerPrefs.Save();
-                RefreshAll();
-            }
+            // Intentionally no-op for free-drag scrolling.
+            //
+            // Dragging is viewport navigation only; it must not change selectedContinent
+            // or refresh authored UI. Selection changes only through explicit continent
+            // clicks or Previous/Next buttons.
         }
 
         public void NotifyMapDragged()
