@@ -24,7 +24,7 @@ Each country owns 3 progression levels, preserving the existing 15-level-per-con
 ## Setup
 
 1. Download ConveyorChef_CountryMap_Assets_ForUnity.zip from the chat.
-2. In Unity choose Conveyor Chef > Country Map > 1. Import Generated Art Pack.
+2. In Unity choose Conveyor Chef > Country Map > 0. Import Generated Art Pack.
 3. The placeholder CountryMap.unity is replaced by the complete serialized editable scene.
 4. Open Assets/Project Data/Game/Scenes/CountryMap.unity.
 5. Adjust any Image/RectTransform directly in Scene and Inspector.
