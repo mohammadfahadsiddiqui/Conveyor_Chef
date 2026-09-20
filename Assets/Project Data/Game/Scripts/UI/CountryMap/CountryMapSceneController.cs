@@ -21,7 +21,9 @@ namespace Watermelon.BusStop
         private const string SelectedContinentKey = "CC_WorldMap_SelectedContinent";
         private const string SelectedCountryKey = "CC_CountryMap_SelectedCountry";
         private const string LaunchedFromWorldMapKey = "CC_CountryMap_LaunchedFromWorldMap";
+        private const string SelectedCountryLevelStartKey = "CC_CountryMap_SelectedLevelStart";
         private const int AsiaContinentIndex = 4;
+        private const int AuthoredGameplayLevelStart = 0;
 
         private static readonly string[] ContinentNames =
         {
@@ -93,29 +95,36 @@ namespace Watermelon.BusStop
 
         private void Start()
         {
-            bool launchedFromWorldMap = PlayerPrefs.GetInt(LaunchedFromWorldMapKey, 0) == 1;
+            int requestedWorldMapContinent = Mathf.Clamp(
+                PlayerPrefs.GetInt(SelectedContinentKey, authoredContinentIndex),
+                0,
+                ContinentNames.Length - 1);
+
             PlayerPrefs.DeleteKey(LaunchedFromWorldMapKey);
 
-            // When CountryMap.unity is started directly from the Editor there is no
-            // WorldMap navigation context. In that case always preview the art pack
-            // actually authored in this scene instead of reusing stale PlayerPrefs
-            // from a previous North America/other-continent session.
-            selectedContinent = launchedFromWorldMap
-                ? Mathf.Clamp(
-                    PlayerPrefs.GetInt(SelectedContinentKey, authoredContinentIndex),
-                    0,
-                    ContinentNames.Length - 1)
-                : Mathf.Clamp(authoredContinentIndex, 0, ContinentNames.Length - 1);
+            // Only the Asia CountryMap art/data pack exists in the current build.
+            // Always render that authored pack instead of mixing North America (or
+            // another stale WorldMap selection) with Asia artwork.
+            selectedContinent = Mathf.Clamp(
+                authoredContinentIndex,
+                0,
+                ContinentNames.Length - 1);
 
-            selectedCountry = launchedFromWorldMap
-                ? Mathf.Clamp(
-                    PlayerPrefs.GetInt(SelectedCountryKey, 0),
-                    0,
-                    CountriesPerContinent - 1)
-                : 0;
+            selectedCountry = Mathf.Clamp(
+                PlayerPrefs.GetInt(SelectedCountryKey, 0),
+                0,
+                CountriesPerContinent - 1);
 
-            // Keep downstream LevelSelection consistent with the map currently shown.
-            PlayerPrefs.SetInt(SelectedContinentKey, selectedContinent);
+            if (requestedWorldMapContinent != selectedContinent)
+            {
+                Debug.Log(
+                    "[CountryMap] Requested " + ContinentNames[requestedWorldMapContinent] +
+                    ", but the installed CountryMap art pack is " +
+                    ContinentNames[selectedContinent] + ". Showing the authored Asia map.");
+            }
+
+            // Do not overwrite CC_WorldMap_SelectedContinent here. WorldMap owns that
+            // value and should return to the same continent after Back.
             PlayerPrefs.SetInt(SelectedCountryKey, selectedCountry);
             PlayerPrefs.Save();
 
@@ -171,17 +180,11 @@ namespace Watermelon.BusStop
             if (guideText != null)
                 guideText.text = "Complete countries to unlock new recipes and levels!";
 
-            bool artSupported = selectedContinent == authoredContinentIndex;
+            // The current scene is the authored Asia pack. Never cover the map with
+            // a runtime "unsupported continent" modal; unsupported WorldMap choices
+            // fall back to this pack until their own art/data packs are added.
             if (unsupportedContinentPanel != null)
-                unsupportedContinentPanel.SetActive(!artSupported);
-
-            if (!artSupported && unsupportedContinentText != null)
-            {
-                unsupportedContinentText.text =
-                    continent.ToUpperInvariant() + " COUNTRY ART\nIS NOT INSTALLED YET\n\n" +
-                    "The reusable Country Map system is ready.\n" +
-                    "The current generated visual pack is ASIA.";
-            }
+                unsupportedContinentPanel.SetActive(false);
         }
 
         private void RefreshHUD()
@@ -204,7 +207,7 @@ namespace Watermelon.BusStop
             if (countryNodes == null || countryNodes.Length == 0)
                 return;
 
-            bool supported = selectedContinent == authoredContinentIndex;
+            const bool supported = true;
             int completedContinentLevels = 0;
             int highestUnlocked = 0;
 
@@ -222,11 +225,7 @@ namespace Watermelon.BusStop
                     node.Refresh(unlocked, supported && country == selectedCountry, completed, LevelsPerCountry);
             }
 
-            if (!supported)
-            {
-                selectedCountry = 0;
-            }
-            else if (!IsCountryUnlocked(selectedCountry))
+            if (!IsCountryUnlocked(selectedCountry))
             {
                 selectedCountry = highestUnlocked;
                 PlayerPrefs.SetInt(SelectedCountryKey, selectedCountry);
@@ -244,36 +243,20 @@ namespace Watermelon.BusStop
 
             if (statusText != null)
             {
-                if (!supported)
-                {
-                    statusText.text = "ASIA ART PACK INSTALLED";
-                }
-                else
-                {
-                    CountryMapCountryNode selectedNode =
-                        selectedCountry >= 0 && selectedCountry < countryNodes.Length
-                            ? countryNodes[selectedCountry]
-                            : null;
+                CountryMapCountryNode selectedNode =
+                    selectedCountry >= 0 && selectedCountry < countryNodes.Length
+                        ? countryNodes[selectedCountry]
+                        : null;
 
-                    statusText.text = selectedNode != null
-                        ? selectedNode.CountryName.ToUpperInvariant() + "  •  " +
-                          GetCompletedLevelsInCountry(selectedCountry) + "/" + LevelsPerCountry
-                        : "SELECT A COUNTRY";
-                }
+                statusText.text = selectedNode != null
+                    ? selectedNode.CountryName.ToUpperInvariant() + "  •  " +
+                      GetCompletedLevelsInCountry(selectedCountry) + "/" + LevelsPerCountry
+                    : "SELECT A COUNTRY";
             }
         }
 
         public void HandleCountryPressed(int countryIndex)
         {
-            if (selectedContinent != authoredContinentIndex)
-            {
-                if (statusText != null)
-                    statusText.text = "THIS CONTINENT'S ART PACK IS NOT INSTALLED YET";
-
-                PlayClick();
-                return;
-            }
-
             if (countryIndex < 0 || countryIndex >= CountriesPerContinent)
                 return;
 
@@ -310,7 +293,7 @@ namespace Watermelon.BusStop
             if (statusText != null && countryNodes != null && countryIndex < countryNodes.Length &&
                 countryNodes[countryIndex] != null)
             {
-                int firstHumanLevel = selectedContinent * LevelsPerContinent + countryIndex * LevelsPerCountry + 1;
+                int firstHumanLevel = AuthoredGameplayLevelStart + countryIndex * LevelsPerCountry + 1;
                 int lastHumanLevel = firstHumanLevel + LevelsPerCountry - 1;
                 statusText.text = countryNodes[countryIndex].CountryName.ToUpperInvariant() +
                                   " SELECTED  •  LEVELS " + firstHumanLevel + "-" + lastHumanLevel;
@@ -319,6 +302,10 @@ namespace Watermelon.BusStop
             // Hand off the selected country to the existing LevelSelection scene.
             // The level-selection controller reads these keys, opens the page that
             // contains this country's first level, and routes Back to CountryMap.
+            int selectedLevelStart =
+                AuthoredGameplayLevelStart + countryIndex * LevelsPerCountry;
+
+            PlayerPrefs.SetInt(SelectedCountryLevelStartKey, selectedLevelStart);
             PlayerPrefs.SetInt("CC_LevelSelection_FromCountryMap", 1);
             PlayerPrefs.Save();
             EnhancedLoadingScreen.LoadViaLoadingScreen("LevelSelection");
@@ -330,14 +317,14 @@ namespace Watermelon.BusStop
                 return true;
 
             int previousCountryLastLevel =
-                selectedContinent * LevelsPerContinent + countryIndex * LevelsPerCountry - 1;
+                AuthoredGameplayLevelStart + countryIndex * LevelsPerCountry - 1;
 
             return LevelController.IsLevelCompleted(previousCountryLastLevel);
         }
 
         private int GetCompletedLevelsInCountry(int countryIndex)
         {
-            int start = selectedContinent * LevelsPerContinent + countryIndex * LevelsPerCountry;
+            int start = AuthoredGameplayLevelStart + countryIndex * LevelsPerCountry;
             int completed = 0;
 
             for (int i = 0; i < LevelsPerCountry; i++)
