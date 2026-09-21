@@ -151,46 +151,55 @@ namespace Watermelon.EditorTools
             "ornate_golden_blue_compass_rose.png"
         };
 
+        // Canonical gameplay/progression order.
+        // The positions below still place each continent in its correct geographic area.
         private static readonly string[] ContinentNames =
         {
+            "Asia",
             "North America",
             "South America",
             "Europe",
             "Africa",
-            "Asia",
             "Australia / Oceania"
         };
 
         private static readonly string[] ContinentFiles =
         {
+            "whimsical_isometric_asia_game_map.png",
             "colorful_cartoon_north_america_map.png",
             "colourful_south_america_game_map.png",
             "vibrant_cartoon_europe_map.png",
             "whimsical_africa_adventure_map.png",
-            "whimsical_isometric_asia_game_map.png",
             "australia_and_oceania_adventure_map.png"
         };
 
-        // Authored positions inside MapContent. These are only the initial baked values.
-        // After baking, the designer is free to move/resize every node directly in WorldMap.unity.
+        // Maps the new progression index to the node number used by older baked scenes.
+        // This lets the repair path migrate an existing editable WorldMap without
+        // moving the continent artwork away from its geographic position.
+        private static readonly int[] LegacyNodeIndexByProgression =
+        {
+            4, 0, 1, 2, 3, 5
+        };
+
+        // Authored positions inside MapContent, ordered by gameplay progression.
         private static readonly Vector2[] ContinentPositions =
         {
-            new Vector2(-620f, 430f),
-            new Vector2(-500f, -520f),
-            new Vector2(10f, 520f),
-            new Vector2(80f, -300f),
-            new Vector2(650f, 360f),
-            new Vector2(680f, -650f)
+            new Vector2(650f, 360f),     // Asia
+            new Vector2(-620f, 430f),    // North America
+            new Vector2(-500f, -520f),   // South America
+            new Vector2(10f, 520f),      // Europe
+            new Vector2(80f, -300f),     // Africa
+            new Vector2(680f, -650f)     // Australia / Oceania
         };
 
         private static readonly Vector2[] ContinentSizes =
         {
-            new Vector2(760f, 760f),
-            new Vector2(650f, 820f),
-            new Vector2(650f, 650f),
-            new Vector2(650f, 760f),
-            new Vector2(760f, 760f),
-            new Vector2(650f, 650f)
+            new Vector2(760f, 760f),     // Asia
+            new Vector2(760f, 760f),     // North America
+            new Vector2(650f, 820f),     // South America
+            new Vector2(650f, 650f),     // Europe
+            new Vector2(650f, 760f),     // Africa
+            new Vector2(650f, 650f)      // Australia / Oceania
         };
 
         [MenuItem("Conveyor Chef/World Map/1. Import Generated Art Pack", priority = 1)]
@@ -409,7 +418,7 @@ namespace Watermelon.EditorTools
                 "Checked all 6 chapter cards.\n\n" +
                 "Repaired/created: " + repaired + "\n" +
                 "Artwork/references rebound: " + rebound + "\n\n" +
-                "Chapter 3 is connected to Europe (continent index 2) and uses the same lock/unlock progression logic as the other chapters.\n\n" +
+                "Chapter 1 is Asia, followed by North America, South America, Europe, Africa and Australia/Oceania.\n\n" +
                 "Existing valid card positions/sizes were preserved.",
                 "OK");
         }
@@ -509,7 +518,7 @@ namespace Watermelon.EditorTools
             TextMeshProUGUI chapterText = CreateText(
                 "SelectedChapterText",
                 header,
-                "CHAPTER 1  •  NORTH AMERICA",
+                "CHAPTER 1  •  ASIA",
                 34f,
                 TextAlignmentOptions.Center,
                 new Vector2(0f, -84f),
@@ -558,6 +567,9 @@ namespace Watermelon.EditorTools
                 new Vector2(2600f, 2700f),
                 new Vector2(0.5f, 0.5f));
             scroll.content = mapContent;
+
+            // Asia is Chapter 1, so the serialized editor/startup view begins centered on Asia.
+            mapContent.anchoredPosition = -ContinentPositions[0];
 
             GameObject controllerObject = new GameObject("World Map Controller");
             controllerObject.transform.SetParent(worldRoot, false);
@@ -1396,7 +1408,7 @@ namespace Watermelon.EditorTools
                     : new Color(0.78f, 0.82f, 0.9f, 1f);
 
                 // Connect the card to the correct continent logic.
-                // Chapter 3 => index 2 => Europe.
+                // Chapter cards follow the canonical Asia-first progression order.
                 Transform continentTransform = FindObjectByPrefixInScene("Continent_" + chapterNumber);
                 WorldMapContinentNode continentNode =
                     continentTransform != null
@@ -1523,11 +1535,30 @@ namespace Watermelon.EditorTools
             Sprite activeCardSprite = RequireSprite("glossy_chef_s_game_ui_banner.png");
             Sprite lockedCardSprite = RequireSprite("locked_culinary_chapter_card.png");
 
+            WorldMapContinentNode legacyAsia = FindContinentNodeByDisplayName("Asia");
+            bool migratingLegacyOrder = legacyAsia != null && legacyAsia.ContinentIndex == 4;
+            WorldMapContinentNode[] orderedNodes = new WorldMapContinentNode[ContinentNames.Length];
+
             for (int i = 0; i < ContinentNames.Length; i++)
             {
-                Transform node = FindObjectByPrefixInScene("Continent_" + (i + 1));
-                if (node == null)
+                string displayName = ContinentNames[i];
+                WorldMapContinentNode continentNode = FindContinentNodeByDisplayName(displayName);
+
+                // Fallback for very old baked scenes that do not have valid serialized names.
+                if (continentNode == null)
+                {
+                    int legacyIndex = LegacyNodeIndexByProgression[i];
+                    Transform legacyTransform = FindObjectByPrefixInScene("Continent_" + (legacyIndex + 1));
+                    continentNode = legacyTransform != null
+                        ? legacyTransform.GetComponent<WorldMapContinentNode>()
+                        : null;
+                }
+
+                if (continentNode == null)
                     continue;
+
+                Transform node = continentNode.transform;
+                orderedNodes[i] = continentNode;
 
                 Sprite continentSprite = RequireSprite(ContinentFiles[i]);
                 Image continentImage = FindImageUnder(node, "ContinentArtwork", "ContinentButton");
@@ -1543,7 +1574,11 @@ namespace Watermelon.EditorTools
 
                 Image glow = FindImageUnder(node, "CurrentGlow");
                 if (glow != null)
+                {
                     changed += AssignSprite(glow, glowSprite, true);
+                    glow.gameObject.SetActive(i == 0);
+                    EditorUtility.SetDirty(glow.gameObject);
+                }
 
                 Transform card = FindObjectByExactNameInScene("ChapterCard_" + (i + 1));
                 Image cardImage = card != null ? card.GetComponent<Image>() : null;
@@ -1557,35 +1592,74 @@ namespace Watermelon.EditorTools
                     changed += AssignSprite(cardImage, visibleCard, true);
                 }
 
-                WorldMapContinentNode continentNode = node.GetComponent<WorldMapContinentNode>();
-                if (continentNode != null)
+                if (cardLabel != null)
                 {
-                    Button mapButton =
-                        continentImage != null ? continentImage.GetComponent<Button>() : null;
-                    TextMeshProUGUI mapLabel =
-                        node.GetComponentsInChildren<TextMeshProUGUI>(true)
-                            .FirstOrDefault(label => label != null && label.gameObject.name == "ContinentName");
+                    string desiredCardText =
+                        "CHAPTER " + (i + 1) + "\n" + displayName.ToUpperInvariant();
+                    if (!string.Equals(cardLabel.text, desiredCardText, StringComparison.Ordinal))
+                    {
+                        cardLabel.text = desiredCardText;
+                        EditorUtility.SetDirty(cardLabel);
+                        changed++;
+                    }
+                }
 
-                    RepairContinentNodeSerializedReferences(
-                        continentNode,
-                        i,
-                        ContinentNames[i],
-                        continentImage,
-                        mapButton,
-                        pin,
-                        glow,
-                        mapLabel,
-                        cardButton,
-                        cardImage,
-                        cardLabel,
-                        unlockedPinSprite,
-                        lockedPinSprite,
-                        activeCardSprite,
-                        lockedCardSprite);
+                Button mapButton =
+                    continentImage != null ? continentImage.GetComponent<Button>() : null;
+                TextMeshProUGUI mapLabel =
+                    node.GetComponentsInChildren<TextMeshProUGUI>(true)
+                        .FirstOrDefault(label => label != null && label.gameObject.name == "ContinentName");
 
+                if (mapLabel != null && !string.Equals(mapLabel.text, displayName, StringComparison.Ordinal))
+                {
+                    mapLabel.text = displayName;
+                    EditorUtility.SetDirty(mapLabel);
                     changed++;
                 }
+
+                string desiredObjectName = "Continent_" + (i + 1) + "_" + SafeName(displayName);
+                if (!string.Equals(node.name, desiredObjectName, StringComparison.Ordinal))
+                {
+                    node.name = desiredObjectName;
+                    EditorUtility.SetDirty(node.gameObject);
+                    changed++;
+                }
+
+                RepairContinentNodeSerializedReferences(
+                    continentNode,
+                    i,
+                    displayName,
+                    continentImage,
+                    mapButton,
+                    pin,
+                    glow,
+                    mapLabel,
+                    cardButton,
+                    cardImage,
+                    cardLabel,
+                    unlockedPinSprite,
+                    lockedPinSprite,
+                    activeCardSprite,
+                    lockedCardSprite);
+
+                changed++;
             }
+
+            changed += RepairWorldMapControllerOrder(orderedNodes);
+
+            Transform selectedChapter = FindObjectByExactNameInScene("SelectedChapterText");
+            TextMeshProUGUI selectedChapterLabel =
+                selectedChapter != null ? selectedChapter.GetComponent<TextMeshProUGUI>() : null;
+            if (selectedChapterLabel != null &&
+                !string.Equals(selectedChapterLabel.text, "CHAPTER 1  •  ASIA", StringComparison.Ordinal))
+            {
+                selectedChapterLabel.text = "CHAPTER 1  •  ASIA";
+                EditorUtility.SetDirty(selectedChapterLabel);
+                changed++;
+            }
+
+            if (migratingLegacyOrder && orderedNodes[0] != null)
+                changed += FocusAuthoredMapOnNode(orderedNodes[0]);
 
             EditorSceneManager.MarkSceneDirty(scene);
 
@@ -1593,6 +1667,111 @@ namespace Watermelon.EditorTools
                 EditorSceneManager.SaveScene(scene);
 
             return changed;
+        }
+
+        private static WorldMapContinentNode FindContinentNodeByDisplayName(string displayName)
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid())
+                return null;
+
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                WorldMapContinentNode[] nodes =
+                    root.GetComponentsInChildren<WorldMapContinentNode>(true);
+
+                foreach (WorldMapContinentNode node in nodes)
+                {
+                    if (node == null)
+                        continue;
+
+                    if (string.Equals(
+                        node.ContinentName,
+                        displayName,
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        return node;
+                    }
+
+                    TextMeshProUGUI mapLabel =
+                        node.GetComponentsInChildren<TextMeshProUGUI>(true)
+                            .FirstOrDefault(label =>
+                                label != null &&
+                                label.gameObject.name == "ContinentName");
+
+                    if (mapLabel != null &&
+                        string.Equals(
+                            mapLabel.text,
+                            displayName,
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        return node;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static int RepairWorldMapControllerOrder(WorldMapContinentNode[] orderedNodes)
+        {
+            Transform controllerTransform = FindObjectByExactNameInScene("World Map Controller");
+            WorldMapSceneController controller =
+                controllerTransform != null
+                    ? controllerTransform.GetComponent<WorldMapSceneController>()
+                    : null;
+
+            if (controller == null)
+                return 0;
+
+            SerializedObject serialized = new SerializedObject(controller);
+            SerializedProperty continentsProperty = serialized.FindProperty("continents");
+            if (continentsProperty == null)
+                return 0;
+
+            continentsProperty.arraySize = orderedNodes.Length;
+            for (int i = 0; i < orderedNodes.Length; i++)
+            {
+                SerializedProperty element = continentsProperty.GetArrayElementAtIndex(i);
+                element.objectReferenceValue = orderedNodes[i];
+            }
+
+            SetSerializedInt(serialized, "authoredSelectedContinent", 0);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(controller);
+            return 1;
+        }
+
+        private static int FocusAuthoredMapOnNode(WorldMapContinentNode node)
+        {
+            if (node == null)
+                return 0;
+
+            Transform mapContentTransform = FindObjectByExactNameInScene("MapContent");
+            RectTransform mapContent =
+                mapContentTransform != null ? mapContentTransform as RectTransform : null;
+            RectTransform target = node.MapTarget;
+
+            if (mapContent == null || target == null)
+                return 0;
+
+            RectTransform viewport = mapContent.parent as RectTransform;
+            Vector2 desired = -target.anchoredPosition;
+
+            if (viewport != null)
+            {
+                float maxX = Mathf.Max(0f, (mapContent.rect.width - viewport.rect.width) * 0.5f);
+                float maxY = Mathf.Max(0f, (mapContent.rect.height - viewport.rect.height) * 0.5f);
+                desired.x = Mathf.Clamp(desired.x, -maxX, maxX);
+                desired.y = Mathf.Clamp(desired.y, -maxY, maxY);
+            }
+
+            if (mapContent.anchoredPosition == desired)
+                return 0;
+
+            mapContent.anchoredPosition = desired;
+            EditorUtility.SetDirty(mapContent);
+            return 1;
         }
 
         private static int BindSpriteByNames(Sprite sprite, bool preserveAspect, params string[] names)
