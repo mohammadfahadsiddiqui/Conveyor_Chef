@@ -25,8 +25,8 @@ namespace Watermelon.EditorTools
         private const float DesignWidth = 1080f;
         private const float DesignHeight = 1920f;
 
-        [MenuItem("Conveyor Chef/Continent Map/1. Bake North America Sequential Map", priority = 1)]
-        public static void BakeNorthAmerica()
+        [MenuItem("Conveyor Chef/Continent Map/1. Bake Asia Sequential Map", priority = 1)]
+        public static void BakeAsia()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return;
@@ -35,7 +35,7 @@ namespace Watermelon.EditorTools
             {
                 bool replace = EditorUtility.DisplayDialog(
                     "Replace ContinentMap.unity?",
-                    "This will replace the current ContinentMap.unity layout with a fresh editable sequential North America map.\n\n" +
+                    "This will replace the current ContinentMap.unity layout with a fresh editable sequential Asia map.\n\n" +
                     "Use this only while setting up the scene or when you intentionally want to reset it.",
                     "Replace",
                     "Cancel");
@@ -45,7 +45,7 @@ namespace Watermelon.EditorTools
             }
 
             Sprite ocean = FindSprite("tropical_ocean_map_adventure.png");
-            Sprite northAmerica = FindSprite("colorful_cartoon_north_america_map.png");
+            Sprite asia = FindSprite("whimsical_isometric_asia_game_map.png");
             Sprite back = FindSprite("glossy_blue_game_back_button.png");
             Sprite settings = FindSprite("glossy_blue_gear_settings_icon.png");
             Sprite unlockedPin = FindSprite("glossy_chef_map_pin_icon.png");
@@ -144,9 +144,9 @@ namespace Watermelon.EditorTools
             contentOcean.raycastTarget = false;
 
             Image continentArt = CreateImage(
-                "NorthAmericaArtwork",
+                "AsiaArtwork",
                 contentRoot,
-                northAmerica,
+                asia,
                 new Vector2(0.5f, 0.5f),
                 new Vector2(0f, 0f),
                 new Vector2(1000f, 3650f),
@@ -155,9 +155,9 @@ namespace Watermelon.EditorTools
             continentArt.color = new Color(1f, 1f, 1f, 0.92f);
 
             // Story/country zone labels. These are not selectable.
-            CreateZoneLabel(contentRoot, "USA Zone", "USA • LEVELS 1-1 → 1-5", 650f);
-            CreateZoneLabel(contentRoot, "Mexico Zone", "MEXICO • LEVELS 1-6 → 1-10", 1950f);
-            CreateZoneLabel(contentRoot, "Canada Zone", "CANADA • LEVELS 1-11 → 1-15", 3250f);
+            CreateZoneLabel(contentRoot, "India Zone", "INDIA • LEVELS 1-1 → 1-5", 650f);
+            CreateZoneLabel(contentRoot, "Japan Zone", "JAPAN • LEVELS 1-6 → 1-10", 1950f);
+            CreateZoneLabel(contentRoot, "China Zone", "CHINA • LEVELS 1-11 → 1-15", 3250f);
 
             GameObject controllerObject = new GameObject("ContinentMapController");
             controllerObject.transform.SetParent(root, false);
@@ -295,8 +295,8 @@ namespace Watermelon.EditorTools
 
             EditorUtility.DisplayDialog(
                 "Continent Map Ready",
-                "Created an editable sequential North America map with 15 levels.\n\n" +
-                "USA: 1-1 to 1-5\nMexico: 1-6 to 1-10\nCanada: 1-11 to 1-15\n\n" +
+                "Created an editable sequential Asia map with 15 levels.\n\n" +
+                "India: 1-1 to 1-5\nJapan: 1-6 to 1-10\nChina: 1-11 to 1-15\n\n" +
                 "Countries are route sections only; players cannot choose or skip countries.",
                 "OK");
         }

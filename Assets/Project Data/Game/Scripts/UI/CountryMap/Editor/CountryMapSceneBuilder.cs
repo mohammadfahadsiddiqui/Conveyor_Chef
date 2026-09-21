@@ -284,7 +284,7 @@ namespace Watermelon.EditorTools
         [MenuItem("Conveyor Chef/Country Map/4. Prepare Asia Play-Mode Preview", priority = 4)]
         public static void PrepareAsiaPreview()
         {
-            PlayerPrefs.SetInt("CC_WorldMap_SelectedContinent", 4);
+            PlayerPrefs.SetInt("CC_WorldMap_SelectedContinent", 0);
             PlayerPrefs.SetInt("CC_CountryMap_SelectedCountry", 0);
             PlayerPrefs.Save();
 

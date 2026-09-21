@@ -22,12 +22,12 @@ namespace Watermelon.BusStop
         private const string SelectedCountryKey = "CC_CountryMap_SelectedCountry";
         private const string LaunchedFromWorldMapKey = "CC_CountryMap_LaunchedFromWorldMap";
         private const string SelectedCountryLevelStartKey = "CC_CountryMap_SelectedLevelStart";
-        private const int AsiaContinentIndex = 4;
+        private const int AsiaContinentIndex = 0;
         private const int AuthoredGameplayLevelStart = 0;
 
         private static readonly string[] ContinentNames =
         {
-            "North America", "South America", "Europe", "Africa", "Asia", "Australia / Oceania"
+            "Asia", "North America", "South America", "Europe", "Africa", "Australia / Oceania"
         };
 
         [Header("Countries")]
@@ -102,9 +102,8 @@ namespace Watermelon.BusStop
 
             PlayerPrefs.DeleteKey(LaunchedFromWorldMapKey);
 
-            // Only the Asia CountryMap art/data pack exists in the current build.
-            // Always render that authored pack instead of mixing North America (or
-            // another stale WorldMap selection) with Asia artwork.
+            // Asia is Chapter 1 and the complete CountryMap art/data pack currently
+            // installed in this build. Always render this authored Asia pack.
             selectedContinent = Mathf.Clamp(
                 authoredContinentIndex,
                 0,
