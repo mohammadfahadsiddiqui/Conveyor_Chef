@@ -71,6 +71,7 @@ namespace Watermelon.BusStop
         {
             UIEventSystemRuntime.UseCurrentSceneEventSystem();
             EnsureSaveControllerReady();
+            EnsureChefBehindProgressPanel();
 
             Wire(backButton, BackToWorldMap);
             Wire(settingsButton, OpenSettings);
@@ -91,6 +92,24 @@ namespace Watermelon.BusStop
 
             if (settingsPanel != null)
                 settingsPanel.SetActive(false);
+        }
+
+        private void EnsureChefBehindProgressPanel()
+        {
+            Transform root = transform.parent;
+            if (root == null)
+                return;
+
+            Transform chef = root.Find("Chef Guide Mascot");
+            Transform progressPanel = root.Find("Continent Progress Panel");
+
+            if (chef == null || progressPanel == null)
+                return;
+
+            // In Unity UI, later siblings render on top. Keep the authored position
+            // unchanged and only correct the draw order when the chef is in front.
+            if (chef.GetSiblingIndex() > progressPanel.GetSiblingIndex())
+                chef.SetSiblingIndex(progressPanel.GetSiblingIndex());
         }
 
         private void Start()

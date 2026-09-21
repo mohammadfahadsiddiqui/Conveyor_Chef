@@ -123,9 +123,14 @@ namespace Watermelon.EditorTools
             ImportSprites();
 
             if (Missing().Count == 0 && IsPlaceholder())
+            {
                 Bake(false);
+            }
             else
+            {
+                EnsureChefBehindProgressPanel(active, true);
                 Focus(active);
+            }
         }
 
         [MenuItem("Conveyor Chef/Country Map/0. Import Generated Art Pack", priority = 0)]
@@ -281,7 +286,25 @@ namespace Watermelon.EditorTools
             EditorUtility.DisplayDialog("Country Map", message, "OK");
         }
 
-        [MenuItem("Conveyor Chef/Country Map/4. Prepare Asia Play-Mode Preview", priority = 4)]
+        [MenuItem("Conveyor Chef/Country Map/4. Put Chef Behind Progress", priority = 4)]
+        public static void PutChefBehindProgressMenu()
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            bool changed = EnsureChefBehindProgressPanel(scene, true);
+            Focus(scene);
+
+            EditorUtility.DisplayDialog(
+                "Country Map",
+                changed
+                    ? "Chef draw order fixed. The progress panel now renders in front of the chef."
+                    : "Chef is already behind the progress panel.",
+                "OK");
+        }
+
+        [MenuItem("Conveyor Chef/Country Map/5. Prepare Asia Play-Mode Preview", priority = 5)]
         public static void PrepareAsiaPreview()
         {
             PlayerPrefs.SetInt("CC_WorldMap_SelectedContinent", 0);
@@ -555,6 +578,33 @@ namespace Watermelon.EditorTools
             CountryMapCountryNode node = root.gameObject.AddComponent<CountryMapCountryNode>();
             node.EditorConfigure(index, displayName, button, landmark, flag, glow, label, name, progress, star, progressText, locked.gameObject, completed.gameObject);
             return node;
+        }
+
+        private static bool EnsureChefBehindProgressPanel(Scene scene, bool saveIfChanged)
+        {
+            if (!scene.IsValid() || scene.path != ScenePath)
+                return false;
+
+            GameObject root = GameObject.Find("NEW Country Map");
+            if (root == null)
+                return false;
+
+            Transform chef = root.transform.Find("Chef Guide Mascot");
+            Transform progressPanel = root.transform.Find("Continent Progress Panel");
+            if (chef == null || progressPanel == null)
+                return false;
+
+            if (chef.GetSiblingIndex() <= progressPanel.GetSiblingIndex())
+                return false;
+
+            // Do not reposition or resize anything. Only change UI sibling order.
+            chef.SetSiblingIndex(progressPanel.GetSiblingIndex());
+
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (saveIfChanged)
+                EditorSceneManager.SaveScene(scene);
+
+            return true;
         }
 
         private static void BuildRoute(RectTransform parent, Sprite nodeSprite, Sprite lockSprite)
