@@ -28,11 +28,6 @@ namespace Watermelon.EditorTools
         private const float W = 1080f;
         private const float H = 1920f;
 
-        // Keep the chef guide clearly above the bottom progress module.
-        private static readonly Vector2 ChefGuidePosition = new Vector2(115f, 395f);
-        private static readonly Vector2 GuideBubblePosition = new Vector2(365f, 335f);
-        private const float ProgressFillFullWidth = 358f;
-
         private static readonly string[] Required =
         {
             "glossy_blue_back_button.png",
@@ -128,14 +123,9 @@ namespace Watermelon.EditorTools
             ImportSprites();
 
             if (Missing().Count == 0 && IsPlaceholder())
-            {
                 Bake(false);
-            }
             else
-            {
-                RepairGuideAndProgress(active, true);
                 Focus(active);
-            }
         }
 
         [MenuItem("Conveyor Chef/Country Map/0. Import Generated Art Pack", priority = 0)]
@@ -310,27 +300,6 @@ namespace Watermelon.EditorTools
             Debug.Log("[CountryMap] Asia preview state prepared. Press Play to test the generated Asia country map.");
         }
 
-        [MenuItem("Conveyor Chef/Country Map/5. Repair Guide + Progress", priority = 5)]
-        public static void RepairGuideAndProgressMenu()
-        {
-            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                return;
-
-            Scene scene = SceneManager.GetActiveScene();
-            if (!scene.IsValid() || scene.path != ScenePath)
-                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
-
-            bool changed = RepairGuideAndProgress(scene, true);
-            Focus(scene);
-
-            EditorUtility.DisplayDialog(
-                "Country Map UI",
-                changed
-                    ? "Chef guide placement, draw order and progress bar setup were repaired and saved."
-                    : "Country Map guide and progress bar are already using the corrected setup.",
-                "OK");
-        }
-
         private static void Bake(bool showDialog)
         {
             EnsureFolders();
@@ -432,10 +401,10 @@ namespace Watermelon.EditorTools
             Image compassImage = I("Compass", root, compass, new Vector2(1f, 0f), new Vector2(-95f, 315f), new Vector2(150f, 150f), true);
             compassImage.raycastTarget = false;
 
-            Image chefImage = I("Chef Guide Mascot", root, chef, new Vector2(0f, 0f), ChefGuidePosition, new Vector2(210f, 280f), true);
+            Image chefImage = I("Chef Guide Mascot", root, chef, new Vector2(0f, 0f), new Vector2(115f, 240f), new Vector2(210f, 280f), true);
             chefImage.raycastTarget = false;
 
-            Image speech = I("Chef Speech Bubble", root, bubble, new Vector2(0f, 0f), GuideBubblePosition, new Vector2(350f, 117f), false);
+            Image speech = I("Chef Speech Bubble", root, bubble, new Vector2(0f, 0f), new Vector2(365f, 265f), new Vector2(350f, 117f), false);
             TextMeshProUGUI guideText = T("Guide Text", speech.transform, "Complete countries to unlock new recipes and levels!", 21f, Vector2.zero, new Vector2(270f, 74f));
             guideText.fontStyle = FontStyles.Bold;
             guideText.color = new Color(0.12f, 0.20f, 0.34f, 1f);
@@ -457,19 +426,15 @@ namespace Watermelon.EditorTools
             fill.rectTransform.pivot = new Vector2(0f, 0.5f);
             fill.rectTransform.anchoredPosition = new Vector2(16f, 0f);
             fill.rectTransform.sizeDelta = new Vector2(358f, 28f);
-            fill.type = Image.Type.Simple;
-            fill.fillAmount = 1f;
-            fill.rectTransform.sizeDelta = new Vector2(0f, 28f);
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Horizontal;
+            fill.fillOrigin = 0;
+            fill.fillAmount = 0f;
             fill.raycastTarget = false;
 
             TextMeshProUGUI progressValue = T("Progress Value", progressPanel.transform, "0/15", 31f, new Vector2(295f, -28f), new Vector2(120f, 54f));
             progressValue.fontStyle = FontStyles.Bold;
             progressValue.color = new Color(0.12f, 0.20f, 0.36f, 1f);
-
-            // The progress panel belongs behind the chef guide. This avoids the panel
-            // covering the mascot or speech bubble even if their artwork overlaps.
-            int guideSibling = Mathf.Min(chefImage.transform.GetSiblingIndex(), speech.transform.GetSiblingIndex());
-            progressPanel.rectTransform.SetSiblingIndex(guideSibling);
 
             TextMeshProUGUI status = T("Status Text", root, "CHINA  •  0/3", 22f, new Vector2(0f, -685f), new Vector2(650f, 46f));
             status.fontStyle = FontStyles.Bold;
@@ -590,88 +555,6 @@ namespace Watermelon.EditorTools
             CountryMapCountryNode node = root.gameObject.AddComponent<CountryMapCountryNode>();
             node.EditorConfigure(index, displayName, button, landmark, flag, glow, label, name, progress, star, progressText, locked.gameObject, completed.gameObject);
             return node;
-        }
-
-        private static bool RepairGuideAndProgress(Scene scene, bool saveIfChanged)
-        {
-            if (!scene.IsValid() || scene.path != ScenePath)
-                return false;
-
-            GameObject root = GameObject.Find("NEW Country Map");
-            if (root == null)
-                return false;
-
-            RectTransform chef = root.transform.Find("Chef Guide Mascot") as RectTransform;
-            RectTransform bubble = root.transform.Find("Chef Speech Bubble") as RectTransform;
-            RectTransform progressPanel = root.transform.Find("Continent Progress Panel") as RectTransform;
-            RectTransform track = progressPanel != null ? progressPanel.Find("Progress Track") as RectTransform : null;
-            RectTransform fillRect = track != null ? track.Find("Progress Fill") as RectTransform : null;
-
-            bool changed = false;
-
-            if (chef != null && (chef.anchoredPosition - ChefGuidePosition).sqrMagnitude > 0.001f)
-            {
-                chef.anchoredPosition = ChefGuidePosition;
-                changed = true;
-            }
-
-            if (bubble != null && (bubble.anchoredPosition - GuideBubblePosition).sqrMagnitude > 0.001f)
-            {
-                bubble.anchoredPosition = GuideBubblePosition;
-                changed = true;
-            }
-
-            if (progressPanel != null && chef != null && bubble != null)
-            {
-                int desiredIndex = Mathf.Min(chef.GetSiblingIndex(), bubble.GetSiblingIndex());
-                if (progressPanel.GetSiblingIndex() > desiredIndex)
-                {
-                    progressPanel.SetSiblingIndex(desiredIndex);
-                    changed = true;
-                }
-            }
-
-            if (fillRect != null)
-            {
-                if (fillRect.anchorMin != new Vector2(0f, 0.5f) ||
-                    fillRect.anchorMax != new Vector2(0f, 0.5f) ||
-                    fillRect.pivot != new Vector2(0f, 0.5f) ||
-                    fillRect.anchoredPosition != new Vector2(16f, 0f))
-                {
-                    fillRect.anchorMin = new Vector2(0f, 0.5f);
-                    fillRect.anchorMax = new Vector2(0f, 0.5f);
-                    fillRect.pivot = new Vector2(0f, 0.5f);
-                    fillRect.anchoredPosition = new Vector2(16f, 0f);
-                    changed = true;
-                }
-
-                Image fillImage = fillRect.GetComponent<Image>();
-                if (fillImage != null && (fillImage.type != Image.Type.Simple || fillImage.preserveAspect))
-                {
-                    fillImage.type = Image.Type.Simple;
-                    fillImage.fillAmount = 1f;
-                    fillImage.preserveAspect = false;
-                    changed = true;
-                }
-
-                // Existing scenes may have a stale filled-image preview width. At edit
-                // time keep the authored preview empty; runtime restores the correct
-                // width from saved level completion.
-                if (!EditorApplication.isPlaying && Mathf.Abs(fillRect.sizeDelta.x) > 0.001f)
-                {
-                    fillRect.sizeDelta = new Vector2(0f, fillRect.sizeDelta.y <= 0f ? 28f : fillRect.sizeDelta.y);
-                    changed = true;
-                }
-            }
-
-            if (changed)
-            {
-                EditorSceneManager.MarkSceneDirty(scene);
-                if (saveIfChanged)
-                    EditorSceneManager.SaveScene(scene);
-            }
-
-            return changed;
         }
 
         private static void BuildRoute(RectTransform parent, Sprite nodeSprite, Sprite lockSprite)
