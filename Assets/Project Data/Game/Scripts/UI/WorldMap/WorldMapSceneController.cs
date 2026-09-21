@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -18,7 +19,27 @@ namespace Watermelon.BusStop
     {
         private const int LevelsPerContinent = 15;
         private const string SelectedContinentKey = "CC_WorldMap_SelectedContinent";
+        private const string ContinentOrderVersionKey = "CC_WorldMap_ContinentOrderVersion";
+        private const int CurrentContinentOrderVersion = 2;
         private const string DragHintSeenKey = "CC_WorldMap_DragHintSeen";
+
+        private static readonly string[] CanonicalContinentNames =
+        {
+            "Asia",
+            "North America",
+            "South America",
+            "Europe",
+            "Africa",
+            "Australia / Oceania"
+        };
+
+        // Converts the old progression order
+        // North America, South America, Europe, Africa, Asia, Oceania
+        // to the new Asia-first order.
+        private static readonly int[] LegacyToCanonicalContinentIndex =
+        {
+            1, 2, 3, 4, 0, 5
+        };
 
         [Header("Map")]
         [SerializeField] private ScrollRect mapScrollRect;
@@ -59,6 +80,8 @@ namespace Watermelon.BusStop
         private int selectedContinent;
         private Coroutine focusRoutine;
         private Coroutine hintRoutine;
+        private readonly Dictionary<int, int> runtimeIndexBySerializedIndex =
+            new Dictionary<int, int>();
 
         // Captured from the serialized WorldMap.unity before any runtime navigation.
         // This is the position designers see and edit in the Scene/Simulator before Play.
@@ -73,6 +96,7 @@ namespace Watermelon.BusStop
 
             EnsureEventSystem();
             EnsureSaveControllerReady();
+            MigrateLegacySelectedContinentPreference();
             EnsureMapInteractionReady();
 
             Wire(leftButton, PreviousContinent);
@@ -143,33 +167,20 @@ namespace Watermelon.BusStop
 
         private void RepairContinentReferencesIfNeeded()
         {
-            bool needsRepair = continents == null || continents.Length == 0;
+            WorldMapContinentNode[] liveNodes = null;
 
-            if (!needsRepair)
-            {
-                for (int i = 0; i < continents.Length; i++)
-                {
-                    // Unity's overloaded == correctly treats destroyed objects as null.
-                    if (continents[i] == null)
-                    {
-                        needsRepair = true;
-                        break;
-                    }
-                }
-            }
+            if (mapContent != null)
+                liveNodes = mapContent.GetComponentsInChildren<WorldMapContinentNode>(true);
 
-            if (mapContent == null)
-                return;
-
-            WorldMapContinentNode[] liveNodes =
-                mapContent.GetComponentsInChildren<WorldMapContinentNode>(true);
+            if (liveNodes == null || liveNodes.Length == 0)
+                liveNodes = continents;
 
             if (liveNodes == null || liveNodes.Length == 0)
                 return;
 
-            if (!needsRepair && continents.Length == liveNodes.Length)
-                return;
-
+            // Never trust the serialized array/index order here. Older baked scenes
+            // stored Asia at index 4. Sorting by the continent's identity makes those
+            // scenes behave correctly immediately, even before an editor rebake/repair.
             Array.Sort(
                 liveNodes,
                 (a, b) =>
@@ -177,20 +188,72 @@ namespace Watermelon.BusStop
                     if (a == null && b == null) return 0;
                     if (a == null) return 1;
                     if (b == null) return -1;
-                    return a.ContinentIndex.CompareTo(b.ContinentIndex);
+                    return GetCanonicalContinentIndex(a).CompareTo(GetCanonicalContinentIndex(b));
                 });
 
             continents = liveNodes;
+            runtimeIndexBySerializedIndex.Clear();
 
             for (int i = 0; i < continents.Length; i++)
             {
                 WorldMapContinentNode node = continents[i];
-                if (node != null)
-                    node.Bind(this);
+                if (node == null)
+                    continue;
+
+                node.Bind(this);
+
+                // Legacy nodes still send their old serialized ContinentIndex when clicked.
+                // Translate that index into the canonical runtime index.
+                runtimeIndexBySerializedIndex[node.ContinentIndex] = i;
+            }
+        }
+
+        private static int GetCanonicalContinentIndex(WorldMapContinentNode node)
+        {
+            if (node == null)
+                return int.MaxValue;
+
+            for (int i = 0; i < CanonicalContinentNames.Length; i++)
+            {
+                if (string.Equals(
+                    node.ContinentName,
+                    CanonicalContinentNames[i],
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    return i;
+                }
             }
 
-            Debug.Log(
-                "[WorldMap] Repaired continent references from the live serialized MapContent hierarchy.");
+            return Mathf.Clamp(node.ContinentIndex, 0, CanonicalContinentNames.Length - 1);
+        }
+
+        private int ResolveRuntimeContinentIndex(int serializedIndex)
+        {
+            if (runtimeIndexBySerializedIndex.TryGetValue(serializedIndex, out int runtimeIndex))
+                return runtimeIndex;
+
+            return serializedIndex;
+        }
+
+        private static void MigrateLegacySelectedContinentPreference()
+        {
+            int version = PlayerPrefs.GetInt(ContinentOrderVersionKey, 0);
+            if (version >= CurrentContinentOrderVersion)
+                return;
+
+            if (PlayerPrefs.HasKey(SelectedContinentKey))
+            {
+                int legacyIndex = PlayerPrefs.GetInt(SelectedContinentKey, 0);
+                if (legacyIndex >= 0 && legacyIndex < LegacyToCanonicalContinentIndex.Length)
+                {
+                    PlayerPrefs.SetInt(
+                        SelectedContinentKey,
+                        LegacyToCanonicalContinentIndex[legacyIndex]);
+                }
+            }
+
+            PlayerPrefs.SetInt(ContinentOrderVersionKey, CurrentContinentOrderVersion);
+            PlayerPrefs.Save();
         }
 
 
@@ -314,6 +377,8 @@ namespace Watermelon.BusStop
 
         public void HandleContinentPressed(int continentIndex)
         {
+            continentIndex = ResolveRuntimeContinentIndex(continentIndex);
+
             if (continents == null || continentIndex < 0 || continentIndex >= continents.Length)
                 return;
 
@@ -384,9 +449,26 @@ namespace Watermelon.BusStop
                     node.Refresh(unlocked, i == selectedContinent);
             }
 
-            // Do not rewrite selectedChapterText or statusText here.
-            // Those are designer-authored scene elements. Runtime selection/progression
-            // is communicated by lock sprites, glow and button availability.
+            WorldMapContinentNode selectedNode = continents[selectedContinent];
+            string selectedName =
+                selectedNode != null && !string.IsNullOrWhiteSpace(selectedNode.ContinentName)
+                    ? selectedNode.ContinentName
+                    : CanonicalContinentNames[Mathf.Clamp(
+                        selectedContinent,
+                        0,
+                        CanonicalContinentNames.Length - 1)];
+
+            if (selectedChapterText != null)
+                selectedChapterText.text =
+                    "CHAPTER " + (selectedContinent + 1) + "  •  " +
+                    selectedName.ToUpperInvariant();
+
+            if (statusText != null)
+            {
+                statusText.text = IsContinentUnlocked(selectedContinent)
+                    ? "UNLOCKED  •  " + LevelsPerContinent + " LEVELS"
+                    : "LOCKED  •  COMPLETE THE PREVIOUS CONTINENT";
+            }
 
             if (leftButton != null)
                 leftButton.interactable = selectedContinent > 0;

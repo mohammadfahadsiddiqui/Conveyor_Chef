@@ -420,8 +420,12 @@ namespace Watermelon.EditorTools
             trackImage.color = new Color(0.03f, 0.12f, 0.26f, 0.85f);
             trackImage.raycastTarget = false;
 
-            Image fill = I("Progress Fill", track, progressFillSprite, new Vector2(0f, 0.5f), Vector2.zero, new Vector2(390f, 44f), false);
+            Image fill = I("Progress Fill", track, progressFillSprite, new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(358f, 28f), false);
+            fill.rectTransform.anchorMin = new Vector2(0f, 0.5f);
+            fill.rectTransform.anchorMax = new Vector2(0f, 0.5f);
             fill.rectTransform.pivot = new Vector2(0f, 0.5f);
+            fill.rectTransform.anchoredPosition = new Vector2(16f, 0f);
+            fill.rectTransform.sizeDelta = new Vector2(358f, 28f);
             fill.type = Image.Type.Filled;
             fill.fillMethod = Image.FillMethod.Horizontal;
             fill.fillOrigin = 0;
