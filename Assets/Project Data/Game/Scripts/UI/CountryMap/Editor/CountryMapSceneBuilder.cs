@@ -144,8 +144,7 @@ namespace Watermelon.EditorTools
             {
                 EnsureChefBehindProgressPanel(active, false);
 
-                if (MissingProgressWidgetAssets().Count == 0)
-                    UpgradeEditableProgressWidget(active, false);
+                UpgradeEditableProgressWidget(active, false);
 
                 if (active.isDirty)
                     EditorSceneManager.SaveScene(active);
@@ -384,24 +383,14 @@ namespace Watermelon.EditorTools
 
             EditorUtility.DisplayDialog(
                 "Country Progress Widget Ready",
-                "The 10 separated progress assets were imported and the existing Country Map progress section was replaced with an editable Canvas hierarchy.\n\n" +
-                "The bar now displays the selected country's real saved progress.",
+                "The 10 separated progress assets were imported and the existing Country Map progress section was refreshed.\n\n" +
+                "The hierarchy also works without this ZIP by using built-in fallback sprites.",
                 "OK");
         }
 
         [MenuItem("Conveyor Chef/Country Map/6. Install or Refresh Editable Country Progress Widget", priority = 6)]
         public static void InstallEditableCountryProgressWidget()
         {
-            List<string> missing = MissingProgressWidgetAssets();
-            if (missing.Count > 0)
-            {
-                EditorUtility.DisplayDialog(
-                    "Country Progress Widget Assets Missing",
-                    "Import the generated progress widget ZIP first.\n\nMissing:\n- " + string.Join("\n- ", missing),
-                    "OK");
-                return;
-            }
-
             Scene scene = SceneManager.GetActiveScene();
             if (!scene.IsValid() || scene.path != ScenePath)
                 scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
@@ -421,18 +410,6 @@ namespace Watermelon.EditorTools
             EnsureFolders();
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             ImportSprites();
-
-            List<string> missing = MissingProgressWidgetAssets();
-            if (missing.Count > 0)
-            {
-                EditorUtility.DisplayDialog(
-                    "Country Progress Widget",
-                    "The separated progress sprites are not installed yet.\n\nMissing:\n- " +
-                    string.Join("\n- ", missing) +
-                    "\n\nUse 'Import Country Progress Widget Assets' first.",
-                    "OK");
-                return;
-            }
 
             Scene scene = SceneManager.GetActiveScene();
             if (!scene.IsValid() || scene.path != ScenePath)
@@ -760,31 +737,31 @@ namespace Watermelon.EditorTools
 
             Set(panel, new Vector2(0.5f, 0f), new Vector2(35f, 112f), new Vector2(790f, 263f));
 
-            Image outer = I("Outer Base", panel, S("progress_ui_outer_blue.png"),
+            Image outer = I("Outer Base", panel, ProgressSprite("progress_ui_outer_blue.png", "asia_progress_map_ui_panel.png"),
                 new Vector2(0.5f, 0.5f), new Vector2(0f, -8f), new Vector2(760f, 185f), false);
 
-            Image inner = I("Inner Cream Panel", panel, S("progress_ui_inner_cream.png"),
+            Image inner = I("Inner Cream Panel", panel, ProgressSprite("progress_ui_inner_cream.png", "glossy_country_name_badge_frame.png"),
                 new Vector2(0.5f, 0.5f), new Vector2(45f, -10f), new Vector2(625f, 145f), false);
 
             RectTransform globeGroup = R("Globe Group", panel);
             Set(globeGroup, new Vector2(0.5f, 0.5f), new Vector2(-300f, -10f), new Vector2(190f, 190f));
-            I("Globe Frame", globeGroup, S("progress_ui_globe_frame.png"),
+            I("Globe Frame", globeGroup, ProgressSprite("progress_ui_globe_frame.png", "crowned_globe_completion_badge.png"),
                 new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(190f, 190f), true);
-            I("Globe Icon", globeGroup, S("progress_ui_globe_asia.png"),
+            I("Globe Icon", globeGroup, ProgressSprite("progress_ui_globe_asia.png", "asia_progress_map_ui_panel.png"),
                 new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(145f, 145f), true);
 
             RectTransform titleGroup = R("Title Group", panel);
             Set(titleGroup, new Vector2(0.5f, 0.5f), new Vector2(25f, 79f), new Vector2(460f, 110f));
 
-            Image leftLeaf = I("Left Leaf", titleGroup, S("progress_ui_leaf_left.png"),
+            Image leftLeaf = I("Left Leaf", titleGroup, ProgressSprite("progress_ui_leaf_left.png", "magical_golden_blue_selection_halo.png"),
                 new Vector2(0.5f, 0.5f), new Vector2(-205f, 3f), new Vector2(100f, 100f), true);
             leftLeaf.transform.localEulerAngles = new Vector3(0f, 0f, -8f);
 
-            Image rightLeaf = I("Right Leaf", titleGroup, S("progress_ui_leaf_right.png"),
+            Image rightLeaf = I("Right Leaf", titleGroup, ProgressSprite("progress_ui_leaf_right.png", "magical_golden_blue_selection_halo.png"),
                 new Vector2(0.5f, 0.5f), new Vector2(205f, 3f), new Vector2(100f, 100f), true);
             rightLeaf.transform.localEulerAngles = new Vector3(0f, 0f, 8f);
 
-            I("Title Plaque", titleGroup, S("progress_ui_title_plaque.png"),
+            I("Title Plaque", titleGroup, ProgressSprite("progress_ui_title_plaque.png", "glossy_country_name_badge_frame.png"),
                 new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(410f, 103f), false);
 
             progressTitle = T("Progress Title", titleGroup, "CHINA PROGRESS", 29f,
@@ -793,10 +770,10 @@ namespace Watermelon.EditorTools
             progressTitle.color = new Color(0.05f, 0.19f, 0.43f, 1f);
             progressTitle.textWrappingMode = TextWrappingModes.NoWrap;
 
-            Image track = I("Progress Track", panel, S("progress_ui_track.png"),
+            Image track = I("Progress Track", panel, ProgressSprite("progress_ui_track.png", "glossy_blue_game_progress_panel.png"),
                 new Vector2(0.5f, 0.5f), new Vector2(30f, -28f), new Vector2(420f, 82f), false);
 
-            fill = I("Progress Fill", track.transform, S("progress_ui_fill.png"),
+            fill = I("Progress Fill", track.transform, ProgressSprite("progress_ui_fill.png", "glossy_green_to_gold_progress_bar.png"),
                 new Vector2(0f, 0.5f), new Vector2(43f, 0f), new Vector2(0f, 34f), false);
             fill.rectTransform.anchorMin = new Vector2(0f, 0.5f);
             fill.rectTransform.anchorMax = new Vector2(0f, 0.5f);
@@ -807,7 +784,7 @@ namespace Watermelon.EditorTools
             fill.preserveAspect = false;
             fill.raycastTarget = false;
 
-            Image badge = I("Value Badge", panel, S("progress_ui_value_badge.png"),
+            Image badge = I("Value Badge", panel, ProgressSprite("progress_ui_value_badge.png", "glossy_country_name_badge_frame.png"),
                 new Vector2(0.5f, 0.5f), new Vector2(307f, -28f), new Vector2(126f, 78f), false);
 
             progressValue = T("Progress Value", badge.transform, "0/3", 31f,
@@ -828,9 +805,6 @@ namespace Watermelon.EditorTools
         private static bool UpgradeEditableProgressWidget(Scene scene, bool saveIfChanged)
         {
             if (!scene.IsValid() || scene.path != ScenePath)
-                return false;
-
-            if (MissingProgressWidgetAssets().Count > 0)
                 return false;
 
             GameObject root = GameObject.Find("NEW Country Map");
@@ -1213,6 +1187,22 @@ namespace Watermelon.EditorTools
             rect.anchoredPosition = Vector2.zero;
             rect.sizeDelta = Vector2.zero;
             rect.localScale = Vector3.one;
+        }
+
+        private static Sprite ProgressSprite(string preferredFile, string fallbackFile)
+        {
+            string preferredPath = AssetFolder + "/" + preferredFile;
+            Sprite preferred = AssetDatabase.LoadAssetAtPath<Sprite>(preferredPath);
+            if (preferred != null)
+                return preferred;
+
+            Sprite fallback = AssetDatabase.LoadAssetAtPath<Sprite>(AssetFolder + "/" + fallbackFile);
+            if (fallback == null)
+                throw new InvalidOperationException(
+                    "Missing Country Map progress sprite: " + preferredFile +
+                    " and fallback: " + fallbackFile);
+
+            return fallback;
         }
 
         private static Sprite S(string file)
