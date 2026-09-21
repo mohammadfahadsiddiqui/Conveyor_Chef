@@ -59,7 +59,6 @@ namespace Watermelon.BusStop
 
         [Header("Current Art Pack")]
         [Tooltip("The generated art pack currently contains the complete Asia country map.")]
-        [SerializeField] private int authoredContinentIndex = AsiaContinentIndex;
         [SerializeField] private GameObject unsupportedContinentPanel;
         [SerializeField] private TextMeshProUGUI unsupportedContinentText;
 
@@ -121,10 +120,8 @@ namespace Watermelon.BusStop
 
             PlayerPrefs.DeleteKey(LaunchedFromWorldMapKey);
 
-            // This scene is specifically the Asia country-map pack. Do not trust an
-            // old serialized authoredContinentIndex from a previously baked scene:
-            // Asia is now canonical Chapter 1 / continent index 0.
-            authoredContinentIndex = AsiaContinentIndex;
+            // This scene is specifically the Asia country-map pack.
+            // Asia is canonical Chapter 1 / continent index 0.
             selectedContinent = AsiaContinentIndex;
 
             selectedCountry = Mathf.Clamp(
@@ -234,13 +231,6 @@ namespace Watermelon.BusStop
             progressFill.fillOrigin = 0;
             progressFill.preserveAspect = false;
         }
-
-#if UNITY_EDITOR
-        private void OnValidate()
-        {
-            authoredContinentIndex = AsiaContinentIndex;
-        }
-#endif
 
         private void RefreshHUD()
         {
@@ -529,7 +519,6 @@ namespace Watermelon.BusStop
             soundText = soundLabel;
             vibrationButton = vibration;
             vibrationText = vibrationLabel;
-            authoredContinentIndex = AsiaContinentIndex;
             unsupportedContinentPanel = unsupportedRoot;
             unsupportedContinentText = unsupportedText;
         }

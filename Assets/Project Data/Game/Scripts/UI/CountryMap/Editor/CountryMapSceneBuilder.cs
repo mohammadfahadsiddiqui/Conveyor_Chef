@@ -810,7 +810,7 @@ namespace Watermelon.EditorTools
             text.text = value;
             text.fontSize = fontSize;
             text.alignment = TextAlignmentOptions.Center;
-            text.enableWordWrapping = true;
+            text.textWrappingMode = TextWrappingModes.Normal;
             text.raycastTarget = false;
             text.color = Color.white;
             if (TMP_Settings.defaultFontAsset != null)
