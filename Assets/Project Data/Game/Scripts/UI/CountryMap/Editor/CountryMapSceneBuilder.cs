@@ -448,11 +448,9 @@ namespace Watermelon.EditorTools
             fill.rectTransform.anchorMax = new Vector2(0f, 0.5f);
             fill.rectTransform.pivot = new Vector2(0f, 0.5f);
             fill.rectTransform.anchoredPosition = new Vector2(16f, 0f);
-            fill.rectTransform.sizeDelta = new Vector2(358f, 28f);
-            fill.type = Image.Type.Filled;
-            fill.fillMethod = Image.FillMethod.Horizontal;
-            fill.fillOrigin = 0;
-            fill.fillAmount = 0f;
+            fill.rectTransform.sizeDelta = new Vector2(0f, 28f);
+            fill.type = Image.Type.Simple;
+            fill.preserveAspect = false;
             fill.raycastTarget = false;
 
             TextMeshProUGUI progressValue = T("Progress Value", progressPanel.transform, "0/15", 31f, new Vector2(295f, -28f), new Vector2(120f, 54f));

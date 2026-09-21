@@ -24,6 +24,7 @@ namespace Watermelon.BusStop
         private const string SelectedCountryLevelStartKey = "CC_CountryMap_SelectedLevelStart";
         private const int AsiaContinentIndex = 0;
         private const int AuthoredGameplayLevelStart = 0;
+        private const float ProgressFillFullWidth = 358f;
 
         private static readonly string[] ContinentNames =
         {
@@ -223,12 +224,12 @@ namespace Watermelon.BusStop
             fillRect.anchorMax = new Vector2(0f, 0.5f);
             fillRect.pivot = new Vector2(0f, 0.5f);
             fillRect.anchoredPosition = new Vector2(16f, 0f);
-            fillRect.sizeDelta = new Vector2(358f, 28f);
+            fillRect.sizeDelta = new Vector2(ProgressFillFullWidth, 28f);
             fillRect.localScale = Vector3.one;
 
-            progressFill.type = Image.Type.Filled;
-            progressFill.fillMethod = Image.FillMethod.Horizontal;
-            progressFill.fillOrigin = 0;
+            // The generated glossy fill sprite is more reliable as a normal Image
+            // whose width represents progress. This also preserves its rounded look.
+            progressFill.type = Image.Type.Simple;
             progressFill.preserveAspect = false;
         }
 
@@ -252,16 +253,24 @@ namespace Watermelon.BusStop
             if (countryNodes == null || countryNodes.Length == 0)
                 return;
 
+            LevelSave save = SaveController.GetSaveObject<LevelSave>("level");
+            if (save == null)
+            {
+                Debug.LogWarning("[CountryMap] Level save is unavailable; progress cannot be displayed yet.");
+                SetProgressVisual(0);
+                return;
+            }
+
             const bool supported = true;
             int completedContinentLevels = 0;
             int highestUnlocked = 0;
 
             for (int country = 0; country < countryNodes.Length; country++)
             {
-                int completed = GetCompletedLevelsInCountry(country);
+                int completed = GetCompletedLevelsInCountry(country, save);
                 completedContinentLevels += completed;
 
-                bool unlocked = supported && IsCountryUnlocked(country);
+                bool unlocked = supported && IsCountryUnlocked(country, save);
                 if (unlocked)
                     highestUnlocked = country;
 
@@ -270,7 +279,7 @@ namespace Watermelon.BusStop
                     node.Refresh(unlocked, supported && country == selectedCountry, completed, LevelsPerCountry);
             }
 
-            if (!IsCountryUnlocked(selectedCountry))
+            if (!IsCountryUnlocked(selectedCountry, save))
             {
                 selectedCountry = highestUnlocked;
                 PlayerPrefs.SetInt(SelectedCountryKey, selectedCountry);
@@ -283,8 +292,7 @@ namespace Watermelon.BusStop
             if (progressValueText != null)
                 progressValueText.text = completedContinentLevels + "/" + LevelsPerContinent;
 
-            if (progressFill != null)
-                progressFill.fillAmount = Mathf.Clamp01((float)completedContinentLevels / LevelsPerContinent);
+            SetProgressVisual(completedContinentLevels);
 
             if (statusText != null)
             {
@@ -295,9 +303,29 @@ namespace Watermelon.BusStop
 
                 statusText.text = selectedNode != null
                     ? selectedNode.CountryName.ToUpperInvariant() + "  •  " +
-                      GetCompletedLevelsInCountry(selectedCountry) + "/" + LevelsPerCountry
+                      GetCompletedLevelsInCountry(selectedCountry, save) + "/" + LevelsPerCountry
                     : "SELECT A COUNTRY";
             }
+
+            Debug.Log("[CountryMap] Real progress: " + completedContinentLevels + "/" + LevelsPerContinent);
+        }
+
+        private void SetProgressVisual(int completedLevels)
+        {
+            if (progressFill == null)
+                return;
+
+            float normalized = Mathf.Clamp01((float)completedLevels / LevelsPerContinent);
+
+            RectTransform fillRect = progressFill.rectTransform;
+            Vector2 size = fillRect.sizeDelta;
+            size.x = ProgressFillFullWidth * normalized;
+            size.y = 28f;
+            fillRect.sizeDelta = size;
+
+            // At zero progress keep the fill object enabled with zero width. As soon as
+            // a level is completed the same sprite expands smoothly from left to right.
+            progressFill.enabled = true;
         }
 
         public void HandleCountryPressed(int countryIndex)
@@ -358,27 +386,56 @@ namespace Watermelon.BusStop
 
         private bool IsCountryUnlocked(int countryIndex)
         {
+            LevelSave save = SaveController.GetSaveObject<LevelSave>("level");
+            return save != null && IsCountryUnlocked(countryIndex, save);
+        }
+
+        private bool IsCountryUnlocked(int countryIndex, LevelSave save)
+        {
             if (countryIndex <= 0)
                 return true;
 
             int previousCountryLastLevel =
                 AuthoredGameplayLevelStart + countryIndex * LevelsPerCountry - 1;
 
-            return LevelController.IsLevelCompleted(previousCountryLastLevel);
+            return IsLevelCompletedForCountryMap(previousCountryLastLevel, save);
         }
 
         private int GetCompletedLevelsInCountry(int countryIndex)
+        {
+            LevelSave save = SaveController.GetSaveObject<LevelSave>("level");
+            return save != null ? GetCompletedLevelsInCountry(countryIndex, save) : 0;
+        }
+
+        private int GetCompletedLevelsInCountry(int countryIndex, LevelSave save)
         {
             int start = AuthoredGameplayLevelStart + countryIndex * LevelsPerCountry;
             int completed = 0;
 
             for (int i = 0; i < LevelsPerCountry; i++)
             {
-                if (LevelController.IsLevelCompleted(start + i))
+                if (IsLevelCompletedForCountryMap(start + i, save))
                     completed++;
             }
 
             return completed;
+        }
+
+        private static bool IsLevelCompletedForCountryMap(int levelIndex, LevelSave save)
+        {
+            if (save == null || levelIndex < 0)
+                return false;
+
+            // Primary source: explicit per-level completion written by GameController.
+            LevelProgressData progress = save.GetLevelProgress(levelIndex);
+            if (progress != null && progress.isCompleted)
+                return true;
+
+            // Compatibility with saves created before per-level progress was added.
+            // DisplayLevelNumber is the number of levels already advanced through in
+            // the original linear progression, so treat those earlier map slots as done.
+            int legacyCompletedCount = Mathf.Max(0, save.DisplayLevelNumber);
+            return levelIndex < legacyCompletedCount;
         }
 
         private static void EnsureSaveControllerReady()
