@@ -24,6 +24,7 @@ namespace Watermelon.BusStop
         private const string SelectedCountryLevelStartKey = "CC_CountryMap_SelectedLevelStart";
         private const int AsiaContinentIndex = 0;
         private const int AuthoredGameplayLevelStart = 0;
+        private const float ProgressFillFullWidth = 358f;
 
         private static readonly string[] ContinentNames =
         {
@@ -207,12 +208,13 @@ namespace Watermelon.BusStop
             fillRect.anchorMax = new Vector2(0f, 0.5f);
             fillRect.pivot = new Vector2(0f, 0.5f);
             fillRect.anchoredPosition = new Vector2(16f, 0f);
-            fillRect.sizeDelta = new Vector2(358f, 28f);
+            fillRect.sizeDelta = new Vector2(ProgressFillFullWidth, 28f);
             fillRect.localScale = Vector3.one;
 
-            progressFill.type = Image.Type.Filled;
-            progressFill.fillMethod = Image.FillMethod.Horizontal;
-            progressFill.fillOrigin = 0;
+            // Width-based fill is more reliable for this generated glossy sprite than
+            // Image.Type.Filled and keeps the rounded artwork looking like the old UI.
+            progressFill.type = Image.Type.Simple;
+            progressFill.fillAmount = 1f;
             progressFill.preserveAspect = false;
         }
 
@@ -222,6 +224,23 @@ namespace Watermelon.BusStop
             authoredContinentIndex = AsiaContinentIndex;
         }
 #endif
+
+        private void SetProgressFillAmount(float amount)
+        {
+            if (progressFill == null)
+                return;
+
+            amount = Mathf.Clamp01(amount);
+
+            RectTransform fillRect = progressFill.rectTransform;
+            Vector2 size = fillRect.sizeDelta;
+            size.x = ProgressFillFullWidth * amount;
+            fillRect.sizeDelta = size;
+
+            // Keep the bar growing from left to right and fully visible whenever
+            // there is progress. Zero progress intentionally leaves the track empty.
+            progressFill.enabled = amount > 0.0001f;
+        }
 
         private void RefreshHUD()
         {
@@ -274,8 +293,7 @@ namespace Watermelon.BusStop
             if (progressValueText != null)
                 progressValueText.text = completedContinentLevels + "/" + LevelsPerContinent;
 
-            if (progressFill != null)
-                progressFill.fillAmount = Mathf.Clamp01((float)completedContinentLevels / LevelsPerContinent);
+            SetProgressFillAmount((float)completedContinentLevels / LevelsPerContinent);
 
             if (statusText != null)
             {
