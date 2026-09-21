@@ -62,6 +62,20 @@ namespace Watermelon.EditorTools
             "glossy_locked_level_badge.png"
         };
 
+        private static readonly string[] ProgressWidgetAssets =
+        {
+            "progress_ui_outer_blue.png",
+            "progress_ui_inner_cream.png",
+            "progress_ui_globe_frame.png",
+            "progress_ui_globe_asia.png",
+            "progress_ui_title_plaque.png",
+            "progress_ui_leaf_left.png",
+            "progress_ui_leaf_right.png",
+            "progress_ui_track.png",
+            "progress_ui_fill.png",
+            "progress_ui_value_badge.png"
+        };
+
         private static readonly string[] CountryNames =
         {
             "China", "Japan", "India", "South Korea", "Thailand"
@@ -128,7 +142,14 @@ namespace Watermelon.EditorTools
             }
             else
             {
-                EnsureChefBehindProgressPanel(active, true);
+                EnsureChefBehindProgressPanel(active, false);
+
+                if (MissingProgressWidgetAssets().Count == 0)
+                    UpgradeEditableProgressWidget(active, false);
+
+                if (active.isDirty)
+                    EditorSceneManager.SaveScene(active);
+
                 Focus(active);
             }
         }
@@ -304,7 +325,97 @@ namespace Watermelon.EditorTools
                 "OK");
         }
 
-        [MenuItem("Conveyor Chef/Country Map/5. Prepare Asia Play-Mode Preview", priority = 5)]
+        [MenuItem("Conveyor Chef/Country Map/5. Import Country Progress Widget Assets", priority = 5)]
+        public static void ImportCountryProgressWidgetAssets()
+        {
+            string zipPath = EditorUtility.OpenFilePanel(
+                "Select ConveyorChef_CountryProgress_Widget_Assets.zip",
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "zip");
+
+            if (string.IsNullOrWhiteSpace(zipPath))
+                return;
+
+            EnsureFolders();
+
+            try
+            {
+                using (ZipArchive archive = ZipFile.OpenRead(zipPath))
+                {
+                    foreach (string required in ProgressWidgetAssets)
+                    {
+                        ZipArchiveEntry entry = archive.Entries.FirstOrDefault(e =>
+                            string.Equals(Path.GetFileName(e.FullName), required, StringComparison.OrdinalIgnoreCase));
+
+                        if (entry == null)
+                            continue;
+
+                        string destination = (AssetFolder + "/" + required).Replace('\\', '/');
+                        entry.ExtractToFile(destination, true);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[CountryMap] Country progress widget import failed: " + ex);
+                EditorUtility.DisplayDialog("Country Progress Widget", "Import failed:\n\n" + ex.Message, "OK");
+                return;
+            }
+
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            ImportSprites();
+
+            List<string> missing = MissingProgressWidgetAssets();
+            if (missing.Count > 0)
+            {
+                EditorUtility.DisplayDialog(
+                    "Country Progress Widget",
+                    "The selected ZIP is missing:\n\n- " + string.Join("\n- ", missing),
+                    "OK");
+                return;
+            }
+
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            UpgradeEditableProgressWidget(scene, true);
+            Focus(scene);
+
+            EditorUtility.DisplayDialog(
+                "Country Progress Widget Ready",
+                "The 10 separated progress assets were imported and the existing Country Map progress section was replaced with an editable Canvas hierarchy.\n\n" +
+                "The bar now displays the selected country's real saved progress.",
+                "OK");
+        }
+
+        [MenuItem("Conveyor Chef/Country Map/6. Install or Refresh Editable Country Progress Widget", priority = 6)]
+        public static void InstallEditableCountryProgressWidget()
+        {
+            List<string> missing = MissingProgressWidgetAssets();
+            if (missing.Count > 0)
+            {
+                EditorUtility.DisplayDialog(
+                    "Country Progress Widget Assets Missing",
+                    "Import the generated progress widget ZIP first.\n\nMissing:\n- " + string.Join("\n- ", missing),
+                    "OK");
+                return;
+            }
+
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            UpgradeEditableProgressWidget(scene, true);
+            Focus(scene);
+
+            EditorUtility.DisplayDialog(
+                "Country Progress Widget",
+                "Editable country progress widget installed/refreshed and saved.",
+                "OK");
+        }
+
+        [MenuItem("Conveyor Chef/Country Map/7. Prepare Asia Play-Mode Preview", priority = 7)]
         public static void PrepareAsiaPreview()
         {
             PlayerPrefs.SetInt("CC_WorldMap_SelectedContinent", 0);
@@ -433,29 +544,40 @@ namespace Watermelon.EditorTools
             guideText.color = new Color(0.12f, 0.20f, 0.34f, 1f);
 
             Image progressPanel = I("Continent Progress Panel", root, bottomPanel, new Vector2(0.5f, 0f), new Vector2(35f, 112f), new Vector2(790f, 263f), false);
-            TextMeshProUGUI progressTitle = T("Progress Title", progressPanel.transform, "ASIA PROGRESS", 29f, new Vector2(82f, 78f), new Vector2(360f, 50f));
-            progressTitle.fontStyle = FontStyles.Bold;
-            progressTitle.color = new Color(0.12f, 0.20f, 0.36f, 1f);
+            TextMeshProUGUI progressTitle;
+            TextMeshProUGUI progressValue;
+            Image fill;
 
-            RectTransform track = R("Progress Track", progressPanel.transform);
-            Set(track, new Vector2(0.5f, 0.5f), new Vector2(55f, -28f), new Vector2(390f, 52f));
-            Image trackImage = track.gameObject.AddComponent<Image>();
-            trackImage.color = new Color(0.03f, 0.12f, 0.26f, 0.85f);
-            trackImage.raycastTarget = false;
+            if (MissingProgressWidgetAssets().Count == 0)
+            {
+                BuildEditableProgressWidget(progressPanel.rectTransform, out progressTitle, out progressValue, out fill);
+            }
+            else
+            {
+                // Safe fallback for older art packs. The dedicated import command can
+                // replace this with the separated editable widget later.
+                progressTitle = T("Progress Title", progressPanel.transform, "CHINA PROGRESS", 29f, new Vector2(82f, 78f), new Vector2(360f, 50f));
+                progressTitle.fontStyle = FontStyles.Bold;
+                progressTitle.color = new Color(0.12f, 0.20f, 0.36f, 1f);
 
-            Image fill = I("Progress Fill", track, progressFillSprite, new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(358f, 28f), false);
-            fill.rectTransform.anchorMin = new Vector2(0f, 0.5f);
-            fill.rectTransform.anchorMax = new Vector2(0f, 0.5f);
-            fill.rectTransform.pivot = new Vector2(0f, 0.5f);
-            fill.rectTransform.anchoredPosition = new Vector2(16f, 0f);
-            fill.rectTransform.sizeDelta = new Vector2(0f, 28f);
-            fill.type = Image.Type.Simple;
-            fill.preserveAspect = false;
-            fill.raycastTarget = false;
+                RectTransform track = R("Progress Track", progressPanel.transform);
+                Set(track, new Vector2(0.5f, 0.5f), new Vector2(55f, -28f), new Vector2(390f, 52f));
+                Image trackImage = track.gameObject.AddComponent<Image>();
+                trackImage.color = new Color(0.03f, 0.12f, 0.26f, 0.85f);
+                trackImage.raycastTarget = false;
 
-            TextMeshProUGUI progressValue = T("Progress Value", progressPanel.transform, "0/15", 31f, new Vector2(295f, -28f), new Vector2(120f, 54f));
-            progressValue.fontStyle = FontStyles.Bold;
-            progressValue.color = new Color(0.12f, 0.20f, 0.36f, 1f);
+                fill = I("Progress Fill", track, progressFillSprite, new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(0f, 28f), false);
+                fill.rectTransform.anchorMin = new Vector2(0f, 0.5f);
+                fill.rectTransform.anchorMax = new Vector2(0f, 0.5f);
+                fill.rectTransform.pivot = new Vector2(0f, 0.5f);
+                fill.type = Image.Type.Simple;
+                fill.preserveAspect = false;
+                fill.raycastTarget = false;
+
+                progressValue = T("Progress Value", progressPanel.transform, "0/3", 31f, new Vector2(295f, -28f), new Vector2(120f, 54f));
+                progressValue.fontStyle = FontStyles.Bold;
+                progressValue.color = new Color(0.12f, 0.20f, 0.36f, 1f);
+            }
 
             TextMeshProUGUI status = T("Status Text", root, "CHINA  •  0/3", 22f, new Vector2(0f, -685f), new Vector2(650f, 46f));
             status.fontStyle = FontStyles.Bold;
@@ -576,6 +698,128 @@ namespace Watermelon.EditorTools
             CountryMapCountryNode node = root.gameObject.AddComponent<CountryMapCountryNode>();
             node.EditorConfigure(index, displayName, button, landmark, flag, glow, label, name, progress, star, progressText, locked.gameObject, completed.gameObject);
             return node;
+        }
+
+        private static void BuildEditableProgressWidget(
+            RectTransform panel,
+            out TextMeshProUGUI progressTitle,
+            out TextMeshProUGUI progressValue,
+            out Image fill)
+        {
+            // Parent is only a layout container now. Keep it serialized/editable.
+            Image legacyImage = panel.GetComponent<Image>();
+            if (legacyImage != null)
+            {
+                legacyImage.sprite = null;
+                legacyImage.color = Color.clear;
+                legacyImage.raycastTarget = false;
+            }
+
+            // Clean only the progress-panel children; never touch the rest of CountryMap.
+            for (int i = panel.childCount - 1; i >= 0; i--)
+                UnityEngine.Object.DestroyImmediate(panel.GetChild(i).gameObject);
+
+            Set(panel, new Vector2(0.5f, 0f), new Vector2(35f, 112f), new Vector2(790f, 263f));
+
+            Image outer = I("Outer Base", panel, S("progress_ui_outer_blue.png"),
+                new Vector2(0.5f, 0.5f), new Vector2(0f, -8f), new Vector2(760f, 185f), false);
+
+            Image inner = I("Inner Cream Panel", panel, S("progress_ui_inner_cream.png"),
+                new Vector2(0.5f, 0.5f), new Vector2(45f, -10f), new Vector2(625f, 145f), false);
+
+            RectTransform globeGroup = R("Globe Group", panel);
+            Set(globeGroup, new Vector2(0.5f, 0.5f), new Vector2(-300f, -10f), new Vector2(190f, 190f));
+            I("Globe Frame", globeGroup, S("progress_ui_globe_frame.png"),
+                new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(190f, 190f), true);
+            I("Globe Icon", globeGroup, S("progress_ui_globe_asia.png"),
+                new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(145f, 145f), true);
+
+            RectTransform titleGroup = R("Title Group", panel);
+            Set(titleGroup, new Vector2(0.5f, 0.5f), new Vector2(25f, 79f), new Vector2(460f, 110f));
+
+            Image leftLeaf = I("Left Leaf", titleGroup, S("progress_ui_leaf_left.png"),
+                new Vector2(0.5f, 0.5f), new Vector2(-205f, 3f), new Vector2(100f, 100f), true);
+            leftLeaf.transform.localEulerAngles = new Vector3(0f, 0f, -8f);
+
+            Image rightLeaf = I("Right Leaf", titleGroup, S("progress_ui_leaf_right.png"),
+                new Vector2(0.5f, 0.5f), new Vector2(205f, 3f), new Vector2(100f, 100f), true);
+            rightLeaf.transform.localEulerAngles = new Vector3(0f, 0f, 8f);
+
+            I("Title Plaque", titleGroup, S("progress_ui_title_plaque.png"),
+                new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(410f, 103f), false);
+
+            progressTitle = T("Progress Title", titleGroup, "CHINA PROGRESS", 29f,
+                new Vector2(0f, 1f), new Vector2(330f, 52f));
+            progressTitle.fontStyle = FontStyles.Bold;
+            progressTitle.color = new Color(0.05f, 0.19f, 0.43f, 1f);
+            progressTitle.textWrappingMode = TextWrappingModes.NoWrap;
+
+            Image track = I("Progress Track", panel, S("progress_ui_track.png"),
+                new Vector2(0.5f, 0.5f), new Vector2(30f, -28f), new Vector2(420f, 82f), false);
+
+            fill = I("Progress Fill", track.transform, S("progress_ui_fill.png"),
+                new Vector2(0f, 0.5f), new Vector2(43f, 0f), new Vector2(0f, 34f), false);
+            fill.rectTransform.anchorMin = new Vector2(0f, 0.5f);
+            fill.rectTransform.anchorMax = new Vector2(0f, 0.5f);
+            fill.rectTransform.pivot = new Vector2(0f, 0.5f);
+            fill.rectTransform.anchoredPosition = new Vector2(43f, 0f);
+            fill.rectTransform.sizeDelta = new Vector2(0f, 34f);
+            fill.type = Image.Type.Simple;
+            fill.preserveAspect = false;
+            fill.raycastTarget = false;
+
+            Image badge = I("Value Badge", panel, S("progress_ui_value_badge.png"),
+                new Vector2(0.5f, 0.5f), new Vector2(307f, -28f), new Vector2(126f, 78f), false);
+
+            progressValue = T("Progress Value", badge.transform, "0/3", 31f,
+                Vector2.zero, new Vector2(102f, 54f));
+            progressValue.fontStyle = FontStyles.Bold;
+            progressValue.color = new Color(0.05f, 0.19f, 0.43f, 1f);
+            progressValue.textWrappingMode = TextWrappingModes.NoWrap;
+
+            // Explicit ordering: decorative base first, then globe/title/track/value.
+            outer.transform.SetAsFirstSibling();
+            inner.transform.SetSiblingIndex(1);
+            globeGroup.SetSiblingIndex(2);
+            titleGroup.SetSiblingIndex(3);
+            track.transform.SetSiblingIndex(4);
+            badge.transform.SetSiblingIndex(5);
+        }
+
+        private static bool UpgradeEditableProgressWidget(Scene scene, bool saveIfChanged)
+        {
+            if (!scene.IsValid() || scene.path != ScenePath)
+                return false;
+
+            if (MissingProgressWidgetAssets().Count > 0)
+                return false;
+
+            GameObject root = GameObject.Find("NEW Country Map");
+            if (root == null)
+                return false;
+
+            RectTransform panel = root.transform.Find("Continent Progress Panel") as RectTransform;
+            CountryMapSceneController controller = root.GetComponentInChildren<CountryMapSceneController>(true);
+            if (panel == null || controller == null)
+                return false;
+
+            BuildEditableProgressWidget(panel, out TextMeshProUGUI title, out TextMeshProUGUI value, out Image fill);
+            controller.EditorConfigureProgress(title, value, fill);
+
+            // The user specifically wants the mascot behind the progress panel.
+            Transform chef = root.transform.Find("Chef Guide Mascot");
+            if (chef != null && chef.GetSiblingIndex() > panel.GetSiblingIndex())
+                chef.SetSiblingIndex(panel.GetSiblingIndex());
+
+            EditorUtility.SetDirty(controller);
+            EditorUtility.SetDirty(panel);
+            EditorSceneManager.MarkSceneDirty(scene);
+
+            if (saveIfChanged)
+                EditorSceneManager.SaveScene(scene);
+
+            Debug.Log("[CountryMap] Installed editable selected-country progress widget.");
+            return true;
         }
 
         private static bool EnsureChefBehindProgressPanel(Scene scene, bool saveIfChanged)
@@ -897,6 +1141,11 @@ namespace Watermelon.EditorTools
                 if (changed)
                     importer.SaveAndReimport();
             }
+        }
+
+        private static List<string> MissingProgressWidgetAssets()
+        {
+            return ProgressWidgetAssets.Where(f => !File.Exists(AssetFolder + "/" + f)).ToList();
         }
 
         private static List<string> Missing()
