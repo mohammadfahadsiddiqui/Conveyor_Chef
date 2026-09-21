@@ -532,11 +532,13 @@ namespace Watermelon.BusStop
         public void EditorConfigureProgress(
             TextMeshProUGUI progressTitle,
             TextMeshProUGUI progressValue,
-            Image progressBarFill)
+            Image progressBarFill,
+            TextMeshProUGUI state)
         {
             progressTitleText = progressTitle;
             progressValueText = progressValue;
             progressFill = progressBarFill;
+            statusText = state;
         }
 
         public void EditorConfigure(
