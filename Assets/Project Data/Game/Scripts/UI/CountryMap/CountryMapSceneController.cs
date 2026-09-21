@@ -96,18 +96,17 @@ namespace Watermelon.BusStop
         private void Start()
         {
             int requestedWorldMapContinent = Mathf.Clamp(
-                PlayerPrefs.GetInt(SelectedContinentKey, authoredContinentIndex),
+                PlayerPrefs.GetInt(SelectedContinentKey, AsiaContinentIndex),
                 0,
                 ContinentNames.Length - 1);
 
             PlayerPrefs.DeleteKey(LaunchedFromWorldMapKey);
 
-            // Asia is Chapter 1 and the complete CountryMap art/data pack currently
-            // installed in this build. Always render this authored Asia pack.
-            selectedContinent = Mathf.Clamp(
-                authoredContinentIndex,
-                0,
-                ContinentNames.Length - 1);
+            // This scene is specifically the Asia country-map pack. Do not trust an
+            // old serialized authoredContinentIndex from a previously baked scene:
+            // Asia is now canonical Chapter 1 / continent index 0.
+            authoredContinentIndex = AsiaContinentIndex;
+            selectedContinent = AsiaContinentIndex;
 
             selectedCountry = Mathf.Clamp(
                 PlayerPrefs.GetInt(SelectedCountryKey, 0),
@@ -128,6 +127,7 @@ namespace Watermelon.BusStop
             PlayerPrefs.Save();
 
             ApplyContinentHeader();
+            EnsureProgressBarLayout();
             RefreshHUD();
             RefreshCountryProgress();
             RefreshSettingsLabels();
@@ -185,6 +185,43 @@ namespace Watermelon.BusStop
             if (unsupportedContinentPanel != null)
                 unsupportedContinentPanel.SetActive(false);
         }
+
+        private void EnsureProgressBarLayout()
+        {
+            if (progressFill == null)
+                return;
+
+            RectTransform fillRect = progressFill.rectTransform;
+            RectTransform trackRect = fillRect.parent as RectTransform;
+
+            if (trackRect != null)
+            {
+                trackRect.anchorMin = new Vector2(0.5f, 0.5f);
+                trackRect.anchorMax = new Vector2(0.5f, 0.5f);
+                trackRect.pivot = new Vector2(0.5f, 0.5f);
+                trackRect.anchoredPosition = new Vector2(55f, -28f);
+                trackRect.sizeDelta = new Vector2(390f, 52f);
+            }
+
+            fillRect.anchorMin = new Vector2(0f, 0.5f);
+            fillRect.anchorMax = new Vector2(0f, 0.5f);
+            fillRect.pivot = new Vector2(0f, 0.5f);
+            fillRect.anchoredPosition = new Vector2(16f, 0f);
+            fillRect.sizeDelta = new Vector2(358f, 28f);
+            fillRect.localScale = Vector3.one;
+
+            progressFill.type = Image.Type.Filled;
+            progressFill.fillMethod = Image.FillMethod.Horizontal;
+            progressFill.fillOrigin = 0;
+            progressFill.preserveAspect = false;
+        }
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            authoredContinentIndex = AsiaContinentIndex;
+        }
+#endif
 
         private void RefreshHUD()
         {
