@@ -144,7 +144,8 @@ namespace Watermelon.EditorTools
             {
                 EnsureChefBehindProgressPanel(active, false);
 
-                UpgradeEditableProgressWidget(active, false);
+                if (MissingProgressWidgetAssets().Count == 0)
+                    UpgradeEditableProgressWidget(active, false);
 
                 if (active.isDirty)
                     EditorSceneManager.SaveScene(active);
@@ -395,12 +396,51 @@ namespace Watermelon.EditorTools
             if (!scene.IsValid() || scene.path != ScenePath)
                 scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
-            UpgradeEditableProgressWidget(scene, true);
+            RectTransform panel =
+                GameObject.Find("NEW Country Map")?.transform.Find("Continent Progress Panel") as RectTransform;
+
+            if (panel != null)
+            {
+                BuildEditableProgressWidget(
+                    panel,
+                    out TextMeshProUGUI title,
+                    out TextMeshProUGUI value,
+                    out Image fill);
+
+                CountryMapSceneController controller =
+                    panel.GetComponentInParent<CountryMapSceneController>();
+
+                if (controller == null)
+                {
+                    GameObject rootObject = GameObject.Find("NEW Country Map");
+                    controller = rootObject != null
+                        ? rootObject.GetComponentInChildren<CountryMapSceneController>(true)
+                        : null;
+                }
+
+                TextMeshProUGUI status =
+                    GameObject.Find("NEW Country Map")?.transform.Find("Status Text")
+                        ?.GetComponent<TextMeshProUGUI>();
+
+                if (controller != null)
+                {
+                    controller.EditorConfigureProgress(title, value, fill, status);
+                    EditorUtility.SetDirty(controller);
+                }
+
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+            }
+            else
+            {
+                UpgradeEditableProgressWidget(scene, true);
+            }
+
             Focus(scene);
 
             EditorUtility.DisplayDialog(
                 "Country Progress Widget",
-                "Editable country progress widget installed/refreshed and saved.",
+                "The progress panel was rebuilt using only the correct progress_ui_* sprites, references were rebound, and CountryMap.unity was saved.",
                 "OK");
         }
 
@@ -564,36 +604,19 @@ namespace Watermelon.EditorTools
             TextMeshProUGUI progressValue;
             Image fill;
 
-            if (MissingProgressWidgetAssets().Count == 0)
+            List<string> missingProgressAssets = MissingProgressWidgetAssets();
+            if (missingProgressAssets.Count > 0)
             {
-                BuildEditableProgressWidget(progressPanel.rectTransform, out progressTitle, out progressValue, out fill);
+                throw new InvalidOperationException(
+                    "Country Map progress widget assets are missing:\n- " +
+                    string.Join("\n- ", missingProgressAssets));
             }
-            else
-            {
-                // Safe fallback for older art packs. The dedicated import command can
-                // replace this with the separated editable widget later.
-                progressTitle = T("Progress Title", progressPanel.transform, "CHINA PROGRESS", 29f, new Vector2(82f, 78f), new Vector2(360f, 50f));
-                progressTitle.fontStyle = FontStyles.Bold;
-                progressTitle.color = new Color(0.12f, 0.20f, 0.36f, 1f);
 
-                RectTransform track = R("Progress Track", progressPanel.transform);
-                Set(track, new Vector2(0.5f, 0.5f), new Vector2(55f, -28f), new Vector2(390f, 52f));
-                Image trackImage = track.gameObject.AddComponent<Image>();
-                trackImage.color = new Color(0.03f, 0.12f, 0.26f, 0.85f);
-                trackImage.raycastTarget = false;
-
-                fill = I("Progress Fill", track, progressFillSprite, new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(0f, 28f), false);
-                fill.rectTransform.anchorMin = new Vector2(0f, 0.5f);
-                fill.rectTransform.anchorMax = new Vector2(0f, 0.5f);
-                fill.rectTransform.pivot = new Vector2(0f, 0.5f);
-                fill.type = Image.Type.Simple;
-                fill.preserveAspect = false;
-                fill.raycastTarget = false;
-
-                progressValue = T("Progress Value", progressPanel.transform, "0/3", 31f, new Vector2(295f, -28f), new Vector2(120f, 54f));
-                progressValue.fontStyle = FontStyles.Bold;
-                progressValue.color = new Color(0.12f, 0.20f, 0.36f, 1f);
-            }
+            BuildEditableProgressWidget(
+                progressPanel.rectTransform,
+                out progressTitle,
+                out progressValue,
+                out fill);
 
             TextMeshProUGUI status = T("Status Text", root, "CHINA  •  0/3", 22f, new Vector2(0f, -685f), new Vector2(650f, 46f));
             status.fontStyle = FontStyles.Bold;
@@ -807,6 +830,15 @@ namespace Watermelon.EditorTools
             if (!scene.IsValid() || scene.path != ScenePath)
                 return false;
 
+            List<string> missingAssets = MissingProgressWidgetAssets();
+            if (missingAssets.Count > 0)
+            {
+                Debug.LogError(
+                    "[CountryMap] Cannot build progress widget. Missing:\n- " +
+                    string.Join("\n- ", missingAssets));
+                return false;
+            }
+
             GameObject root = GameObject.Find("NEW Country Map");
             if (root == null)
                 return false;
@@ -919,16 +951,33 @@ namespace Watermelon.EditorTools
                 return false;
 
             return
-                panel.Find("Outer Base") != null &&
-                panel.Find("Inner Cream Panel") != null &&
-                panel.Find("Globe Group/Globe Frame") != null &&
-                panel.Find("Globe Group/Globe Icon") != null &&
-                panel.Find("Title Group/Left Leaf") != null &&
-                panel.Find("Title Group/Right Leaf") != null &&
-                panel.Find("Title Group/Title Plaque") != null &&
+                HasExpectedSprite(panel, "Outer Base", "progress_ui_outer_blue.png") &&
+                HasExpectedSprite(panel, "Inner Cream Panel", "progress_ui_inner_cream.png") &&
+                HasExpectedSprite(panel, "Globe Group/Globe Frame", "progress_ui_globe_frame.png") &&
+                HasExpectedSprite(panel, "Globe Group/Globe Icon", "progress_ui_globe_asia.png") &&
+                HasExpectedSprite(panel, "Title Group/Left Leaf", "progress_ui_leaf_left.png") &&
+                HasExpectedSprite(panel, "Title Group/Right Leaf", "progress_ui_leaf_right.png") &&
+                HasExpectedSprite(panel, "Title Group/Title Plaque", "progress_ui_title_plaque.png") &&
                 panel.Find("Title Group/Progress Title") != null &&
-                panel.Find("Progress Track/Progress Fill") != null &&
+                HasExpectedSprite(panel, "Progress Track", "progress_ui_track.png") &&
+                HasExpectedSprite(panel, "Progress Track/Progress Fill", "progress_ui_fill.png") &&
+                HasExpectedSprite(panel, "Value Badge", "progress_ui_value_badge.png") &&
                 panel.Find("Value Badge/Progress Value") != null;
+        }
+
+        private static bool HasExpectedSprite(
+            RectTransform panel,
+            string relativePath,
+            string fileName)
+        {
+            Transform child = panel.Find(relativePath);
+            if (child == null)
+                return false;
+
+            Image image = child.GetComponent<Image>();
+            Sprite expected = AssetDatabase.LoadAssetAtPath<Sprite>(AssetFolder + "/" + fileName);
+
+            return image != null && expected != null && image.sprite == expected;
         }
 
         private static bool EnsureChefBehindProgressPanel(Scene scene, bool saveIfChanged)
@@ -1191,18 +1240,20 @@ namespace Watermelon.EditorTools
 
         private static Sprite ProgressSprite(string preferredFile, string fallbackFile)
         {
+            // Progress widget must use only the dedicated progress_ui_* sprites.
+            // Keeping the second parameter preserves existing call sites while
+            // intentionally disabling the old fallback art.
             string preferredPath = AssetFolder + "/" + preferredFile;
             Sprite preferred = AssetDatabase.LoadAssetAtPath<Sprite>(preferredPath);
-            if (preferred != null)
-                return preferred;
 
-            Sprite fallback = AssetDatabase.LoadAssetAtPath<Sprite>(AssetFolder + "/" + fallbackFile);
-            if (fallback == null)
+            if (preferred == null)
+            {
                 throw new InvalidOperationException(
-                    "Missing Country Map progress sprite: " + preferredFile +
-                    " and fallback: " + fallbackFile);
+                    "Missing required Country Map progress sprite: " + preferredFile +
+                    "\nExpected at: " + preferredPath);
+            }
 
-            return fallback;
+            return preferred;
         }
 
         private static Sprite S(string file)
