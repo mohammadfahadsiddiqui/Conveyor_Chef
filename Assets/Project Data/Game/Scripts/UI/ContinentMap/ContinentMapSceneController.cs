@@ -19,29 +19,29 @@ namespace Watermelon.BusStop
 
         private static readonly string[] ContinentNames =
         {
+            "Asia",
             "North America",
             "South America",
             "Europe",
             "Africa",
-            "Asia",
             "Australia / Oceania"
         };
 
         private static readonly string[,] ZoneNames =
         {
+            { "India", "Japan", "China" },
             { "USA", "Mexico", "Canada" },
             { "Brazil", "Argentina", "Peru" },
             { "Italy", "France", "United Kingdom" },
             { "Egypt", "Morocco", "South Africa" },
-            { "India", "Japan", "China" },
             { "Australia", "New Zealand", "Pacific Islands" }
         };
 
-        private static readonly string[] NorthAmericaFoods =
+        private static readonly string[] AsiaFoods =
         {
-            "Burger", "Hot Dog", "Donut", "Pancake", "BBQ Challenge",
-            "Taco", "Quesadilla", "Nachos", "Burrito", "Mexican Finale",
-            "Poutine", "Maple Pancake", "Sandwich", "Dessert", "Canada Finale"
+            "Butter Chicken", "Samosa", "Biryani", "Dosa", "India Finale",
+            "Sushi", "Ramen", "Tempura", "Onigiri", "Japan Finale",
+            "Dumplings", "Fried Rice", "Noodles", "Bao", "China Finale"
         };
 
         [Header("Map")]
@@ -267,8 +267,8 @@ namespace Watermelon.BusStop
 
             if (popupBody != null)
             {
-                string food = selectedContinent == 0 && localLevelIndex < NorthAmericaFoods.Length
-                    ? NorthAmericaFoods[localLevelIndex]
+                string food = selectedContinent == 0 && localLevelIndex < AsiaFoods.Length
+                    ? AsiaFoods[localLevelIndex]
                     : "Chef Challenge";
 
                 popupBody.text =
