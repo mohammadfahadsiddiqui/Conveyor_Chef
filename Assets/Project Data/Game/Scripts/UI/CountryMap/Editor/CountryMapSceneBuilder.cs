@@ -28,6 +28,19 @@ namespace Watermelon.EditorTools
         private const float W = 1080f;
         private const float H = 1920f;
 
+        // Canonical progress-panel geometry. Keep every continent/country-map pack
+        // on this same template so the progress track never drifts into the value badge.
+        private static readonly Vector2 ProgressPanelPosition = new Vector2(35f, 112f);
+        private static readonly Vector2 ProgressPanelSize = new Vector2(790f, 263f);
+        private static readonly Vector2 ProgressTitlePosition = new Vector2(82f, 78f);
+        private static readonly Vector2 ProgressTitleSize = new Vector2(400f, 50f);
+        private static readonly Vector2 ProgressTrackPosition = new Vector2(0f, -28f);
+        private static readonly Vector2 ProgressTrackSize = new Vector2(390f, 52f);
+        private static readonly Vector2 ProgressFillPosition = new Vector2(16f, 0f);
+        private static readonly Vector2 ProgressFillSize = new Vector2(358f, 28f);
+        private static readonly Vector2 ProgressValuePosition = new Vector2(295f, -28f);
+        private static readonly Vector2 ProgressValueSize = new Vector2(120f, 54f);
+
         private static readonly string[] Required =
         {
             "glossy_blue_back_button.png",
@@ -123,9 +136,16 @@ namespace Watermelon.EditorTools
             ImportSprites();
 
             if (Missing().Count == 0 && IsPlaceholder())
+            {
                 Bake(false);
+            }
             else
+            {
+                // Existing serialized scenes are upgraded in-place. Only the progress
+                // module is touched; all designer-authored map positions stay intact.
+                RepairProgressPanelLayout(active, true);
                 Focus(active);
+            }
         }
 
         [MenuItem("Conveyor Chef/Country Map/0. Import Generated Art Pack", priority = 0)]
@@ -300,6 +320,27 @@ namespace Watermelon.EditorTools
             Debug.Log("[CountryMap] Asia preview state prepared. Press Play to test the generated Asia country map.");
         }
 
+        [MenuItem("Conveyor Chef/Country Map/5. Repair Progress Panel Layout", priority = 5)]
+        public static void RepairProgressPanelLayoutMenu()
+        {
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            bool changed = RepairProgressPanelLayout(scene, true);
+            Focus(scene);
+
+            EditorUtility.DisplayDialog(
+                "Country Map Progress",
+                changed
+                    ? "Progress panel alignment repaired and saved. The track, fill and value badge now use the shared reusable layout."
+                    : "Progress panel already uses the corrected reusable layout.",
+                "OK");
+        }
+
         private static void Bake(bool showDialog)
         {
             EnsureFolders();
@@ -409,32 +450,40 @@ namespace Watermelon.EditorTools
             guideText.fontStyle = FontStyles.Bold;
             guideText.color = new Color(0.12f, 0.20f, 0.34f, 1f);
 
-            Image progressPanel = I("Continent Progress Panel", root, bottomPanel, new Vector2(0.5f, 0f), new Vector2(35f, 112f), new Vector2(790f, 263f), false);
-            TextMeshProUGUI progressTitle = T("Progress Title", progressPanel.transform, "ASIA PROGRESS", 29f, new Vector2(82f, 78f), new Vector2(360f, 50f));
+            Image progressPanel = I("Continent Progress Panel", root, bottomPanel, new Vector2(0.5f, 0f), ProgressPanelPosition, ProgressPanelSize, false);
+            TextMeshProUGUI progressTitle = T("Progress Title", progressPanel.transform, "ASIA PROGRESS", 29f, ProgressTitlePosition, ProgressTitleSize);
             progressTitle.fontStyle = FontStyles.Bold;
             progressTitle.color = new Color(0.12f, 0.20f, 0.36f, 1f);
+            progressTitle.enableAutoSizing = true;
+            progressTitle.fontSizeMin = 18f;
+            progressTitle.fontSizeMax = 29f;
+            progressTitle.enableWordWrapping = false;
 
             RectTransform track = R("Progress Track", progressPanel.transform);
-            Set(track, new Vector2(0.5f, 0.5f), new Vector2(55f, -28f), new Vector2(390f, 52f));
+            Set(track, new Vector2(0.5f, 0.5f), ProgressTrackPosition, ProgressTrackSize);
             Image trackImage = track.gameObject.AddComponent<Image>();
             trackImage.color = new Color(0.03f, 0.12f, 0.26f, 0.85f);
             trackImage.raycastTarget = false;
 
-            Image fill = I("Progress Fill", track, progressFillSprite, new Vector2(0f, 0.5f), new Vector2(16f, 0f), new Vector2(358f, 28f), false);
+            Image fill = I("Progress Fill", track, progressFillSprite, new Vector2(0f, 0.5f), ProgressFillPosition, ProgressFillSize, false);
             fill.rectTransform.anchorMin = new Vector2(0f, 0.5f);
             fill.rectTransform.anchorMax = new Vector2(0f, 0.5f);
             fill.rectTransform.pivot = new Vector2(0f, 0.5f);
-            fill.rectTransform.anchoredPosition = new Vector2(16f, 0f);
-            fill.rectTransform.sizeDelta = new Vector2(358f, 28f);
+            fill.rectTransform.anchoredPosition = ProgressFillPosition;
+            fill.rectTransform.sizeDelta = ProgressFillSize;
             fill.type = Image.Type.Filled;
             fill.fillMethod = Image.FillMethod.Horizontal;
             fill.fillOrigin = 0;
             fill.fillAmount = 0f;
             fill.raycastTarget = false;
 
-            TextMeshProUGUI progressValue = T("Progress Value", progressPanel.transform, "0/15", 31f, new Vector2(295f, -28f), new Vector2(120f, 54f));
+            TextMeshProUGUI progressValue = T("Progress Value", progressPanel.transform, "0/15", 31f, ProgressValuePosition, ProgressValueSize);
             progressValue.fontStyle = FontStyles.Bold;
             progressValue.color = new Color(0.12f, 0.20f, 0.36f, 1f);
+            progressValue.enableAutoSizing = true;
+            progressValue.fontSizeMin = 24f;
+            progressValue.fontSizeMax = 31f;
+            progressValue.enableWordWrapping = false;
 
             TextMeshProUGUI status = T("Status Text", root, "CHINA  •  0/3", 22f, new Vector2(0f, -685f), new Vector2(650f, 46f));
             status.fontStyle = FontStyles.Bold;
@@ -555,6 +604,117 @@ namespace Watermelon.EditorTools
             CountryMapCountryNode node = root.gameObject.AddComponent<CountryMapCountryNode>();
             node.EditorConfigure(index, displayName, button, landmark, flag, glow, label, name, progress, star, progressText, locked.gameObject, completed.gameObject);
             return node;
+        }
+
+        private static bool RepairProgressPanelLayout(Scene scene, bool saveIfChanged)
+        {
+            if (!scene.IsValid() || scene.path != ScenePath)
+                return false;
+
+            GameObject root = GameObject.Find("NEW Country Map");
+            if (root == null)
+                return false;
+
+            Transform panelTransform = root.transform.Find("Continent Progress Panel");
+            if (panelTransform == null)
+                return false;
+
+            RectTransform panel = panelTransform as RectTransform;
+            RectTransform titleRect = panelTransform.Find("Progress Title") as RectTransform;
+            RectTransform track = panelTransform.Find("Progress Track") as RectTransform;
+            RectTransform valueRect = panelTransform.Find("Progress Value") as RectTransform;
+            RectTransform fillRect = track != null ? track.Find("Progress Fill") as RectTransform : null;
+
+            bool changed = false;
+            changed |= ApplyRect(panel, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0.5f), ProgressPanelPosition, ProgressPanelSize);
+            changed |= ApplyRect(titleRect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), ProgressTitlePosition, ProgressTitleSize);
+            changed |= ApplyRect(track, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), ProgressTrackPosition, ProgressTrackSize);
+            changed |= ApplyRect(fillRect, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), ProgressFillPosition, ProgressFillSize);
+            changed |= ApplyRect(valueRect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), ProgressValuePosition, ProgressValueSize);
+
+            TextMeshProUGUI title = titleRect != null ? titleRect.GetComponent<TextMeshProUGUI>() : null;
+            if (title != null)
+            {
+                if (!title.enableAutoSizing || !Mathf.Approximately(title.fontSizeMin, 18f) ||
+                    !Mathf.Approximately(title.fontSizeMax, 29f) || title.enableWordWrapping)
+                {
+                    title.enableAutoSizing = true;
+                    title.fontSizeMin = 18f;
+                    title.fontSizeMax = 29f;
+                    title.enableWordWrapping = false;
+                    changed = true;
+                }
+            }
+
+            TextMeshProUGUI value = valueRect != null ? valueRect.GetComponent<TextMeshProUGUI>() : null;
+            if (value != null)
+            {
+                if (!value.enableAutoSizing || !Mathf.Approximately(value.fontSizeMin, 24f) ||
+                    !Mathf.Approximately(value.fontSizeMax, 31f) || value.enableWordWrapping)
+                {
+                    value.enableAutoSizing = true;
+                    value.fontSizeMin = 24f;
+                    value.fontSizeMax = 31f;
+                    value.enableWordWrapping = false;
+                    changed = true;
+                }
+            }
+
+            Image fill = fillRect != null ? fillRect.GetComponent<Image>() : null;
+            if (fill != null)
+            {
+                if (fill.type != Image.Type.Filled ||
+                    fill.fillMethod != Image.FillMethod.Horizontal ||
+                    fill.fillOrigin != 0 ||
+                    fill.preserveAspect)
+                {
+                    fill.type = Image.Type.Filled;
+                    fill.fillMethod = Image.FillMethod.Horizontal;
+                    fill.fillOrigin = 0;
+                    fill.preserveAspect = false;
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                EditorSceneManager.MarkSceneDirty(scene);
+                if (saveIfChanged)
+                    EditorSceneManager.SaveScene(scene);
+            }
+
+            return changed;
+        }
+
+        private static bool ApplyRect(
+            RectTransform rect,
+            Vector2 anchorMin,
+            Vector2 anchorMax,
+            Vector2 pivot,
+            Vector2 anchoredPosition,
+            Vector2 sizeDelta)
+        {
+            if (rect == null)
+                return false;
+
+            bool changed =
+                (rect.anchorMin - anchorMin).sqrMagnitude > 0.0001f ||
+                (rect.anchorMax - anchorMax).sqrMagnitude > 0.0001f ||
+                (rect.pivot - pivot).sqrMagnitude > 0.0001f ||
+                (rect.anchoredPosition - anchoredPosition).sqrMagnitude > 0.0001f ||
+                (rect.sizeDelta - sizeDelta).sqrMagnitude > 0.0001f ||
+                (rect.localScale - Vector3.one).sqrMagnitude > 0.0001f;
+
+            if (!changed)
+                return false;
+
+            rect.anchorMin = anchorMin;
+            rect.anchorMax = anchorMax;
+            rect.pivot = pivot;
+            rect.anchoredPosition = anchoredPosition;
+            rect.sizeDelta = sizeDelta;
+            rect.localScale = Vector3.one;
+            return true;
         }
 
         private static void BuildRoute(RectTransform parent, Sprite nodeSprite, Sprite lockSprite)
