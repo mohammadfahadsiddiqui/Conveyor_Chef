@@ -384,14 +384,29 @@ namespace Watermelon.EditorTools
 
             EditorUtility.DisplayDialog(
                 "Country Progress Widget Ready",
-                "The 10 separated progress assets were imported and the existing Country Map progress section was refreshed.\n\n" +
-                "The hierarchy also works without this ZIP by using built-in fallback sprites.",
+                "The 10 separated progress assets were imported and the Country Map progress section was rebuilt using only those sprites.\n\n" +
+                "All progress references were rebound and the scene was saved.",
                 "OK");
         }
 
         [MenuItem("Conveyor Chef/Country Map/6. Install or Refresh Editable Country Progress Widget", priority = 6)]
         public static void InstallEditableCountryProgressWidget()
         {
+            EnsureFolders();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            ImportSprites();
+
+            List<string> missing = MissingProgressWidgetAssets();
+            if (missing.Count > 0)
+            {
+                EditorUtility.DisplayDialog(
+                    "Country Progress Widget",
+                    "The correct progress_ui_* sprites are required before installation.\n\nMissing:\n- " +
+                    string.Join("\n- ", missing),
+                    "OK");
+                return;
+            }
+
             Scene scene = SceneManager.GetActiveScene();
             if (!scene.IsValid() || scene.path != ScenePath)
                 scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
@@ -450,6 +465,18 @@ namespace Watermelon.EditorTools
             EnsureFolders();
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             ImportSprites();
+
+            List<string> missing = MissingProgressWidgetAssets();
+            if (missing.Count > 0)
+            {
+                EditorUtility.DisplayDialog(
+                    "Country Progress Widget",
+                    "Cannot repair with incorrect/fallback artwork. The following required sprites are missing:\n\n- " +
+                    string.Join("\n- ", missing) +
+                    "\n\nPlace them in:\n" + AssetFolder,
+                    "OK");
+                return;
+            }
 
             Scene scene = SceneManager.GetActiveScene();
             if (!scene.IsValid() || scene.path != ScenePath)
