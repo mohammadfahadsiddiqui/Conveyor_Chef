@@ -72,6 +72,7 @@ namespace Watermelon.BusStop
         {
             UIEventSystemRuntime.UseCurrentSceneEventSystem();
             EnsureSaveControllerReady();
+            ResolveProgressReferences();
             EnsureChefBehindProgressPanel();
 
             Wire(backButton, BackToWorldMap);
@@ -93,6 +94,41 @@ namespace Watermelon.BusStop
 
             if (settingsPanel != null)
                 settingsPanel.SetActive(false);
+        }
+
+        private void ResolveProgressReferences()
+        {
+            Transform root = transform.parent;
+            if (root == null)
+                return;
+
+            if (progressTitleText == null)
+            {
+                Transform t = root.Find("Continent Progress Panel/Title Group/Progress Title");
+                if (t != null)
+                    progressTitleText = t.GetComponent<TextMeshProUGUI>();
+            }
+
+            if (progressValueText == null)
+            {
+                Transform t = root.Find("Continent Progress Panel/Value Badge/Progress Value");
+                if (t != null)
+                    progressValueText = t.GetComponent<TextMeshProUGUI>();
+            }
+
+            if (progressFill == null)
+            {
+                Transform t = root.Find("Continent Progress Panel/Progress Track/Progress Fill");
+                if (t != null)
+                    progressFill = t.GetComponent<Image>();
+            }
+
+            if (statusText == null)
+            {
+                Transform t = root.Find("Status Text");
+                if (t != null)
+                    statusText = t.GetComponent<TextMeshProUGUI>();
+            }
         }
 
         private void EnsureChefBehindProgressPanel()
@@ -206,13 +242,29 @@ namespace Watermelon.BusStop
 
         private void ConfigureProgressFillRendering()
         {
-            if (progressFill == null)
-                return;
+            ResolveProgressReferences();
 
-            // Layout is authored and serialized by CountryMapSceneBuilder so it stays
-            // editable in the Unity Canvas. Runtime only changes the fill width.
+            if (progressFill == null)
+            {
+                Debug.LogError("[CountryMap] Progress Fill reference is missing.");
+                return;
+            }
+
+            RectTransform fillRect = progressFill.rectTransform;
+            fillRect.anchorMin = new Vector2(0f, 0.5f);
+            fillRect.anchorMax = new Vector2(0f, 0.5f);
+            fillRect.pivot = new Vector2(0f, 0.5f);
+            fillRect.anchoredPosition = new Vector2(43f, 0f);
+
+            Vector2 size = fillRect.sizeDelta;
+            size.y = ProgressFillHeight;
+            fillRect.sizeDelta = size;
+            fillRect.localScale = Vector3.one;
+
+            // The selected country's completion controls only the fill width.
             progressFill.type = Image.Type.Simple;
             progressFill.preserveAspect = false;
+            progressFill.raycastTarget = false;
         }
 
         private void RefreshHUD()
@@ -252,9 +304,15 @@ namespace Watermelon.BusStop
 
             const bool supported = true;
             int highestUnlocked = 0;
+            int countryCount = Mathf.Min(CountriesPerContinent, countryNodes.Length);
+
+            if (countryCount <= 0)
+                return;
+
+            selectedCountry = Mathf.Clamp(selectedCountry, 0, countryCount - 1);
 
             // Refresh every country node using its real saved level completion.
-            for (int country = 0; country < countryNodes.Length; country++)
+            for (int country = 0; country < countryCount; country++)
             {
                 int completed = GetCompletedLevelsInCountry(country, save);
                 bool unlocked = supported && IsCountryUnlocked(country, save);
