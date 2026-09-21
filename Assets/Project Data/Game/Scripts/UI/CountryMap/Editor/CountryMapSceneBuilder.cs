@@ -29,8 +29,9 @@ namespace Watermelon.EditorTools
         private const float H = 1920f;
 
         // Canonical progress-panel geometry. Keep every continent/country-map pack
-        // on this same template so the progress track never drifts into the value badge.
-        private static readonly Vector2 ProgressPanelPosition = new Vector2(35f, 112f);
+        // on this same template so the panel stays inside the lower safe area and the
+        // progress track never drifts into the value badge.
+        private static readonly Vector2 ProgressPanelPosition = new Vector2(35f, 140f);
         private static readonly Vector2 ProgressPanelSize = new Vector2(790f, 263f);
         private static readonly Vector2 ProgressTitlePosition = new Vector2(82f, 78f);
         private static readonly Vector2 ProgressTitleSize = new Vector2(400f, 50f);
@@ -462,7 +463,9 @@ namespace Watermelon.EditorTools
             RectTransform track = R("Progress Track", progressPanel.transform);
             Set(track, new Vector2(0.5f, 0.5f), ProgressTrackPosition, ProgressTrackSize);
             Image trackImage = track.gameObject.AddComponent<Image>();
-            trackImage.color = new Color(0.03f, 0.12f, 0.26f, 0.85f);
+            trackImage.sprite = progressFrame;
+            trackImage.color = Color.white;
+            trackImage.preserveAspect = false;
             trackImage.raycastTarget = false;
 
             Image fill = I("Progress Fill", track, progressFillSprite, new Vector2(0f, 0.5f), ProgressFillPosition, ProgressFillSize, false);
@@ -656,6 +659,21 @@ namespace Watermelon.EditorTools
                     value.fontSizeMin = 24f;
                     value.fontSizeMax = 31f;
                     value.enableWordWrapping = false;
+                    changed = true;
+                }
+            }
+
+            Image trackImage = track != null ? track.GetComponent<Image>() : null;
+            if (trackImage != null)
+            {
+                Sprite desiredTrackSprite = S("glossy_blue_game_progress_panel.png");
+                if (trackImage.sprite != desiredTrackSprite ||
+                    trackImage.color != Color.white ||
+                    trackImage.preserveAspect)
+                {
+                    trackImage.sprite = desiredTrackSprite;
+                    trackImage.color = Color.white;
+                    trackImage.preserveAspect = false;
                     changed = true;
                 }
             }
