@@ -415,7 +415,46 @@ namespace Watermelon.EditorTools
                 "OK");
         }
 
-        [MenuItem("Conveyor Chef/Country Map/7. Prepare Asia Play-Mode Preview", priority = 7)]
+        [MenuItem("Conveyor Chef/Country Map/7. Repair Missing Progress Panel + References", priority = 7)]
+        public static void RepairMissingProgressPanelAndReferences()
+        {
+            EnsureFolders();
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            ImportSprites();
+
+            List<string> missing = MissingProgressWidgetAssets();
+            if (missing.Count > 0)
+            {
+                EditorUtility.DisplayDialog(
+                    "Country Progress Widget",
+                    "The separated progress sprites are not installed yet.\n\nMissing:\n- " +
+                    string.Join("\n- ", missing) +
+                    "\n\nUse 'Import Country Progress Widget Assets' first.",
+                    "OK");
+                return;
+            }
+
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            UpgradeEditableProgressWidget(scene, true);
+            Focus(scene);
+
+            GameObject root = GameObject.Find("NEW Country Map");
+            RectTransform panel =
+                root != null ? root.transform.Find("Continent Progress Panel") as RectTransform : null;
+
+            if (panel != null)
+                Selection.activeGameObject = panel.gameObject;
+
+            EditorUtility.DisplayDialog(
+                "Country Progress Widget Repaired",
+                "Continent Progress Panel was created/repaired, all separated children were placed, controller references were rebound, and CountryMap.unity was saved.",
+                "OK");
+        }
+
+        [MenuItem("Conveyor Chef/Country Map/8. Prepare Asia Play-Mode Preview", priority = 8)]
         public static void PrepareAsiaPreview()
         {
             PlayerPrefs.SetInt("CC_WorldMap_SelectedContinent", 0);
@@ -798,28 +837,124 @@ namespace Watermelon.EditorTools
             if (root == null)
                 return false;
 
-            RectTransform panel = root.transform.Find("Continent Progress Panel") as RectTransform;
-            CountryMapSceneController controller = root.GetComponentInChildren<CountryMapSceneController>(true);
-            if (panel == null || controller == null)
+            CountryMapSceneController controller =
+                root.GetComponentInChildren<CountryMapSceneController>(true);
+
+            if (controller == null)
                 return false;
 
-            BuildEditableProgressWidget(panel, out TextMeshProUGUI title, out TextMeshProUGUI value, out Image fill);
-            controller.EditorConfigureProgress(title, value, fill);
+            bool changed = false;
 
-            // The user specifically wants the mascot behind the progress panel.
+            RectTransform panel = root.transform.Find("Continent Progress Panel") as RectTransform;
+            if (panel == null)
+            {
+                panel = R("Continent Progress Panel", root.transform);
+                Set(panel, new Vector2(0.5f, 0f), new Vector2(35f, 112f), new Vector2(790f, 263f));
+
+                Image containerImage = panel.gameObject.AddComponent<Image>();
+                containerImage.color = Color.clear;
+                containerImage.raycastTarget = false;
+                changed = true;
+            }
+
+            if (!HasEditableProgressWidget(panel))
+            {
+                BuildEditableProgressWidget(
+                    panel,
+                    out TextMeshProUGUI rebuiltTitle,
+                    out TextMeshProUGUI rebuiltValue,
+                    out Image rebuiltFill);
+
+                changed = true;
+            }
+
+            TextMeshProUGUI title =
+                panel.Find("Title Group/Progress Title")?.GetComponent<TextMeshProUGUI>();
+
+            TextMeshProUGUI value =
+                panel.Find("Value Badge/Progress Value")?.GetComponent<TextMeshProUGUI>();
+
+            Image fill =
+                panel.Find("Progress Track/Progress Fill")?.GetComponent<Image>();
+
+            TextMeshProUGUI status =
+                root.transform.Find("Status Text")?.GetComponent<TextMeshProUGUI>();
+
+            if (status == null)
+            {
+                status = T(
+                    "Status Text",
+                    root.transform,
+                    "CHINA  •  0/3",
+                    22f,
+                    new Vector2(0f, -685f),
+                    new Vector2(650f, 46f));
+
+                status.fontStyle = FontStyles.Bold;
+                status.color = Color.white;
+                changed = true;
+            }
+
+            if (title == null || value == null || fill == null)
+            {
+                Debug.LogError("[CountryMap] Progress widget hierarchy could not be repaired.");
+                return false;
+            }
+
+            controller.EditorConfigureProgress(title, value, fill, status);
+
+            // Keep the exact hierarchy order requested in the editable Canvas:
+            // Chef Guide Mascot -> Continent Progress Panel -> Chef Speech Bubble.
             Transform chef = root.transform.Find("Chef Guide Mascot");
-            if (chef != null && chef.GetSiblingIndex() > panel.GetSiblingIndex())
-                chef.SetSiblingIndex(panel.GetSiblingIndex());
+            Transform speech = root.transform.Find("Chef Speech Bubble");
+
+            if (chef != null)
+            {
+                int desiredPanelIndex = Mathf.Min(chef.GetSiblingIndex() + 1, root.transform.childCount - 1);
+                if (panel.GetSiblingIndex() != desiredPanelIndex)
+                {
+                    panel.SetSiblingIndex(desiredPanelIndex);
+                    changed = true;
+                }
+
+                // SetSiblingIndex can move the speech index. Ensure it remains in front.
+                if (speech != null && speech.GetSiblingIndex() <= panel.GetSiblingIndex())
+                {
+                    speech.SetSiblingIndex(
+                        Mathf.Min(panel.GetSiblingIndex() + 1, root.transform.childCount - 1));
+                    changed = true;
+                }
+            }
 
             EditorUtility.SetDirty(controller);
             EditorUtility.SetDirty(panel);
-            EditorSceneManager.MarkSceneDirty(scene);
 
-            if (saveIfChanged)
+            if (changed)
+                EditorSceneManager.MarkSceneDirty(scene);
+
+            if (saveIfChanged && scene.isDirty)
                 EditorSceneManager.SaveScene(scene);
 
-            Debug.Log("[CountryMap] Installed editable selected-country progress widget.");
-            return true;
+            Debug.Log("[CountryMap] Progress panel hierarchy and controller references are valid.");
+            return changed;
+        }
+
+        private static bool HasEditableProgressWidget(RectTransform panel)
+        {
+            if (panel == null)
+                return false;
+
+            return
+                panel.Find("Outer Base") != null &&
+                panel.Find("Inner Cream Panel") != null &&
+                panel.Find("Globe Group/Globe Frame") != null &&
+                panel.Find("Globe Group/Globe Icon") != null &&
+                panel.Find("Title Group/Left Leaf") != null &&
+                panel.Find("Title Group/Right Leaf") != null &&
+                panel.Find("Title Group/Title Plaque") != null &&
+                panel.Find("Title Group/Progress Title") != null &&
+                panel.Find("Progress Track/Progress Fill") != null &&
+                panel.Find("Value Badge/Progress Value") != null;
         }
 
         private static bool EnsureChefBehindProgressPanel(Scene scene, bool saveIfChanged)
