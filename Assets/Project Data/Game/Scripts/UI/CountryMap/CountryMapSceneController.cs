@@ -24,7 +24,8 @@ namespace Watermelon.BusStop
         private const string SelectedCountryLevelStartKey = "CC_CountryMap_SelectedLevelStart";
         private const int AsiaContinentIndex = 0;
         private const int AuthoredGameplayLevelStart = 0;
-        private const float ProgressFillFullWidth = 358f;
+        private const float ProgressFillFullWidth = 318f;
+        private const float ProgressFillHeight = 34f;
 
         private static readonly string[] ContinentNames =
         {
@@ -144,7 +145,7 @@ namespace Watermelon.BusStop
             PlayerPrefs.Save();
 
             ApplyContinentHeader();
-            EnsureProgressBarLayout();
+            ConfigureProgressFillRendering();
             RefreshHUD();
             RefreshCountryProgress();
             RefreshSettingsLabels();
@@ -203,32 +204,13 @@ namespace Watermelon.BusStop
                 unsupportedContinentPanel.SetActive(false);
         }
 
-        private void EnsureProgressBarLayout()
+        private void ConfigureProgressFillRendering()
         {
             if (progressFill == null)
                 return;
 
-            RectTransform fillRect = progressFill.rectTransform;
-            RectTransform trackRect = fillRect.parent as RectTransform;
-
-            if (trackRect != null)
-            {
-                trackRect.anchorMin = new Vector2(0.5f, 0.5f);
-                trackRect.anchorMax = new Vector2(0.5f, 0.5f);
-                trackRect.pivot = new Vector2(0.5f, 0.5f);
-                trackRect.anchoredPosition = new Vector2(55f, -28f);
-                trackRect.sizeDelta = new Vector2(390f, 52f);
-            }
-
-            fillRect.anchorMin = new Vector2(0f, 0.5f);
-            fillRect.anchorMax = new Vector2(0f, 0.5f);
-            fillRect.pivot = new Vector2(0f, 0.5f);
-            fillRect.anchoredPosition = new Vector2(16f, 0f);
-            fillRect.sizeDelta = new Vector2(ProgressFillFullWidth, 28f);
-            fillRect.localScale = Vector3.one;
-
-            // The generated glossy fill sprite is more reliable as a normal Image
-            // whose width represents progress. This also preserves its rounded look.
+            // Layout is authored and serialized by CountryMapSceneBuilder so it stays
+            // editable in the Unity Canvas. Runtime only changes the fill width.
             progressFill.type = Image.Type.Simple;
             progressFill.preserveAspect = false;
         }
@@ -256,21 +238,27 @@ namespace Watermelon.BusStop
             LevelSave save = SaveController.GetSaveObject<LevelSave>("level");
             if (save == null)
             {
-                Debug.LogWarning("[CountryMap] Level save is unavailable; progress cannot be displayed yet.");
-                SetProgressVisual(0);
+                Debug.LogWarning("[CountryMap] Level save is unavailable; country progress cannot be displayed yet.");
+                SetProgressVisual(0, LevelsPerCountry);
+
+                if (progressTitleText != null)
+                    progressTitleText.text = "COUNTRY PROGRESS";
+
+                if (progressValueText != null)
+                    progressValueText.text = "0/" + LevelsPerCountry;
+
                 return;
             }
 
             const bool supported = true;
-            int completedContinentLevels = 0;
             int highestUnlocked = 0;
 
+            // Refresh every country node using its real saved level completion.
             for (int country = 0; country < countryNodes.Length; country++)
             {
                 int completed = GetCompletedLevelsInCountry(country, save);
-                completedContinentLevels += completed;
-
                 bool unlocked = supported && IsCountryUnlocked(country, save);
+
                 if (unlocked)
                     highestUnlocked = country;
 
@@ -286,45 +274,52 @@ namespace Watermelon.BusStop
                 PlayerPrefs.Save();
             }
 
+            CountryMapCountryNode selectedNode =
+                selectedCountry >= 0 && selectedCountry < countryNodes.Length
+                    ? countryNodes[selectedCountry]
+                    : null;
+
+            int selectedCompleted = GetCompletedLevelsInCountry(selectedCountry, save);
+            string selectedCountryName = selectedNode != null
+                ? selectedNode.CountryName.ToUpperInvariant()
+                : "COUNTRY";
+
             if (progressTitleText != null)
-                progressTitleText.text = ContinentNames[selectedContinent].ToUpperInvariant() + " PROGRESS";
+                progressTitleText.text = selectedCountryName + " PROGRESS";
 
             if (progressValueText != null)
-                progressValueText.text = completedContinentLevels + "/" + LevelsPerContinent;
+                progressValueText.text = selectedCompleted + "/" + LevelsPerCountry;
 
-            SetProgressVisual(completedContinentLevels);
+            SetProgressVisual(selectedCompleted, LevelsPerCountry);
 
             if (statusText != null)
             {
-                CountryMapCountryNode selectedNode =
-                    selectedCountry >= 0 && selectedCountry < countryNodes.Length
-                        ? countryNodes[selectedCountry]
-                        : null;
-
                 statusText.text = selectedNode != null
-                    ? selectedNode.CountryName.ToUpperInvariant() + "  •  " +
-                      GetCompletedLevelsInCountry(selectedCountry, save) + "/" + LevelsPerCountry
+                    ? selectedCountryName + "  •  " + selectedCompleted + "/" + LevelsPerCountry
                     : "SELECT A COUNTRY";
             }
 
-            Debug.Log("[CountryMap] Real progress: " + completedContinentLevels + "/" + LevelsPerContinent);
+            Debug.Log("[CountryMap] " + selectedCountryName + " real progress: " +
+                      selectedCompleted + "/" + LevelsPerCountry);
         }
 
-        private void SetProgressVisual(int completedLevels)
+        private void SetProgressVisual(int completedLevels, int totalLevels)
         {
             if (progressFill == null)
                 return;
 
-            float normalized = Mathf.Clamp01((float)completedLevels / LevelsPerContinent);
+            float normalized = totalLevels > 0
+                ? Mathf.Clamp01((float)completedLevels / totalLevels)
+                : 0f;
 
             RectTransform fillRect = progressFill.rectTransform;
             Vector2 size = fillRect.sizeDelta;
             size.x = ProgressFillFullWidth * normalized;
-            size.y = 28f;
+            size.y = ProgressFillHeight;
             fillRect.sizeDelta = size;
 
-            // At zero progress keep the fill object enabled with zero width. As soon as
-            // a level is completed the same sprite expands smoothly from left to right.
+            // Keep the Image component enabled even at zero so the authored object
+            // remains visible/selectable in the Canvas hierarchy.
             progressFill.enabled = true;
         }
 
@@ -534,6 +529,16 @@ namespace Watermelon.BusStop
         }
 
 #if UNITY_EDITOR
+        public void EditorConfigureProgress(
+            TextMeshProUGUI progressTitle,
+            TextMeshProUGUI progressValue,
+            Image progressBarFill)
+        {
+            progressTitleText = progressTitle;
+            progressValueText = progressValue;
+            progressFill = progressBarFill;
+        }
+
         public void EditorConfigure(
             CountryMapCountryNode[] nodes,
             Button back,
