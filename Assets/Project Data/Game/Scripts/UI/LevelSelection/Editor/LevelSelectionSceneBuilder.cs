@@ -262,6 +262,7 @@ namespace Watermelon.EditorTools
             Sprite chefSprite = Existing("cheerful_chef_mascot_welcoming_gesture.png");
             Sprite bubbleSprite = Existing("glossy_chef_s_dialogue_bubble.png");
             Sprite homeIcon = Existing("Home.png");
+            Sprite counterFrame = Existing("glossy_blue_game_progress_panel.png");
 
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             CreateCamera();
@@ -281,6 +282,7 @@ namespace Watermelon.EditorTools
             Set(topHud, new Vector2(0.5f, 1f), new Vector2(0f, -68f), new Vector2(1080f, 136f));
 
             Image homeDisc = I("Home Button Frame", topHud, numberBadge, new Vector2(0f, 0.5f), new Vector2(72f, 0f), new Vector2(108f, 108f), true);
+            homeDisc.raycastTarget = true;
             Button homeButton = homeDisc.gameObject.AddComponent<Button>();
             homeButton.targetGraphic = homeDisc;
             if (homeIcon != null)
@@ -289,13 +291,13 @@ namespace Watermelon.EditorTools
                 hi.raycastTarget = false;
             }
 
-            Image coinBar = I("Coin Counter", topHud, progressOuter, new Vector2(0f, 0.5f), new Vector2(330f, 0f), new Vector2(280f, 92f), false);
+            Image coinBar = I("Coin Counter", topHud, counterFrame, new Vector2(0f, 0.5f), new Vector2(330f, 0f), new Vector2(280f, 92f), false);
             Image coinIcon = I("Coin Icon", coinBar.transform, coinSprite, new Vector2(0f, 0.5f), new Vector2(42f, 0f), new Vector2(66f, 66f), true);
             coinIcon.raycastTarget = false;
             TextMeshProUGUI coinText = T("Coin Value", coinBar.transform, "1,250", 31f, new Vector2(15f, 0f), new Vector2(120f, 56f));
             Button coinPlus = B("Coin Plus", coinBar.transform, plusSprite, new Vector2(1f, 0.5f), new Vector2(-38f, 0f), new Vector2(62f, 62f), true);
 
-            Image chefBar = I("Chef Counter", topHud, progressOuter, new Vector2(1f, 0.5f), new Vector2(-325f, 0f), new Vector2(260f, 92f), false);
+            Image chefBar = I("Chef Counter", topHud, counterFrame, new Vector2(1f, 0.5f), new Vector2(-325f, 0f), new Vector2(260f, 92f), false);
             Image chefMini = I("Chef Icon", chefBar.transform, chefSprite, new Vector2(0f, 0.5f), new Vector2(43f, 0f), new Vector2(62f, 68f), true);
             chefMini.raycastTarget = false;
             TextMeshProUGUI chefText = T("Chef Value", chefBar.transform, "0", 31f, new Vector2(12f, 0f), new Vector2(100f, 56f));
@@ -426,7 +428,7 @@ namespace Watermelon.EditorTools
             TextMeshProUGUI statusText = T("Status Text", root, "MISSION 1 SELECTED", 20f, new Vector2(0f, -825f), new Vector2(600f, 40f));
             statusText.color = new Color(1f, 1f, 1f, 0.88f);
 
-            GameObject settingsPanel = BuildSettingsPanel(root, progressOuter,
+            GameObject settingsPanel = BuildSettingsPanel(root, counterFrame,
                 out Button closeSettings, out Button soundButton, out Button vibrationButton,
                 out TextMeshProUGUI soundLabel, out TextMeshProUGUI vibrationLabel);
             settingsPanel.SetActive(false);
@@ -498,6 +500,7 @@ namespace Watermelon.EditorTools
             Set(root, new Vector2(0.5f, 0.5f), new Vector2(x, 0f), new Vector2(300f, 530f));
 
             Image frame = I("Card Frame", root, initialFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(290f, 515f), false);
+            frame.raycastTarget = true;
             Button selectButton = frame.gameObject.AddComponent<Button>();
             selectButton.targetGraphic = frame;
 
@@ -525,6 +528,7 @@ namespace Watermelon.EditorTools
             }
 
             Image actionImage = I("Action Button", root, index == 0 ? playButton : lockedButton, new Vector2(0.5f, 0f), new Vector2(0f, 70f), new Vector2(245f, 82f), false);
+            actionImage.raycastTarget = true;
             Button actionButton = actionImage.gameObject.AddComponent<Button>();
             actionButton.targetGraphic = actionImage;
             TextMeshProUGUI actionText = T("Action Label", actionImage.transform, index == 0 ? "PLAY" : "LOCKED", 31f, Vector2.zero, new Vector2(180f, 55f));
