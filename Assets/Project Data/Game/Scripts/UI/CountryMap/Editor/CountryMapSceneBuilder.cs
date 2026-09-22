@@ -440,6 +440,8 @@ namespace Watermelon.EditorTools
                 if (controller != null)
                 {
                     controller.EditorConfigureProgress(title, value, fill, status);
+                    ApplyProgressFillLayoutV2(fill.rectTransform);
+                    controller.EditorSetProgressWidgetLayoutVersion(2);
                     EditorUtility.SetDirty(controller);
                 }
 
@@ -824,12 +826,12 @@ namespace Watermelon.EditorTools
                 new Vector2(0.5f, 0.5f), new Vector2(30f, -28f), new Vector2(420f, 82f), false);
 
             fill = I("Progress Fill", track.transform, ProgressSprite("progress_ui_fill.png", "glossy_green_to_gold_progress_bar.png"),
-                new Vector2(0f, 0.5f), new Vector2(43f, 0f), new Vector2(0f, 34f), false);
+                new Vector2(0f, 0.5f), new Vector2(20f, 3f), new Vector2(0f, 78f), false);
             fill.rectTransform.anchorMin = new Vector2(0f, 0.5f);
             fill.rectTransform.anchorMax = new Vector2(0f, 0.5f);
             fill.rectTransform.pivot = new Vector2(0f, 0.5f);
-            fill.rectTransform.anchoredPosition = new Vector2(43f, 0f);
-            fill.rectTransform.sizeDelta = new Vector2(0f, 34f);
+            fill.rectTransform.anchoredPosition = new Vector2(20f, 3f);
+            fill.rectTransform.sizeDelta = new Vector2(0f, 78f);
             fill.type = Image.Type.Simple;
             fill.preserveAspect = false;
             fill.raycastTarget = false;
@@ -850,6 +852,23 @@ namespace Watermelon.EditorTools
             titleGroup.SetSiblingIndex(3);
             track.transform.SetSiblingIndex(4);
             badge.transform.SetSiblingIndex(5);
+        }
+
+        private static void ApplyProgressFillLayoutV2(RectTransform fillRect)
+        {
+            if (fillRect == null)
+                return;
+
+            fillRect.anchorMin = new Vector2(0f, 0.5f);
+            fillRect.anchorMax = new Vector2(0f, 0.5f);
+            fillRect.pivot = new Vector2(0f, 0.5f);
+            fillRect.anchoredPosition = new Vector2(20f, 3f);
+
+            Vector2 size = fillRect.sizeDelta;
+            size.x = 0f;
+            size.y = 78f;
+            fillRect.sizeDelta = size;
+            fillRect.localScale = Vector3.one;
         }
 
         private static bool UpgradeEditableProgressWidget(Scene scene, bool saveIfChanged)
@@ -935,6 +954,13 @@ namespace Watermelon.EditorTools
             }
 
             controller.EditorConfigureProgress(title, value, fill, status);
+
+            if (controller.EditorProgressWidgetLayoutVersion < 2)
+            {
+                ApplyProgressFillLayoutV2(fill.rectTransform);
+                controller.EditorSetProgressWidgetLayoutVersion(2);
+                changed = true;
+            }
 
             // Keep the exact hierarchy order requested in the editable Canvas:
             // Chef Guide Mascot -> Continent Progress Panel -> Chef Speech Bubble.
