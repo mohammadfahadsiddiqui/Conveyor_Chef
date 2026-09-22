@@ -1,262 +1,650 @@
+using System;
+using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace Watermelon.BusStop
 {
     /// <summary>
-    /// Drives the existing LevelSelection scene.
-    /// When opened from CountryMap it focuses the page containing the selected
-    /// country's first level and Back returns to CountryMap.
+    /// Runtime behaviour for the serialized, designer-editable LevelSelection scene.
+    /// The scene owns every RectTransform and visual position. Runtime only updates
+    /// text, sprites, visibility, button state and the progress-fill width.
     /// </summary>
-    public class LevelSelectionController : MonoBehaviour
+    [DisallowMultipleComponent]
+    public sealed class LevelSelectionController : MonoBehaviour
     {
         public static LevelSelectionController Instance { get; private set; }
 
-        private const string SelectedContinentKey = "CC_WorldMap_SelectedContinent";
         private const string SelectedCountryKey = "CC_CountryMap_SelectedCountry";
         private const string FromCountryMapKey = "CC_LevelSelection_FromCountryMap";
         private const string SelectedCountryLevelStartKey = "CC_CountryMap_SelectedLevelStart";
-
         private const int LevelsPerCountry = 3;
-        private const int CountriesPerContinent = 5;
 
-        [Header("References")]
-        [SerializeField] private LevelDatabase levelDatabase;
-        [SerializeField] private LevelPageController pageControllerPrefab;
-        [SerializeField] private Transform pagesContainer;
-        [SerializeField] private PageNavigationBar navigationBar;
+        private static readonly string[] CountryNames =
+        {
+            "China", "Japan", "India", "South Korea", "Thailand"
+        };
 
-        [Header("Animation")]
-        [SerializeField] private ScooterAnimationController scooterAnimationController;
+        private static readonly string[] CountrySubtitles =
+        {
+            "FLAVORS • CULTURE • JOURNEY",
+            "FLAVORS • CULTURE • JOURNEY",
+            "FLAVORS • CULTURE • JOURNEY",
+            "FLAVORS • CULTURE • JOURNEY",
+            "FLAVORS • CULTURE • JOURNEY"
+        };
+
+        private static readonly string[,] MissionTitles =
+        {
+            { "Beijing Bites", "Shanghai Rush", "Sichuan Station" },
+            { "Tokyo Treats", "Kyoto Kitchen", "Osaka Rush" },
+            { "Varanasi Ghats", "Delhi Streets", "Mumbai Docks" },
+            { "Seoul Street Food", "Busan Harbor", "Jeonju Kitchen" },
+            { "Bangkok Market", "Chiang Mai Feast", "Phuket Pier" }
+        };
+
+        private static readonly string[] CountryDescriptions =
+        {
+            "Explore China's iconic cities and bold regional flavors as you master three culinary missions.",
+            "Travel across Japan through fast kitchens, classic streets and unforgettable food destinations.",
+            "Explore India's rich food culture, vibrant cities and iconic destinations as you deliver delicious dishes across the country!",
+            "Discover Korea's energetic food streets, coastal stops and traditional culinary culture.",
+            "Serve your way through Thailand's colorful markets, northern kitchens and tropical waterfronts."
+        };
+
+        [Header("Navigation")]
+        [SerializeField] private Button homeButton;
+        [SerializeField] private Button backButton;
+        [SerializeField] private Button settingsButton;
+        [SerializeField] private Button coinPlusButton;
+        [SerializeField] private Button chefPlusButton;
+        [SerializeField] private Button leftArrowButton;
+        [SerializeField] private Button rightArrowButton;
+
+        [Header("Top HUD")]
+        [SerializeField] private TextMeshProUGUI coinText;
+        [SerializeField] private TextMeshProUGUI chefCurrencyText;
+
+        [Header("Country Header")]
+        [SerializeField] private TextMeshProUGUI countryTitleText;
+        [SerializeField] private TextMeshProUGUI countrySubtitleText;
+        [SerializeField] private Image countryFlagImage;
+
+        [Header("Hero / Description")]
+        [SerializeField] private Image heroImage;
+        [SerializeField] private TextMeshProUGUI descriptionText;
+
+        [Header("Level Cards")]
+        [SerializeField] private LevelSelectionLevelCard[] levelCards = new LevelSelectionLevelCard[3];
+        [SerializeField] private Sprite[] indiaThumbnails = new Sprite[3];
+
+        [Header("Guide")]
+        [SerializeField] private TextMeshProUGUI guideText;
+
+        [Header("Country Progress")]
+        [SerializeField] private Image progressEmblem;
+        [SerializeField] private Image progressFill;
+        [SerializeField] private TextMeshProUGUI progressTitleText;
+        [SerializeField] private TextMeshProUGUI progressValueText;
+
+        [Header("State")]
+        [SerializeField] private TextMeshProUGUI statusText;
 
         [Header("Settings")]
-        [SerializeField, Min(1)] private int levelsPerPage = 5;
-        [SerializeField] private bool allowNavigationToLockedPages = true;
+        [SerializeField] private GameObject settingsPanel;
+        [SerializeField] private Button closeSettingsButton;
+        [SerializeField] private Button soundButton;
+        [SerializeField] private Button vibrationButton;
+        [SerializeField] private TextMeshProUGUI soundText;
+        [SerializeField] private TextMeshProUGUI vibrationText;
 
         private LevelSave levelSave;
-        private LevelPageController[] pages;
-        private int currentPageIndex;
+        private int selectedCountry;
+        private int countryLevelStart;
+        private int selectedSlot;
+        private bool currencySubscribed;
 
         private void Awake()
         {
             Instance = this;
-
-            if (!SaveController.IsSaveLoaded)
-                SaveController.Initialise(useAutoSave: false);
+            EnsureSaveControllerReady();
+            UIEventSystemRuntime.UseCurrentSceneEventSystem();
 
             levelSave = SaveController.GetSaveObject<LevelSave>("level");
+
+            Wire(homeButton, HomePressed);
+            Wire(backButton, BackPressed);
+            Wire(settingsButton, OpenSettings);
+            Wire(coinPlusButton, CoinPlusPressed);
+            Wire(chefPlusButton, ChefPlusPressed);
+            Wire(leftArrowButton, PreviousLevel);
+            Wire(rightArrowButton, NextLevel);
+            Wire(closeSettingsButton, CloseSettings);
+            Wire(soundButton, ToggleSound);
+            Wire(vibrationButton, ToggleVibration);
+
+            if (levelCards != null)
+            {
+                for (int i = 0; i < levelCards.Length; i++)
+                    levelCards[i]?.Bind(this);
+            }
+
+            if (settingsPanel != null)
+                settingsPanel.SetActive(false);
         }
 
         private void Start()
         {
-            CreatePages();
-            InitializeNavigationBar();
+            selectedCountry = Mathf.Clamp(
+                PlayerPrefs.GetInt(SelectedCountryKey, 2),
+                0,
+                CountryNames.Length - 1);
 
-            int initialPage = ResolveInitialPage();
-            ShowPage(initialPage);
+            countryLevelStart = Mathf.Max(
+                0,
+                PlayerPrefs.GetInt(
+                    SelectedCountryLevelStartKey,
+                    selectedCountry * LevelsPerCountry));
 
-            if (scooterAnimationController != null)
-                scooterAnimationController.StartAnimations();
+            PlayerPrefs.SetInt(SelectedCountryKey, selectedCountry);
+            PlayerPrefs.SetInt(SelectedCountryLevelStartKey, countryLevelStart);
+            PlayerPrefs.Save();
+
+            selectedSlot = ResolveInitialSelectedSlot();
+
+            ApplyCountryPresentation();
+            RefreshAll();
+            RefreshSettingsLabels();
+
+            CurrenciesController.InvokeOrSubcrtibe(() =>
+            {
+                RefreshHUD();
+
+                if (!currencySubscribed)
+                {
+                    CurrenciesController.SubscribeGlobalCallback(OnCurrencyChanged);
+                    currencySubscribed = true;
+                }
+            });
         }
 
         private void OnDestroy()
         {
-            if (scooterAnimationController != null)
-                scooterAnimationController.StopAnimations();
+            if (currencySubscribed)
+            {
+                CurrenciesController.UnsubscribeGlobalCallback(OnCurrencyChanged);
+                currencySubscribed = false;
+            }
 
             if (Instance == this)
                 Instance = null;
         }
 
-        private int ResolveInitialPage()
+        private void OnCurrencyChanged(Currency currency, int difference)
         {
-            if (pages == null || pages.Length == 0)
-                return 0;
-
-            if (PlayerPrefs.GetInt(FromCountryMapKey, 0) != 1)
-                return 0;
-
-            if (pages.Length == 1)
-                return 0;
-
-            int firstCountryLevel = Mathf.Max(
-                0,
-                PlayerPrefs.GetInt(SelectedCountryLevelStartKey, 0));
-
-            int safeLevelsPerPage = Mathf.Max(1, levelsPerPage);
-            return Mathf.Clamp(
-                firstCountryLevel / safeLevelsPerPage,
-                0,
-                pages.Length - 1);
+            if (currency != null && currency.CurrencyType == CurrencyType.Coins)
+                RefreshHUD();
         }
 
-        private void CreatePages()
+        private int ResolveInitialSelectedSlot()
         {
-            if (levelDatabase == null)
+            for (int slot = 0; slot < LevelsPerCountry; slot++)
             {
-                Debug.LogError("[LevelSelection] LevelDatabase reference is missing.");
-                pages = new LevelPageController[0];
-                return;
+                int levelIndex = countryLevelStart + slot;
+                if (IsLevelUnlocked(levelIndex) && !IsLevelCompleted(levelIndex))
+                    return slot;
             }
 
-            if (pageControllerPrefab == null || pagesContainer == null)
+            for (int slot = LevelsPerCountry - 1; slot >= 0; slot--)
             {
-                Debug.LogError("[LevelSelection] Page prefab or PagesContainer reference is missing.");
-                pages = new LevelPageController[0];
-                return;
+                if (IsLevelUnlocked(countryLevelStart + slot))
+                    return slot;
             }
 
-            bool fromCountryMap = PlayerPrefs.GetInt(FromCountryMapKey, 0) == 1;
+            return 0;
+        }
 
-            if (fromCountryMap)
+        private void ApplyCountryPresentation()
+        {
+            string countryName = CountryNames[selectedCountry];
+
+            if (countryTitleText != null)
+                countryTitleText.text = countryName.ToUpperInvariant();
+
+            if (countrySubtitleText != null)
+                countrySubtitleText.text = CountrySubtitles[selectedCountry];
+
+            if (descriptionText != null)
+                descriptionText.text = CountryDescriptions[selectedCountry];
+
+            if (guideText != null)
+                guideText.text = "Complete all 3 missions to master " + countryName + "'s flavors!";
+
+            if (progressTitleText != null)
+                progressTitleText.text = "COUNTRY PROGRESS";
+
+            // The first art pack is India. Keep its thumbnails authored and editable.
+            // Additional country art packs can be assigned later without changing layout.
+            if (selectedCountry == 2 && indiaThumbnails != null && indiaThumbnails.Length >= 3)
             {
-                int startLevelIndex = Mathf.Clamp(
-                    PlayerPrefs.GetInt(SelectedCountryLevelStartKey, 0),
-                    0,
-                    Mathf.Max(0, levelDatabase.Levels.Length - 1));
-
-                int levelsInCountry = Mathf.Min(
-                    LevelsPerCountry,
-                    levelDatabase.Levels.Length - startLevelIndex);
-
-                pages = new LevelPageController[1];
-
-                LevelPageController page = Instantiate(pageControllerPrefab, pagesContainer);
-                page.gameObject.SetActive(false);
-                page.Setup(0, startLevelIndex, levelsInCountry);
-                pages[0] = page;
-                return;
-            }
-
-            int totalLevels = levelDatabase.Levels.Length;
-            int safeLevelsPerPage = Mathf.Max(1, levelsPerPage);
-            int totalPages = Mathf.CeilToInt((float)totalLevels / safeLevelsPerPage);
-
-            pages = new LevelPageController[totalPages];
-
-            for (int pageIndex = 0; pageIndex < totalPages; pageIndex++)
-            {
-                LevelPageController page = Instantiate(pageControllerPrefab, pagesContainer);
-                page.gameObject.SetActive(false);
-
-                int startLevelIndex = pageIndex * safeLevelsPerPage;
-                int endLevelIndex = Mathf.Min(startLevelIndex + safeLevelsPerPage, totalLevels);
-                int levelsInPage = endLevelIndex - startLevelIndex;
-
-                page.Setup(pageIndex, startLevelIndex, levelsInPage);
-                pages[pageIndex] = page;
+                if (heroImage != null && indiaThumbnails[0] != null)
+                    heroImage.sprite = indiaThumbnails[0];
             }
         }
 
-        private void InitializeNavigationBar()
+        private void RefreshAll()
         {
-            if (navigationBar != null)
-                navigationBar.Setup(pages != null ? pages.Length : 0, this);
+            RefreshHUD();
+            RefreshCards();
+            RefreshProgress();
+
+            if (leftArrowButton != null)
+                leftArrowButton.interactable = selectedSlot > 0;
+
+            if (rightArrowButton != null)
+                rightArrowButton.interactable = selectedSlot < LevelsPerCountry - 1;
         }
 
-        public void ShowPage(int pageIndex)
+        private void RefreshHUD()
         {
-            if (pages == null || pages.Length == 0)
-                return;
-
-            if (pageIndex < 0 || pageIndex >= pages.Length)
-                return;
-
-            if (!allowNavigationToLockedPages && !IsPageUnlocked(pageIndex))
+            if (coinText != null)
             {
-                Debug.Log("[LevelSelection] Page " + pageIndex + " is locked.");
-                return;
+                try
+                {
+                    coinText.text = CurrenciesController.Get(CurrencyType.Coins).ToString("N0");
+                }
+                catch
+                {
+                    coinText.text = "0";
+                }
             }
 
-            if (currentPageIndex >= 0 &&
-                currentPageIndex < pages.Length &&
-                pages[currentPageIndex] != null)
-            {
-                pages[currentPageIndex].gameObject.SetActive(false);
-            }
-
-            currentPageIndex = pageIndex;
-
-            if (pages[currentPageIndex] != null)
-                pages[currentPageIndex].gameObject.SetActive(true);
-
-            if (navigationBar != null)
-                navigationBar.SetCurrentPage(currentPageIndex);
+            if (chefCurrencyText != null)
+                chefCurrencyText.text = "0";
         }
 
-        public bool IsPageUnlocked(int pageIndex)
+        private void RefreshCards()
         {
-            if (pageIndex <= 0)
-                return true;
+            if (levelCards == null)
+                return;
 
-            if (levelDatabase == null)
-                return false;
-
-            int safeLevelsPerPage = Mathf.Max(1, levelsPerPage);
-            int previousPageStartLevel = (pageIndex - 1) * safeLevelsPerPage;
-            int previousPageEndLevel = Mathf.Min(
-                previousPageStartLevel + safeLevelsPerPage,
-                levelDatabase.Levels.Length);
-
-            for (int i = previousPageStartLevel; i < previousPageEndLevel; i++)
+            for (int slot = 0; slot < levelCards.Length && slot < LevelsPerCountry; slot++)
             {
-                if (!LevelController.IsLevelCompleted(i))
-                    return false;
+                LevelSelectionLevelCard card = levelCards[slot];
+                if (card == null)
+                    continue;
+
+                int levelIndex = countryLevelStart + slot;
+                bool unlocked = IsLevelUnlocked(levelIndex);
+                bool completed = IsLevelCompleted(levelIndex);
+                int stars = GetLevelStars(levelIndex);
+
+                Sprite thumbnail = null;
+                if (selectedCountry == 2 &&
+                    indiaThumbnails != null &&
+                    slot < indiaThumbnails.Length)
+                {
+                    thumbnail = indiaThumbnails[slot];
+                }
+
+                card.Refresh(
+                    levelIndex,
+                    MissionTitles[selectedCountry, slot],
+                    thumbnail,
+                    unlocked,
+                    slot == selectedSlot,
+                    completed,
+                    stars);
             }
 
-            return true;
+            if (heroImage != null &&
+                selectedCountry == 2 &&
+                indiaThumbnails != null &&
+                selectedSlot >= 0 &&
+                selectedSlot < indiaThumbnails.Length &&
+                indiaThumbnails[selectedSlot] != null)
+            {
+                heroImage.sprite = indiaThumbnails[selectedSlot];
+            }
+
+            if (statusText != null)
+            {
+                int levelIndex = countryLevelStart + selectedSlot;
+                statusText.text = IsLevelUnlocked(levelIndex)
+                    ? "MISSION " + (selectedSlot + 1) + " SELECTED"
+                    : "COMPLETE THE PREVIOUS MISSION TO UNLOCK";
+            }
+        }
+
+        private void RefreshProgress()
+        {
+            int completed = 0;
+            for (int i = 0; i < LevelsPerCountry; i++)
+            {
+                if (IsLevelCompleted(countryLevelStart + i))
+                    completed++;
+            }
+
+            if (progressValueText != null)
+                progressValueText.text = completed + "/" + LevelsPerCountry;
+
+            if (progressFill == null)
+                return;
+
+            float normalized = completed / (float)LevelsPerCountry;
+            RectTransform fillRect = progressFill.rectTransform;
+            RectTransform trackRect = fillRect.parent as RectTransform;
+
+            float leftInset = Mathf.Max(0f, fillRect.anchoredPosition.x);
+            float fullWidth = trackRect != null
+                ? Mathf.Max(0f, trackRect.rect.width - leftInset * 2f)
+                : Mathf.Max(0f, fillRect.sizeDelta.x);
+
+            Vector2 size = fillRect.sizeDelta;
+            size.x = fullWidth * normalized;
+            fillRect.sizeDelta = size;
+
+            progressFill.type = Image.Type.Simple;
+            progressFill.preserveAspect = false;
+            progressFill.raycastTarget = false;
+        }
+
+        public void HandleCardPressed(int slot)
+        {
+            slot = Mathf.Clamp(slot, 0, LevelsPerCountry - 1);
+            selectedSlot = slot;
+            PlayClick();
+            RefreshAll();
+        }
+
+        public void HandlePlayPressed(int slot)
+        {
+            slot = Mathf.Clamp(slot, 0, LevelsPerCountry - 1);
+            int levelIndex = countryLevelStart + slot;
+
+            if (!IsLevelUnlocked(levelIndex))
+            {
+                HandleLockedPressed(slot);
+                return;
+            }
+
+            LoadSelectedLevel(levelIndex);
+        }
+
+        public void HandleLockedPressed(int slot)
+        {
+            selectedSlot = Mathf.Clamp(slot, 0, LevelsPerCountry - 1);
+            PlayClick();
+
+            if (statusText != null)
+                statusText.text = "COMPLETE THE PREVIOUS MISSION TO UNLOCK";
+
+            RefreshCards();
+        }
+
+        private void PreviousLevel()
+        {
+            if (selectedSlot <= 0)
+                return;
+
+            selectedSlot--;
+            PlayClick();
+            RefreshAll();
+        }
+
+        private void NextLevel()
+        {
+            if (selectedSlot >= LevelsPerCountry - 1)
+                return;
+
+            selectedSlot++;
+            PlayClick();
+            RefreshAll();
         }
 
         public void LoadSelectedLevel(int levelIndex)
         {
-            if (levelDatabase == null ||
-                levelIndex < 0 ||
-                levelIndex >= levelDatabase.Levels.Length)
+            if (levelSave == null)
             {
-                Debug.LogError("[LevelSelection] Invalid level index: " + levelIndex);
+                Debug.LogError("[LevelSelection] LevelSave is unavailable.");
                 return;
             }
 
-            Debug.Log("[LevelSelection] Loading level " + (levelIndex + 1));
+            if (!IsLevelUnlocked(levelIndex))
+                return;
 
-            LevelSave save = SaveController.GetSaveObject<LevelSave>("level");
-            save.selectedLevelIndex = levelIndex;
-            save.isPlayingFromLevelSelection = true;
-            save.ReplayingLevelAgain = LevelController.IsLevelCompleted(levelIndex);
+            levelSave.selectedLevelIndex = levelIndex;
+            levelSave.isPlayingFromLevelSelection = true;
+            levelSave.ReplayingLevelAgain = IsLevelCompleted(levelIndex);
 
             SaveController.MarkAsSaveIsRequired();
             SaveController.Save(true);
 
-            if (scooterAnimationController != null)
-                scooterAnimationController.StopAnimations();
-
-            // The country-map navigation context has served its purpose once
-            // gameplay starts. Clear it so later generic level-selection visits
-            // retain their original Main Menu back behavior.
-            PlayerPrefs.DeleteKey(FromCountryMapKey);
+            // Keep CountryMap context so gameplay -> LevelSelection returns to
+            // this same country screen instead of the legacy generic selector.
+            PlayerPrefs.SetInt(FromCountryMapKey, 1);
+            PlayerPrefs.SetInt(SelectedCountryLevelStartKey, countryLevelStart);
             PlayerPrefs.Save();
 
-            Watermelon.EnhancedLoadingScreen.LoadViaLoadingScreen("Game");
+            PlayClick();
+            EnhancedLoadingScreen.LoadViaLoadingScreen("Game");
         }
 
         public void BackToMainMenu()
         {
-            if (scooterAnimationController != null)
-                scooterAnimationController.StopAnimations();
+            BackPressed();
+        }
 
-            if (PlayerPrefs.GetInt(FromCountryMapKey, 0) == 1)
-            {
-                PlayerPrefs.DeleteKey(FromCountryMapKey);
-                PlayerPrefs.Save();
-                Watermelon.EnhancedLoadingScreen.LoadViaLoadingScreen("CountryMap");
-                return;
-            }
+        public void ShowPage(int pageIndex)
+        {
+            selectedSlot = Mathf.Clamp(pageIndex, 0, LevelsPerCountry - 1);
+            RefreshAll();
+        }
 
-            Watermelon.EnhancedLoadingScreen.LoadViaLoadingScreen("menu");
+        public bool IsPageUnlocked(int pageIndex)
+        {
+            int slot = Mathf.Clamp(pageIndex, 0, LevelsPerCountry - 1);
+            return IsLevelUnlocked(countryLevelStart + slot);
         }
 
         public int GetCurrentPageIndex()
         {
-            return currentPageIndex;
+            return selectedSlot;
         }
+
+        private void BackPressed()
+        {
+            PlayClick();
+            PlayerPrefs.SetInt(FromCountryMapKey, 1);
+            PlayerPrefs.Save();
+            EnhancedLoadingScreen.LoadViaLoadingScreen("CountryMap");
+        }
+
+        private void HomePressed()
+        {
+            PlayClick();
+            EnhancedLoadingScreen.LoadViaLoadingScreen("menu");
+        }
+
+        private void CoinPlusPressed()
+        {
+            PlayClick();
+            if (statusText != null)
+                statusText.text = "COINS ARE MANAGED FROM THE MAIN MENU SHOP";
+        }
+
+        private void ChefPlusPressed()
+        {
+            PlayClick();
+            if (statusText != null)
+                statusText.text = "CHEF BOOSTS WILL BE AVAILABLE SOON";
+        }
+
+        private void OpenSettings()
+        {
+            PlayClick();
+            if (settingsPanel != null)
+                settingsPanel.SetActive(true);
+            RefreshSettingsLabels();
+        }
+
+        private void CloseSettings()
+        {
+            PlayClick();
+            if (settingsPanel != null)
+                settingsPanel.SetActive(false);
+        }
+
+        private void ToggleSound()
+        {
+            bool enabled = AudioController.GetVolume() > 0.001f;
+            AudioController.SetVolume(enabled ? 0f : 1f);
+            RefreshSettingsLabels();
+            PlayClick();
+        }
+
+        private void ToggleVibration()
+        {
+            AudioController.SetVibrationState(!AudioController.IsVibrationEnabled());
+            RefreshSettingsLabels();
+            PlayClick();
+        }
+
+        private void RefreshSettingsLabels()
+        {
+            if (soundText != null)
+                soundText.text = "SOUND: " + (AudioController.GetVolume() > 0.001f ? "ON" : "OFF");
+
+            if (vibrationText != null)
+                vibrationText.text = "VIBRATION: " + (AudioController.IsVibrationEnabled() ? "ON" : "OFF");
+        }
+
+        private static bool IsLevelUnlocked(int levelIndex)
+        {
+            if (levelIndex <= 0)
+                return true;
+
+            return IsLevelCompleted(levelIndex - 1);
+        }
+
+        private bool IsLevelCompleted(int levelIndex)
+        {
+            if (levelSave == null || levelIndex < 0)
+                return false;
+
+            LevelProgressData progress = levelSave.GetLevelProgress(levelIndex);
+            if (progress != null && progress.isCompleted)
+                return true;
+
+            int legacyCompletedCount = Mathf.Max(0, levelSave.DisplayLevelNumber);
+            return levelIndex < legacyCompletedCount;
+        }
+
+        private int GetLevelStars(int levelIndex)
+        {
+            if (levelSave == null)
+                return 0;
+
+            LevelProgressData progress = levelSave.GetLevelProgress(levelIndex);
+            return progress != null ? Mathf.Clamp(progress.starsEarned, 0, 3) : 0;
+        }
+
+        private static void Wire(Button button, UnityEngine.Events.UnityAction action)
+        {
+            if (button == null)
+                return;
+
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(action);
+        }
+
+        private static void EnsureSaveControllerReady()
+        {
+            if (SaveController.IsSaveLoaded)
+                return;
+
+            try
+            {
+                SaveController.Initialise(useAutoSave: false);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[LevelSelection] SaveController initialisation failed: " + ex.Message);
+            }
+        }
+
+        private static void PlayClick()
+        {
+            try
+            {
+                AudioController.PlaySound(AudioController.Sounds.buttonSound);
+            }
+            catch
+            {
+                // UI remains functional when audio has not initialised yet.
+            }
+        }
+
+#if UNITY_EDITOR
+        public void EditorConfigure(
+            Button home,
+            Button back,
+            Button settings,
+            Button coinPlus,
+            Button chefPlus,
+            Button leftArrow,
+            Button rightArrow,
+            TextMeshProUGUI coins,
+            TextMeshProUGUI chefCurrency,
+            TextMeshProUGUI countryTitle,
+            TextMeshProUGUI countrySubtitle,
+            Image flag,
+            Image hero,
+            TextMeshProUGUI description,
+            LevelSelectionLevelCard[] cards,
+            Sprite[] indiaMissionThumbnails,
+            TextMeshProUGUI guide,
+            Image emblem,
+            Image fill,
+            TextMeshProUGUI progressTitle,
+            TextMeshProUGUI progressValue,
+            TextMeshProUGUI state,
+            GameObject settingsRoot,
+            Button closeSettings,
+            Button sound,
+            Button vibration,
+            TextMeshProUGUI soundLabel,
+            TextMeshProUGUI vibrationLabel)
+        {
+            homeButton = home;
+            backButton = back;
+            settingsButton = settings;
+            coinPlusButton = coinPlus;
+            chefPlusButton = chefPlus;
+            leftArrowButton = leftArrow;
+            rightArrowButton = rightArrow;
+            coinText = coins;
+            chefCurrencyText = chefCurrency;
+            countryTitleText = countryTitle;
+            countrySubtitleText = countrySubtitle;
+            countryFlagImage = flag;
+            heroImage = hero;
+            descriptionText = description;
+            levelCards = cards;
+            indiaThumbnails = indiaMissionThumbnails;
+            guideText = guide;
+            progressEmblem = emblem;
+            progressFill = fill;
+            progressTitleText = progressTitle;
+            progressValueText = progressValue;
+            statusText = state;
+            settingsPanel = settingsRoot;
+            closeSettingsButton = closeSettings;
+            soundButton = sound;
+            vibrationButton = vibration;
+            soundText = soundLabel;
+            vibrationText = vibrationLabel;
+        }
+#endif
     }
 }
