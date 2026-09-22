@@ -24,8 +24,6 @@ namespace Watermelon.BusStop
         private const string SelectedCountryLevelStartKey = "CC_CountryMap_SelectedLevelStart";
         private const int AsiaContinentIndex = 0;
         private const int AuthoredGameplayLevelStart = 0;
-        private const float ProgressFillFullWidth = 318f;
-        private const float ProgressFillHeight = 34f;
 
         private static readonly string[] ContinentNames =
         {
@@ -50,6 +48,7 @@ namespace Watermelon.BusStop
         [SerializeField] private TextMeshProUGUI progressValueText;
         [SerializeField] private Image progressFill;
         [SerializeField] private TextMeshProUGUI statusText;
+        [SerializeField, HideInInspector] private int progressWidgetLayoutVersion;
 
         [Header("Settings")]
         [SerializeField] private GameObject settingsPanel;
@@ -250,18 +249,9 @@ namespace Watermelon.BusStop
                 return;
             }
 
-            RectTransform fillRect = progressFill.rectTransform;
-            fillRect.anchorMin = new Vector2(0f, 0.5f);
-            fillRect.anchorMax = new Vector2(0f, 0.5f);
-            fillRect.pivot = new Vector2(0f, 0.5f);
-            fillRect.anchoredPosition = new Vector2(43f, 0f);
-
-            Vector2 size = fillRect.sizeDelta;
-            size.y = ProgressFillHeight;
-            fillRect.sizeDelta = size;
-            fillRect.localScale = Vector3.one;
-
-            // The selected country's completion controls only the fill width.
+            // IMPORTANT: never change RectTransform position, anchors, pivot, height or
+            // scale at runtime. The Canvas owns the layout and designers can edit it.
+            // Runtime only changes the width inside SetProgressVisual().
             progressFill.type = Image.Type.Simple;
             progressFill.preserveAspect = false;
             progressFill.raycastTarget = false;
@@ -371,13 +361,21 @@ namespace Watermelon.BusStop
                 : 0f;
 
             RectTransform fillRect = progressFill.rectTransform;
+            RectTransform trackRect = fillRect.parent as RectTransform;
+
+            // Derive the full width from the authored track instead of hard-coding it.
+            // With the default layout: 420 track width - (20 * 2) inset = 380.
+            // If the designer adjusts the fill X position or track width in Canvas,
+            // Play Mode respects that layout instead of snapping back.
+            float leftInset = Mathf.Max(0f, fillRect.anchoredPosition.x);
+            float fullWidth = trackRect != null
+                ? Mathf.Max(0f, trackRect.rect.width - (leftInset * 2f))
+                : Mathf.Max(0f, fillRect.sizeDelta.x);
+
             Vector2 size = fillRect.sizeDelta;
-            size.x = ProgressFillFullWidth * normalized;
-            size.y = ProgressFillHeight;
+            size.x = fullWidth * normalized;
             fillRect.sizeDelta = size;
 
-            // Keep the Image component enabled even at zero so the authored object
-            // remains visible/selectable in the Canvas hierarchy.
             progressFill.enabled = true;
         }
 
@@ -587,6 +585,8 @@ namespace Watermelon.BusStop
         }
 
 #if UNITY_EDITOR
+        public int EditorProgressWidgetLayoutVersion => progressWidgetLayoutVersion;
+
         public void EditorConfigureProgress(
             TextMeshProUGUI progressTitle,
             TextMeshProUGUI progressValue,
@@ -597,6 +597,11 @@ namespace Watermelon.BusStop
             progressValueText = progressValue;
             progressFill = progressBarFill;
             statusText = state;
+        }
+
+        public void EditorSetProgressWidgetLayoutVersion(int version)
+        {
+            progressWidgetLayoutVersion = version;
         }
 
         public void EditorConfigure(
@@ -635,6 +640,7 @@ namespace Watermelon.BusStop
             progressValueText = progressValue;
             progressFill = progressBarFill;
             statusText = state;
+            progressWidgetLayoutVersion = 2;
             settingsPanel = settingsRoot;
             closeSettingsButton = closeSettings;
             soundButton = sound;
