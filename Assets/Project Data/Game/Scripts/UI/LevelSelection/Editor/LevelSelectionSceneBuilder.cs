@@ -123,9 +123,9 @@ namespace Watermelon.EditorTools
                 Watermelon.LevelSelectionResponsiveLayout marker =
                     newRoot.GetComponent<Watermelon.LevelSelectionResponsiveLayout>();
 
-                if (missing.Count == 0 && (marker == null || marker.LayoutVersion < 5))
+                if (missing.Count == 0 && (marker == null || marker.LayoutVersion < 6))
                 {
-                    Debug.Log("[LevelSelection] Upgrading the authored Level Selection layout to pixel-matched reference layout v5.");
+                    Debug.Log("[LevelSelection] Upgrading the authored Level Selection layout to locked reference layout v6.");
                     BakeInternal(false);
                     return;
                 }
@@ -331,6 +331,7 @@ namespace Watermelon.EditorTools
             Sprite bubbleSprite = Existing("glossy_chef_s_dialogue_bubble.png");
             Sprite homeIcon = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Home.png") ?? Existing("Home.png");
             Sprite counterFrame = Existing("glossy_blue_game_progress_panel.png");
+            Sprite existingBackButton = Existing("glossy_blue_back_button.png");
 
             Scene scene = PrepareExistingLevelSelectionScene(out Canvas canvas);
 
@@ -338,17 +339,18 @@ namespace Watermelon.EditorTools
             Stretch(root);
             Watermelon.LevelSelectionResponsiveLayout layoutMarker =
                 root.gameObject.AddComponent<Watermelon.LevelSelectionResponsiveLayout>();
-            layoutMarker.EditorConfigure(5);
+            layoutMarker.EditorConfigure(6);
 
             Image background = I("Background Artwork", root, bg, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(W, H), false);
             Stretch(background.rectTransform);
             background.raycastTarget = false;
 
-            // TOP HUD
+            // TOP HUD - measured directly from the approved reference.
             RectTransform topHud = R("Top HUD", root);
-            SetReferenceRect(topHud, 0f, 0f, 1080f, 145f);
+            Stretch(topHud);
 
-            Image homeDisc = I("Home Button Frame", topHud, numberBadge, new Vector2(0f, 0.5f), new Vector2(82f, 0f), new Vector2(138f, 138f), true);
+            Image homeDisc = I("Home Button Frame", topHud, numberBadge, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(138f, 135f), true);
+            SetReferenceRect(homeDisc.rectTransform, 7f, 0f, 138f, 135f);
             homeDisc.raycastTarget = true;
             Button homeButton = homeDisc.gameObject.AddComponent<Button>();
             homeButton.targetGraphic = homeDisc;
@@ -358,23 +360,26 @@ namespace Watermelon.EditorTools
                 hi.raycastTarget = false;
             }
 
-            Image coinBar = I("Coin Counter", topHud, counterFrame, new Vector2(0f, 0.5f), new Vector2(360f, 0f), new Vector2(292f, 96f), false);
+            Image coinBar = I("Coin Counter", topHud, counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(255f, 81f), false);
+            SetReferenceRect(coinBar.rectTransform, 289f, 22f, 255f, 81f);
             Image coinIcon = I("Coin Icon", coinBar.transform, coinSprite, new Vector2(0f, 0.5f), new Vector2(42f, 0f), new Vector2(66f, 66f), true);
             coinIcon.raycastTarget = false;
             TextMeshProUGUI coinText = T("Coin Value", coinBar.transform, "1,250", 31f, new Vector2(15f, 0f), new Vector2(120f, 56f));
             Button coinPlus = B("Coin Plus", coinBar.transform, plusSprite, new Vector2(1f, 0.5f), new Vector2(-38f, 0f), new Vector2(62f, 62f), true);
 
-            Image chefBar = I("Chef Counter", topHud, counterFrame, new Vector2(1f, 0.5f), new Vector2(-360f, 0f), new Vector2(272f, 96f), false);
+            Image chefBar = I("Chef Counter", topHud, counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(244f, 81f), false);
+            SetReferenceRect(chefBar.rectTransform, 581f, 22f, 244f, 81f);
             Image chefMini = I("Chef Icon", chefBar.transform, chefSprite, new Vector2(0f, 0.5f), new Vector2(43f, 0f), new Vector2(62f, 68f), true);
             chefMini.raycastTarget = false;
             TextMeshProUGUI chefText = T("Chef Value", chefBar.transform, "0", 31f, new Vector2(12f, 0f), new Vector2(100f, 56f));
             Button chefPlus = B("Chef Plus", chefBar.transform, plusSprite, new Vector2(1f, 0.5f), new Vector2(-36f, 0f), new Vector2(60f, 60f), true);
 
-            Button settingsButton = B("SettingsButton", topHud, settingsSprite, new Vector2(1f, 0.5f), new Vector2(-82f, 0f), new Vector2(138f, 138f), true);
+            Button settingsButton = B("SettingsButton", topHud, settingsSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(133f, 135f), true);
+            SetReferenceRect(settingsButton.GetComponent<RectTransform>(), 922f, 0f, 133f, 135f);
 
             // COUNTRY HEADER
             RectTransform countryHeader = R("Country Header", root);
-            SetReferenceRect(countryHeader, 145f, 135f, 790f, 245f);
+            SetReferenceRect(countryHeader, 166f, 138f, 795f, 241f);
 
             Image leftLeaf = I("Left Leaf", countryHeader, leafLeft, new Vector2(0f, 0.5f), new Vector2(82f, -6f), new Vector2(205f, 205f), true);
             leftLeaf.raycastTarget = false;
@@ -387,23 +392,23 @@ namespace Watermelon.EditorTools
             countryTitle.color = new Color(1f, 0.92f, 0.30f, 1f);
 
             Image subtitle = I("Subtitle Plate", headerImage.transform, subtitlePlate, new Vector2(0.5f, 0.5f), new Vector2(-12f, -58f), new Vector2(500f, 66f), false);
-            TextMeshProUGUI subtitleText = T("Country Subtitle", subtitle.transform, "FLAVORS • CULTURE • JOURNEY", 22f, Vector2.zero, new Vector2(360f, 40f));
+            TextMeshProUGUI subtitleText = T("Country Subtitle", subtitle.transform, "FLAVORS, CULTURE, JOURNEY", 22f, Vector2.zero, new Vector2(360f, 40f));
             subtitleText.color = new Color(0.17f, 0.14f, 0.18f, 1f);
 
             Image flagImage = I("Country Flag", countryHeader, flag, new Vector2(1f, 0.5f), new Vector2(-2f, -12f), new Vector2(195f, 155f), true);
             flagImage.raycastTarget = false;
 
             // HERO / DESCRIPTION
-            Image hero = I("Hero Info Frame", root, heroOuter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1000f, 450f), false);
-            SetReferenceRect(hero.rectTransform, 35f, 355f, 1010f, 470f);
+            Image hero = I("Hero Info Frame", root, heroOuter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(984f, 441f), false);
+            SetReferenceRect(hero.rectTransform, 37f, 367f, 984f, 441f);
 
             RectTransform heroViewport = R("Hero Image Viewport", hero.transform);
-            Set(heroViewport, new Vector2(0f, 0.5f), new Vector2(315f, 0f), new Vector2(610f, 390f));
+            Set(heroViewport, new Vector2(0f, 0.5f), new Vector2(302f, 0f), new Vector2(585f, 382f));
             heroViewport.gameObject.AddComponent<RectMask2D>();
-            Image heroImage = I("Hero Image", heroViewport, thumb1, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(610f, 430f), false);
+            Image heroImage = I("Hero Image", heroViewport, bg, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(585f, 418f), false);
             heroImage.raycastTarget = false;
 
-            Image descPanel = I("Description Panel", hero.transform, descriptionPanel, new Vector2(1f, 0.5f), new Vector2(-168f, 0f), new Vector2(320f, 390f), false);
+            Image descPanel = I("Description Panel", hero.transform, descriptionPanel, new Vector2(1f, 0.5f), new Vector2(-165f, 0f), new Vector2(322f, 382f), false);
             TextMeshProUGUI descText = T("Description Text", descPanel.transform,
                 "Explore India's rich food culture, vibrant cities and iconic destinations as you deliver delicious dishes across the country!",
                 25f, Vector2.zero, new Vector2(250f, 305f));
@@ -411,21 +416,24 @@ namespace Watermelon.EditorTools
             descText.alignment = TextAlignmentOptions.MidlineLeft;
             descText.color = new Color(0.20f, 0.14f, 0.10f, 1f);
 
-            // LEVEL CARDS
+            // LEVEL CARDS - exact global rectangles avoid parent-offset drift.
             RectTransform cardsRoot = R("Level Cards", root);
-            SetReferenceRect(cardsRoot, 40f, 825f, 1000f, 530f);
+            Stretch(cardsRoot);
 
             Sprite[] thumbnails = { thumb1, thumb2, thumb3 };
             string[] cardNames = { "Varanasi Ghats", "Delhi Streets", "Mumbai Docks" };
+            float[] cardX = { 65f, 385f, 705f };
             List<LevelSelectionLevelCard> cards = new List<LevelSelectionLevelCard>();
 
             for (int i = 0; i < 3; i++)
             {
-                float x = (i - 1) * 315f;
                 LevelSelectionLevelCard card = BuildCard(
                     cardsRoot,
                     i,
-                    x,
+                    cardX[i],
+                    818f,
+                    310f,
+                    515f,
                     cardNames[i],
                     thumbnails[i],
                     i == 0 ? selectedCard : (i == 1 ? unlockedCard : lockedCard),
@@ -442,25 +450,25 @@ namespace Watermelon.EditorTools
                 cards.Add(card);
             }
 
-            Button leftArrow = B("Left Arrow", root, leftArrowSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(80f, 112f), true);
-            SetReferenceRect(leftArrow.GetComponent<RectTransform>(), 0f, 995f, 78f, 120f);
-            Button rightArrow = B("Right Arrow", root, rightArrowSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(80f, 112f), true);
-            SetReferenceRect(rightArrow.GetComponent<RectTransform>(), 1002f, 995f, 78f, 120f);
+            Button leftArrow = B("Left Arrow", root, leftArrowSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(67f, 104f), true);
+            SetReferenceRect(leftArrow.GetComponent<RectTransform>(), 0f, 996f, 67f, 104f);
+            Button rightArrow = B("Right Arrow", root, rightArrowSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(65f, 104f), true);
+            SetReferenceRect(rightArrow.GetComponent<RectTransform>(), 1015f, 996f, 65f, 104f);
 
             // GUIDE
-            Image chefGuide = I("Chef Guide Mascot", root, chefSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(285f, 355f), true);
-            SetReferenceRect(chefGuide.rectTransform, 0f, 1350f, 300f, 370f);
+            Image chefGuide = I("Chef Guide Mascot", root, chefSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(305f, 340f), true);
+            SetReferenceRect(chefGuide.rectTransform, 0f, 1360f, 305f, 340f);
             chefGuide.raycastTarget = false;
 
-            Image speech = I("Chef Speech Bubble", root, bubbleSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(380f, 142f), false);
-            SetReferenceRect(speech.rectTransform, 180f, 1400f, 400f, 155f);
-            TextMeshProUGUI guideText = T("Guide Text", speech.transform, "Complete all 3 missions to master India's flavors!", 22f, Vector2.zero, new Vector2(305f, 88f));
+            Image speech = I("Chef Speech Bubble", root, bubbleSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(375f, 107f), false);
+            SetReferenceRect(speech.rectTransform, 204f, 1409f, 375f, 107f);
+            TextMeshProUGUI guideText = T("Guide Text", speech.transform, "Complete all 3 missions\nto master India’s flavors!", 22f, new Vector2(12f, 0f), new Vector2(315f, 78f));
             guideText.textWrappingMode = TextWrappingModes.Normal;
             guideText.color = new Color(0.12f, 0.18f, 0.32f, 1f);
 
             // COUNTRY PROGRESS - every generated piece remains separate/editable.
             RectTransform progressRoot = R("Country Progress", root);
-            SetReferenceRect(progressRoot, 500f, 1520f, 580f, 220f);
+            SetReferenceRect(progressRoot, 544f, 1536f, 510f, 156f);
 
             Image progressBase = I("Outer Frame", progressRoot, progressOuter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(590f, 180f), false);
             Stretch(progressBase.rectTransform);
@@ -479,36 +487,32 @@ namespace Watermelon.EditorTools
             progressTitleText.color = new Color(0.06f, 0.18f, 0.42f, 1f);
 
             Image track = I("Progress Track", progressRoot, progressTrack, new Vector2(0.5f, 0.5f), new Vector2(78f, -25f), new Vector2(300f, 50f), false);
-            Image fill = I("Progress Fill", track.transform, progressFillSprite, new Vector2(0f, 0.5f), new Vector2(10f, 0f), new Vector2(0f, 32f), false);
+            Image fill = I("Progress Fill", track.transform, progressFillSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(280f, 32f), false);
             fill.rectTransform.anchorMin = new Vector2(0f, 0.5f);
-            fill.rectTransform.anchorMax = new Vector2(0f, 0.5f);
-            fill.rectTransform.pivot = new Vector2(0f, 0.5f);
-            fill.rectTransform.anchoredPosition = new Vector2(10f, 0f);
-            fill.rectTransform.sizeDelta = new Vector2(0f, 32f);
-            fill.type = Image.Type.Simple;
+            fill.rectTransform.anchorMax = new Vector2(1f, 0.5f);
+            fill.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            fill.rectTransform.anchoredPosition = Vector2.zero;
+            fill.rectTransform.sizeDelta = new Vector2(-20f, 32f);
+            fill.type = Image.Type.Filled;
+            fill.fillMethod = Image.FillMethod.Horizontal;
+            fill.fillOrigin = 0;
+            fill.fillClockwise = true;
+            fill.fillAmount = 1f / 3f;
             fill.preserveAspect = false;
             fill.raycastTarget = false;
 
             Image valueBadge = I("Value Badge", progressRoot, progressValueBadge, new Vector2(1f, 0.5f), new Vector2(-55f, -25f), new Vector2(108f, 66f), false);
-            TextMeshProUGUI progressValue = T("Progress Value", valueBadge.transform, "0/3", 27f, Vector2.zero, new Vector2(82f, 46f));
+            TextMeshProUGUI progressValue = T("Progress Value", valueBadge.transform, "1/3", 27f, Vector2.zero, new Vector2(82f, 46f));
             progressValue.fontStyle = FontStyles.Bold;
             progressValue.color = new Color(0.06f, 0.18f, 0.42f, 1f);
 
-            // BACK - match the reference: large framed cream button, arrow and bold label.
-            Sprite backPanelSprite = S("glossy_golden_parchment_banner.png");
-            Image backRootImage = I("BackButton", root, progressOuter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(320f, 145f), false);
-            SetReferenceRect(backRootImage.rectTransform, 20f, 1710f, 320f, 145f);
+            // BACK - reuse the already-approved CountryMap back-button art when available.
+            Sprite finalBackSprite = existingBackButton != null ? existingBackButton : progressOuter;
+            Image backRootImage = I("BackButton", root, finalBackSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(316f, 124f), true);
+            SetReferenceRect(backRootImage.rectTransform, 20f, 1697f, 316f, 124f);
             backRootImage.raycastTarget = true;
             Button backButton = backRootImage.gameObject.AddComponent<Button>();
             backButton.targetGraphic = backRootImage;
-
-            Image backPanel = I("Back Panel", backRootImage.transform, backPanelSprite, new Vector2(0.5f, 0.5f), new Vector2(10f, 0f), new Vector2(274f, 108f), false);
-            backPanel.raycastTarget = false;
-            Image backArrowIcon = I("Back Arrow Icon", backRootImage.transform, leftArrowSprite, new Vector2(0f, 0.5f), new Vector2(63f, 0f), new Vector2(88f, 88f), true);
-            backArrowIcon.raycastTarget = false;
-            TextMeshProUGUI backLabel = T("Label", backRootImage.transform, "BACK", 34f, new Vector2(48f, 0f), new Vector2(150f, 62f));
-            backLabel.fontStyle = FontStyles.Bold;
-            backLabel.color = new Color(0.06f, 0.18f, 0.42f, 1f);
 
             TextMeshProUGUI statusText = T("Status Text", root, string.Empty, 18f, new Vector2(0f, -800f), new Vector2(600f, 36f));
             statusText.color = new Color(1f, 1f, 1f, 0.0f);
@@ -536,6 +540,7 @@ namespace Watermelon.EditorTools
                 subtitleText,
                 flagImage,
                 heroImage,
+                bg,
                 descText,
                 cards.ToArray(),
                 thumbnails,
@@ -566,6 +571,9 @@ namespace Watermelon.EditorTools
             RectTransform parent,
             int index,
             float x,
+            float yTop,
+            float width,
+            float height,
             string missionName,
             Sprite thumbnail,
             Sprite initialFrame,
@@ -581,39 +589,40 @@ namespace Watermelon.EditorTools
             Sprite lockSprite)
         {
             RectTransform root = R("Level " + (index + 1), parent);
-            Set(root, new Vector2(0.5f, 0.5f), new Vector2(x, 0f), new Vector2(300f, 540f));
+            SetReferenceRect(root, x, yTop, width, height);
 
-            Image frame = I("Card Frame", root, initialFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(292f, 530f), false);
+            Image frame = I("Card Frame", root, initialFrame, new Vector2(0.5f, 0.5f), new Vector2(0f, -8f), new Vector2(292f, 480f), false);
             frame.raycastTarget = true;
             Button selectButton = frame.gameObject.AddComponent<Button>();
             selectButton.targetGraphic = frame;
 
-            Image badge = I("Level Number Badge", root, numberBadge, new Vector2(0.5f, 1f), new Vector2(0f, -18f), new Vector2(100f, 100f), true);
+            Image badge = I("Level Number Badge", root, numberBadge, new Vector2(0.5f, 1f), new Vector2(0f, -48f), new Vector2(102f, 102f), true);
             badge.raycastTarget = false;
             TextMeshProUGUI number = T("Level Number", badge.transform, (index + 1).ToString(), 40f, Vector2.zero, new Vector2(62f, 58f));
             number.fontStyle = FontStyles.Bold;
             number.color = Color.white;
 
             RectTransform thumbnailViewport = R("Thumbnail Viewport", root);
-            Set(thumbnailViewport, new Vector2(0.5f, 1f), new Vector2(0f, -132f), new Vector2(230f, 160f));
+            Set(thumbnailViewport, new Vector2(0.5f, 1f), new Vector2(0f, -180f), new Vector2(230f, 180f));
             thumbnailViewport.gameObject.AddComponent<RectMask2D>();
-            Image tImage = I("Thumbnail", thumbnailViewport, thumbnail, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(230f, 172f), false);
+            Image tImage = I("Thumbnail", thumbnailViewport, thumbnail, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(230f, 194f), false);
             tImage.raycastTarget = false;
 
-            TextMeshProUGUI title = T("Level Name", root, missionName, 21f, new Vector2(0f, 4f), new Vector2(220f, 42f));
+            TextMeshProUGUI title = T("Level Name", root, missionName, 21f, new Vector2(0f, -43f), new Vector2(220f, 42f));
             title.fontStyle = FontStyles.Bold;
             title.alignment = TextAlignmentOptions.Center;
             title.color = new Color(0.20f, 0.12f, 0.08f, 1f);
 
             Image[] stars = new Image[3];
+            int previewStars = index == 0 ? 3 : (index == 1 ? 1 : 0);
             for (int s = 0; s < 3; s++)
             {
-                stars[s] = I("Star " + (s + 1), root, starSprite, new Vector2(0.5f, 0.5f), new Vector2((s - 1) * 68f, -72f), new Vector2(54f, 54f), true);
+                stars[s] = I("Star " + (s + 1), root, starSprite, new Vector2(0.5f, 0.5f), new Vector2((s - 1) * 68f, -108f), new Vector2(54f, 54f), true);
                 stars[s].raycastTarget = false;
-                stars[s].color = index == 0 ? Color.white : new Color(0.16f, 0.21f, 0.30f, 0.90f);
+                stars[s].color = s < previewStars ? Color.white : new Color(0.16f, 0.21f, 0.30f, 0.90f);
             }
 
-            Image actionImage = I("Action Button", root, index == 0 ? playButton : lockedButton, new Vector2(0.5f, 0f), new Vector2(0f, 54f), new Vector2(238f, 82f), false);
+            Image actionImage = I("Action Button", root, index == 0 ? playButton : lockedButton, new Vector2(0.5f, 0f), new Vector2(0f, 72f), new Vector2(238f, 82f), false);
             actionImage.raycastTarget = true;
             Button actionButton = actionImage.gameObject.AddComponent<Button>();
             actionButton.targetGraphic = actionImage;
@@ -632,24 +641,9 @@ namespace Watermelon.EditorTools
             actionLockImage.raycastTarget = false;
             actionLockIcon.SetActive(index > 0);
 
-            GameObject lockOverlay = new GameObject("Lock Overlay", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            lockOverlay.transform.SetParent(thumbnailViewport.transform, false);
-            RectTransform lockRect = lockOverlay.GetComponent<RectTransform>();
-            Set(lockRect, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(82f, 82f));
-            Image lockImage = lockOverlay.GetComponent<Image>();
-            lockImage.sprite = lockSprite;
-            lockImage.preserveAspect = true;
-            lockImage.raycastTarget = false;
-            lockOverlay.SetActive(index > 0);
-
-            GameObject completed = new GameObject("Completed Badge", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            completed.transform.SetParent(root, false);
-            RectTransform completedRect = completed.GetComponent<RectTransform>();
-            Set(completedRect, new Vector2(1f, 1f), new Vector2(-34f, -45f), new Vector2(54f, 54f));
-            Image completedImage = completed.GetComponent<Image>();
-            completedImage.sprite = starSprite;
-            completedImage.raycastTarget = false;
-            completed.SetActive(false);
+            // The approved reference keeps thumbnails clean.
+            GameObject lockOverlay = null;
+            GameObject completed = null;
 
             LevelSelectionLevelCard card = root.gameObject.AddComponent<LevelSelectionLevelCard>();
             card.EditorConfigure(
@@ -963,13 +957,10 @@ namespace Watermelon.EditorTools
 
         private static void ImportSprites()
         {
-            if (!Directory.Exists(AssetFolder))
-                return;
-
             foreach (string file in Required)
             {
-                string path = AssetFolder + "/" + file;
-                if (!File.Exists(path))
+                string path = FindGeneratedAssetPath(file);
+                if (string.IsNullOrWhiteSpace(path))
                     continue;
 
                 TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
@@ -988,12 +979,34 @@ namespace Watermelon.EditorTools
 
         private static List<string> MissingAssets()
         {
-            return Required.Where(f => !File.Exists(AssetFolder + "/" + f)).ToList();
+            return Required.Where(f => string.IsNullOrWhiteSpace(FindGeneratedAssetPath(f))).ToList();
+        }
+
+        private static string FindGeneratedAssetPath(string file)
+        {
+            string preferred = AssetFolder + "/" + file;
+            if (File.Exists(preferred))
+                return preferred;
+
+            string stem = Path.GetFileNameWithoutExtension(file);
+            string[] guids = AssetDatabase.FindAssets(stem + " t:Sprite");
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                if (string.Equals(Path.GetFileName(path), file, StringComparison.OrdinalIgnoreCase))
+                    return path;
+            }
+
+            return null;
         }
 
         private static Sprite S(string file)
         {
-            Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(AssetFolder + "/" + file);
+            string path = FindGeneratedAssetPath(file);
+            Sprite sprite = string.IsNullOrWhiteSpace(path)
+                ? null
+                : AssetDatabase.LoadAssetAtPath<Sprite>(path);
+
             if (sprite == null)
                 throw new InvalidOperationException("Missing Level Selection sprite: " + file);
             return sprite;
