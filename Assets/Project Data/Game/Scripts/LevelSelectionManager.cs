@@ -519,7 +519,7 @@ namespace Watermelon.BusStop
                 vibrationText.text = "VIBRATION: " + (AudioController.IsVibrationEnabled() ? "ON" : "OFF");
         }
 
-        private static bool IsLevelUnlocked(int levelIndex)
+        private bool IsLevelUnlocked(int levelIndex)
         {
             if (levelIndex <= 0)
                 return true;
