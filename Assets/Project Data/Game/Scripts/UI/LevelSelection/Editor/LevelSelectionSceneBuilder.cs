@@ -123,9 +123,9 @@ namespace Watermelon.EditorTools
                 Watermelon.LevelSelectionResponsiveLayout marker =
                     newRoot.GetComponent<Watermelon.LevelSelectionResponsiveLayout>();
 
-                if (missing.Count == 0 && (marker == null || marker.LayoutVersion < 6))
+                if (missing.Count == 0 && (marker == null || marker.LayoutVersion < 7))
                 {
-                    Debug.Log("[LevelSelection] Upgrading the authored Level Selection layout to locked reference layout v6.");
+                    Debug.Log("[LevelSelection] Upgrading the authored Level Selection layout to corrected level-card layout v7.");
                     BakeInternal(false);
                     return;
                 }
@@ -339,7 +339,7 @@ namespace Watermelon.EditorTools
             Stretch(root);
             Watermelon.LevelSelectionResponsiveLayout layoutMarker =
                 root.gameObject.AddComponent<Watermelon.LevelSelectionResponsiveLayout>();
-            layoutMarker.EditorConfigure(6);
+            layoutMarker.EditorConfigure(7);
 
             Image background = I("Background Artwork", root, bg, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(W, H), false);
             Stretch(background.rectTransform);
@@ -422,7 +422,10 @@ namespace Watermelon.EditorTools
 
             Sprite[] thumbnails = { thumb1, thumb2, thumb3 };
             string[] cardNames = { "Varanasi Ghats", "Delhi Streets", "Mumbai Docks" };
-            float[] cardX = { 65f, 385f, 705f };
+            float[] cardX = { 63f, 386f, 709f };
+            const float cardTop = 805f;
+            const float cardWidth = 308f;
+            const float cardHeight = 520f;
             List<LevelSelectionLevelCard> cards = new List<LevelSelectionLevelCard>();
 
             for (int i = 0; i < 3; i++)
@@ -431,9 +434,9 @@ namespace Watermelon.EditorTools
                     cardsRoot,
                     i,
                     cardX[i],
-                    818f,
-                    310f,
-                    515f,
+                    cardTop,
+                    cardWidth,
+                    cardHeight,
                     cardNames[i],
                     thumbnails[i],
                     i == 0 ? selectedCard : (i == 1 ? unlockedCard : lockedCard),
@@ -451,9 +454,9 @@ namespace Watermelon.EditorTools
             }
 
             Button leftArrow = B("Left Arrow", root, leftArrowSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(67f, 104f), true);
-            SetReferenceRect(leftArrow.GetComponent<RectTransform>(), 0f, 996f, 67f, 104f);
-            Button rightArrow = B("Right Arrow", root, rightArrowSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(65f, 104f), true);
-            SetReferenceRect(rightArrow.GetComponent<RectTransform>(), 1015f, 996f, 65f, 104f);
+            SetReferenceRect(leftArrow.GetComponent<RectTransform>(), 8f, 993f, 67f, 104f);
+            Button rightArrow = B("Right Arrow", root, rightArrowSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(67f, 104f), true);
+            SetReferenceRect(rightArrow.GetComponent<RectTransform>(), 1005f, 993f, 67f, 104f);
 
             // GUIDE
             Image chefGuide = I("Chef Guide Mascot", root, chefSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(305f, 340f), true);
@@ -591,24 +594,24 @@ namespace Watermelon.EditorTools
             RectTransform root = R("Level " + (index + 1), parent);
             SetReferenceRect(root, x, yTop, width, height);
 
-            Image frame = I("Card Frame", root, initialFrame, new Vector2(0.5f, 0.5f), new Vector2(0f, -8f), new Vector2(292f, 480f), false);
+            Image frame = I("Card Frame", root, initialFrame, new Vector2(0.5f, 0.5f), new Vector2(0f, -6f), new Vector2(292f, 500f), false);
             frame.raycastTarget = true;
             Button selectButton = frame.gameObject.AddComponent<Button>();
             selectButton.targetGraphic = frame;
 
-            Image badge = I("Level Number Badge", root, numberBadge, new Vector2(0.5f, 1f), new Vector2(0f, -48f), new Vector2(102f, 102f), true);
+            Image badge = I("Level Number Badge", root, numberBadge, new Vector2(0.5f, 1f), new Vector2(0f, -44f), new Vector2(102f, 102f), true);
             badge.raycastTarget = false;
             TextMeshProUGUI number = T("Level Number", badge.transform, (index + 1).ToString(), 40f, Vector2.zero, new Vector2(62f, 58f));
             number.fontStyle = FontStyles.Bold;
             number.color = Color.white;
 
             RectTransform thumbnailViewport = R("Thumbnail Viewport", root);
-            Set(thumbnailViewport, new Vector2(0.5f, 1f), new Vector2(0f, -180f), new Vector2(230f, 180f));
+            Set(thumbnailViewport, new Vector2(0.5f, 1f), new Vector2(0f, -176f), new Vector2(230f, 176f));
             thumbnailViewport.gameObject.AddComponent<RectMask2D>();
             Image tImage = I("Thumbnail", thumbnailViewport, thumbnail, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(230f, 194f), false);
             tImage.raycastTarget = false;
 
-            TextMeshProUGUI title = T("Level Name", root, missionName, 21f, new Vector2(0f, -43f), new Vector2(220f, 42f));
+            TextMeshProUGUI title = T("Level Name", root, missionName, 21f, new Vector2(0f, -40f), new Vector2(220f, 42f));
             title.fontStyle = FontStyles.Bold;
             title.alignment = TextAlignmentOptions.Center;
             title.color = new Color(0.20f, 0.12f, 0.08f, 1f);
