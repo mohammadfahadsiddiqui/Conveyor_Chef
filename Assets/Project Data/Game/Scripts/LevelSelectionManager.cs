@@ -27,11 +27,11 @@ namespace Watermelon.BusStop
 
         private static readonly string[] CountrySubtitles =
         {
-            "FLAVORS • CULTURE • JOURNEY",
-            "FLAVORS • CULTURE • JOURNEY",
-            "FLAVORS • CULTURE • JOURNEY",
-            "FLAVORS • CULTURE • JOURNEY",
-            "FLAVORS • CULTURE • JOURNEY"
+            "FLAVORS, CULTURE, JOURNEY",
+            "FLAVORS, CULTURE, JOURNEY",
+            "FLAVORS, CULTURE, JOURNEY",
+            "FLAVORS, CULTURE, JOURNEY",
+            "FLAVORS, CULTURE, JOURNEY"
         };
 
         private static readonly string[,] MissionTitles =
@@ -72,6 +72,7 @@ namespace Watermelon.BusStop
 
         [Header("Hero / Description")]
         [SerializeField] private Image heroImage;
+        [SerializeField] private Sprite indiaHeroSprite;
         [SerializeField] private TextMeshProUGUI descriptionText;
 
         [Header("Level Cards")]
@@ -218,18 +219,15 @@ namespace Watermelon.BusStop
                 descriptionText.text = CountryDescriptions[selectedCountry];
 
             if (guideText != null)
-                guideText.text = "Complete all 3 missions to master " + countryName + "'s flavors!";
+                guideText.text = "Complete all 3 missions\nto master " + countryName + "’s flavors!";
 
             if (progressTitleText != null)
                 progressTitleText.text = "COUNTRY PROGRESS";
 
             // The first art pack is India. Keep its thumbnails authored and editable.
             // Additional country art packs can be assigned later without changing layout.
-            if (selectedCountry == 2 && indiaThumbnails != null && indiaThumbnails.Length >= 3)
-            {
-                if (heroImage != null && indiaThumbnails[0] != null)
-                    heroImage.sprite = indiaThumbnails[0];
-            }
+            if (selectedCountry == 2 && heroImage != null && indiaHeroSprite != null)
+                heroImage.sprite = indiaHeroSprite;
         }
 
         private void RefreshAll()
@@ -297,16 +295,6 @@ namespace Watermelon.BusStop
                     stars);
             }
 
-            if (heroImage != null &&
-                selectedCountry == 2 &&
-                indiaThumbnails != null &&
-                selectedSlot >= 0 &&
-                selectedSlot < indiaThumbnails.Length &&
-                indiaThumbnails[selectedSlot] != null)
-            {
-                heroImage.sprite = indiaThumbnails[selectedSlot];
-            }
-
             if (statusText != null)
             {
                 int levelIndex = countryLevelStart + selectedSlot;
@@ -332,19 +320,13 @@ namespace Watermelon.BusStop
                 return;
 
             float normalized = completed / (float)LevelsPerCountry;
-            RectTransform fillRect = progressFill.rectTransform;
-            RectTransform trackRect = fillRect.parent as RectTransform;
 
-            float leftInset = Mathf.Max(0f, fillRect.anchoredPosition.x);
-            float fullWidth = trackRect != null
-                ? Mathf.Max(0f, trackRect.rect.width - leftInset * 2f)
-                : Mathf.Max(0f, fillRect.sizeDelta.x);
-
-            Vector2 size = fillRect.sizeDelta;
-            size.x = fullWidth * normalized;
-            fillRect.sizeDelta = size;
-
-            progressFill.type = Image.Type.Simple;
+            // Never move or resize authored UI in Play Mode.
+            progressFill.type = Image.Type.Filled;
+            progressFill.fillMethod = Image.FillMethod.Horizontal;
+            progressFill.fillOrigin = 0;
+            progressFill.fillClockwise = true;
+            progressFill.fillAmount = normalized;
             progressFill.preserveAspect = false;
             progressFill.raycastTarget = false;
         }
@@ -600,6 +582,7 @@ namespace Watermelon.BusStop
             TextMeshProUGUI countrySubtitle,
             Image flag,
             Image hero,
+            Sprite indiaHero,
             TextMeshProUGUI description,
             LevelSelectionLevelCard[] cards,
             Sprite[] indiaMissionThumbnails,
@@ -629,6 +612,7 @@ namespace Watermelon.BusStop
             countrySubtitleText = countrySubtitle;
             countryFlagImage = flag;
             heroImage = hero;
+            indiaHeroSprite = indiaHero;
             descriptionText = description;
             levelCards = cards;
             indiaThumbnails = indiaMissionThumbnails;
