@@ -11,7 +11,7 @@ namespace Watermelon
     public sealed class LevelSelectionResponsiveLayout : MonoBehaviour
     {
         [SerializeField] private Vector2 referenceResolution = new Vector2(1080f, 1920f);
-        [SerializeField] private int layoutVersion = 2;
+        [SerializeField] private int layoutVersion = 3;
 
         public Vector2 ReferenceResolution => referenceResolution;
         public int LayoutVersion => layoutVersion;
