@@ -24,6 +24,7 @@ namespace Watermelon.EditorTools
     {
         private const string ScenePath = "Assets/Project Data/Game/Scenes/LevelSelection.unity";
         private const string AssetFolder = "Assets/Project Data/Game/Images/LevelSelection";
+        private const string AssetPackFileName = "ConveyorChef_LevelSelection_Complete_Assets.zip";
         private const float W = 1080f;
         private const float H = 1920f;
 
@@ -66,7 +67,18 @@ namespace Watermelon.EditorTools
         static LevelSelectionSceneBuilder()
         {
             EditorApplication.delayCall += TryAutoBakeOpenScene;
+
+            EditorSceneManager.sceneOpened -= OnSceneOpened;
+            EditorSceneManager.sceneOpened += OnSceneOpened;
+
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        }
+
+        private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
+        {
+            if (scene.path == ScenePath)
+                EditorApplication.delayCall += TryAutoBakeOpenScene;
         }
 
         private static void OnPlayModeStateChanged(PlayModeStateChange state)
@@ -90,58 +102,58 @@ namespace Watermelon.EditorTools
             if (!active.IsValid() || active.path != ScenePath)
                 return;
 
-            if (GameObject.Find("NEW Level Selection") != null)
-                return;
+            Directory.CreateDirectory(AssetFolder);
+            AssetDatabase.Refresh();
+            ImportSprites();
 
             List<string> missing = MissingAssets();
+
+            // Match the WorldMap workflow: if the downloaded generated-art ZIP is
+            // already in the project root or Downloads folder, import it automatically.
+            if (missing.Count > 0 && TryImportAssetPackFromKnownLocations())
+            {
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+                ImportSprites();
+                missing = MissingAssets();
+            }
+
+            GameObject newRoot = GameObject.Find("NEW Level Selection");
+            if (newRoot != null)
+            {
+                EnsureLegacyLevelSelectionDisabled(active);
+                FocusEditableRoot(newRoot);
+                return;
+            }
+
             if (missing.Count == 0)
             {
-                Debug.Log("[LevelSelection] Old/legacy scene detected. Installing the new editable Level Selection hierarchy.");
+                Debug.Log(
+                    "[LevelSelection] Legacy scene detected. Installing NEW Level Selection beside a disabled legacy copy, " +
+                    "using the same serialized-scene architecture as menu.unity/loading.unity.");
                 BakeInternal(false);
                 return;
             }
 
             Debug.LogWarning(
-                "[LevelSelection] The scene is still using the legacy UI because the generated Level Selection art pack " +
-                "has not been imported into '" + AssetFolder + "'. Missing " + missing.Count + " generated sprites. " +
-                "Use Conveyor Chef > Level Selection > 0. Import Generated Art Pack.");
+                "[LevelSelection] Generated Level Selection art is not available yet. Missing " + missing.Count +
+                " sprites. Keep " + AssetPackFileName + " in Downloads/project root for automatic import, or use " +
+                "Conveyor Chef > Level Selection > 0. Import Generated Art Pack. The legacy UI is preserved until " +
+                "the new serialized editable hierarchy can be installed.");
         }
 
         [MenuItem("Conveyor Chef/Level Selection/0. Import Generated Art Pack", priority = 0)]
         public static void ImportGeneratedArtPack()
         {
             string zipPath = EditorUtility.OpenFilePanel(
-                "Select ConveyorChef_LevelSelection_Complete_Assets.zip",
+                "Select " + AssetPackFileName,
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                 "zip");
 
             if (string.IsNullOrWhiteSpace(zipPath))
                 return;
 
-            Directory.CreateDirectory(AssetFolder);
-
-            try
-            {
-                using (ZipArchive archive = ZipFile.OpenRead(zipPath))
-                {
-                    foreach (string required in Required)
-                    {
-                        ZipArchiveEntry entry = archive.Entries.FirstOrDefault(e =>
-                            string.Equals(Path.GetFileName(e.FullName), required, StringComparison.OrdinalIgnoreCase));
-
-                        if (entry == null)
-                            continue;
-
-                        entry.ExtractToFile(AssetFolder + "/" + required, true);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError("[LevelSelection] Art import failed: " + ex);
-                EditorUtility.DisplayDialog("Level Selection", "Import failed:\n\n" + ex.Message, "OK");
+            if (!ExtractAssetPack(zipPath))
                 return;
-            }
 
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             ImportSprites();
@@ -159,7 +171,9 @@ namespace Watermelon.EditorTools
             BakeInternal(false);
             EditorUtility.DisplayDialog(
                 "Level Selection Ready",
-                "Imported the generated art pack and rebuilt LevelSelection.unity as a fully editable Canvas.",
+                "Imported the generated art pack.\n\n" +
+                "OLD Level Selection is preserved and disabled.\n" +
+                "NEW Level Selection is serialized under the existing Canvas and is fully editable in Scene/Inspector.",
                 "OK");
         }
 
@@ -167,11 +181,21 @@ namespace Watermelon.EditorTools
         public static void Bake()
         {
             List<string> missing = MissingAssets();
+
+            if (missing.Count > 0 && TryImportAssetPackFromKnownLocations())
+            {
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+                ImportSprites();
+                missing = MissingAssets();
+            }
+
             if (missing.Count > 0)
             {
                 EditorUtility.DisplayDialog(
                     "Level Selection Assets Missing",
-                    "Import the generated art pack first.\n\nMissing:\n- " + string.Join("\n- ", missing),
+                    "Unity still cannot find " + missing.Count + " generated sprites.\n\n" +
+                    "Download/select " + AssetPackFileName + ".\n\nMissing:\n- " +
+                    string.Join("\n- ", missing),
                     "OK");
                 return;
             }
@@ -190,8 +214,19 @@ namespace Watermelon.EditorTools
 
             EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
-            if (GameObject.Find("NEW Level Selection") == null && MissingAssets().Count == 0)
-                BakeInternal(false);
+            if (GameObject.Find("NEW Level Selection") == null)
+            {
+                List<string> missing = MissingAssets();
+                if (missing.Count > 0 && TryImportAssetPackFromKnownLocations())
+                {
+                    AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+                    ImportSprites();
+                    missing = MissingAssets();
+                }
+
+                if (missing.Count == 0)
+                    BakeInternal(false);
+            }
 
             GameObject root = GameObject.Find("NEW Level Selection");
             if (root != null)
@@ -213,8 +248,11 @@ namespace Watermelon.EditorTools
                 ? root.GetComponentInChildren<LevelSelectionController>(true)
                 : null;
 
+            GameObject legacy = GameObject.Find("OLD Level Selection [Legacy Disabled]");
+
             string message =
-                "Editable root: " + (root != null ? "OK" : "MISSING") + "\n" +
+                "NEW Level Selection: " + (root != null ? "OK" : "MISSING") + "\n" +
+                "OLD legacy group: " + (legacy != null ? (legacy.activeSelf ? "FOUND BUT ACTIVE" : "DISABLED") : "NOT GROUPED YET") + "\n" +
                 "Controller: " + (controller != null ? "OK" : "MISSING") + "\n" +
                 "Generated art: " + (Required.Length - MissingAssets().Count) + "/" + Required.Length + "\n" +
                 "Reference resolution: 1080x1920\n" +
@@ -287,10 +325,7 @@ namespace Watermelon.EditorTools
             Sprite homeIcon = Existing("Home.png");
             Sprite counterFrame = Existing("glossy_blue_game_progress_panel.png");
 
-            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-            CreateCamera();
-            CreateEventSystem();
-            Canvas canvas = CreateCanvas();
+            Scene scene = PrepareExistingLevelSelectionScene(out Canvas canvas);
 
             RectTransform root = R("NEW Level Selection", canvas.transform);
             Stretch(root);
@@ -641,6 +676,251 @@ namespace Watermelon.EditorTools
             return button;
         }
 
+        private static Scene PrepareExistingLevelSelectionScene(out Canvas canvas)
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            canvas = scene.GetRootGameObjects()
+                .Select(root => root.GetComponent<Canvas>())
+                .FirstOrDefault(found => found != null);
+
+            if (canvas == null)
+            {
+                GameObject canvasObject = new GameObject(
+                    "Canvas",
+                    typeof(RectTransform),
+                    typeof(Canvas),
+                    typeof(CanvasScaler),
+                    typeof(GraphicRaycaster));
+                SceneManager.MoveGameObjectToScene(canvasObject, scene);
+                canvas = canvasObject.GetComponent<Canvas>();
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            }
+
+            CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
+            if (scaler == null)
+                scaler = canvas.gameObject.AddComponent<CanvasScaler>();
+
+            if (canvas.GetComponent<GraphicRaycaster>() == null)
+                canvas.gameObject.AddComponent<GraphicRaycaster>();
+
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(W, H);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
+            scaler.referencePixelsPerUnit = 100f;
+
+            // Rebuild only the NEW authored hierarchy. The original selector is retained
+            // under a disabled legacy parent, just like menu.unity/loading.unity.
+            Transform existingNew = canvas.transform.Find("NEW Level Selection");
+            if (existingNew != null)
+                UnityEngine.Object.DestroyImmediate(existingNew.gameObject);
+
+            RectTransform legacyRoot = canvas.transform.Find("OLD Level Selection [Legacy Disabled]") as RectTransform;
+            if (legacyRoot == null)
+            {
+                legacyRoot = R("OLD Level Selection [Legacy Disabled]", canvas.transform);
+                Stretch(legacyRoot);
+
+                List<Transform> oldChildren = new List<Transform>();
+                for (int i = 0; i < canvas.transform.childCount; i++)
+                {
+                    Transform child = canvas.transform.GetChild(i);
+                    if (child == legacyRoot || child.name == "NEW Level Selection")
+                        continue;
+
+                    oldChildren.Add(child);
+                }
+
+                foreach (Transform oldChild in oldChildren)
+                    oldChild.SetParent(legacyRoot, false);
+            }
+
+            legacyRoot.gameObject.SetActive(false);
+
+            // The old scene also kept legacy runtime objects at scene root.
+            // Preserve them for rollback, but prevent their scripts/animations from
+            // running alongside the new behaviour-only controller.
+            foreach (GameObject sceneRoot in scene.GetRootGameObjects())
+            {
+                if (sceneRoot == canvas.gameObject)
+                    continue;
+
+                if (sceneRoot.name == "levelSelectionController" ||
+                    sceneRoot.name == "scooter" ||
+                    sceneRoot.name == "scene")
+                {
+                    sceneRoot.SetActive(false);
+                }
+            }
+
+            EditorUtility.SetDirty(canvas.gameObject);
+            EditorUtility.SetDirty(legacyRoot.gameObject);
+            return scene;
+        }
+
+        private static void EnsureLegacyLevelSelectionDisabled(Scene scene)
+        {
+            if (!scene.IsValid())
+                return;
+
+            Canvas canvas = scene.GetRootGameObjects()
+                .Select(root => root.GetComponent<Canvas>())
+                .FirstOrDefault(found => found != null);
+
+            if (canvas == null)
+                return;
+
+            Transform legacy = canvas.transform.Find("OLD Level Selection [Legacy Disabled]");
+            if (legacy != null && legacy.gameObject.activeSelf)
+            {
+                legacy.gameObject.SetActive(false);
+                EditorUtility.SetDirty(legacy.gameObject);
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+            }
+
+            foreach (GameObject sceneRoot in scene.GetRootGameObjects())
+            {
+                if (sceneRoot.name == "levelSelectionController" ||
+                    sceneRoot.name == "scooter" ||
+                    sceneRoot.name == "scene")
+                {
+                    if (sceneRoot.activeSelf)
+                    {
+                        sceneRoot.SetActive(false);
+                        EditorUtility.SetDirty(sceneRoot);
+                        EditorSceneManager.MarkSceneDirty(scene);
+                    }
+                }
+            }
+
+            if (scene.isDirty)
+                EditorSceneManager.SaveScene(scene);
+        }
+
+        private static void FocusEditableRoot(GameObject root)
+        {
+            if (root == null)
+                return;
+
+            Selection.activeGameObject = root;
+            SceneView sceneView = SceneView.lastActiveSceneView;
+            if (sceneView != null)
+            {
+                sceneView.in2DMode = true;
+                sceneView.FrameSelected();
+                sceneView.Repaint();
+            }
+        }
+
+        private static bool TryImportAssetPackFromKnownLocations()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath)?.FullName;
+            string downloads = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                "Downloads");
+
+            List<string> candidates = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(projectRoot))
+            {
+                candidates.Add(Path.Combine(projectRoot, AssetPackFileName));
+                candidates.Add(Path.Combine(projectRoot, "Assets", AssetPackFileName));
+
+                if (Directory.Exists(projectRoot))
+                {
+                    candidates.AddRange(
+                        Directory.GetFiles(
+                            projectRoot,
+                            "ConveyorChef_LevelSelection_Complete_Assets*.zip",
+                            SearchOption.TopDirectoryOnly)
+                        .OrderByDescending(File.GetLastWriteTimeUtc));
+                }
+            }
+
+            if (Directory.Exists(downloads))
+            {
+                candidates.Add(Path.Combine(downloads, AssetPackFileName));
+                candidates.AddRange(
+                    Directory.GetFiles(
+                        downloads,
+                        "ConveyorChef_LevelSelection_Complete_Assets*.zip",
+                        SearchOption.TopDirectoryOnly)
+                    .OrderByDescending(File.GetLastWriteTimeUtc));
+            }
+
+            foreach (string candidate in candidates
+                         .Where(path => !string.IsNullOrWhiteSpace(path))
+                         .Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                if (!File.Exists(candidate))
+                    continue;
+
+                if (ExtractAssetPack(candidate))
+                {
+                    Debug.Log("[LevelSelection] Automatically imported generated art from: " + candidate);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ExtractAssetPack(string zipPath)
+        {
+            if (string.IsNullOrWhiteSpace(zipPath) || !File.Exists(zipPath))
+                return false;
+
+            Directory.CreateDirectory(AssetFolder);
+            HashSet<string> required = new HashSet<string>(Required, StringComparer.OrdinalIgnoreCase);
+            int extracted = 0;
+
+            try
+            {
+                using (FileStream stream = File.OpenRead(zipPath))
+                using (ZipArchive archive = new ZipArchive(stream, ZipArchiveMode.Read))
+                {
+                    foreach (ZipArchiveEntry entry in archive.Entries)
+                    {
+                        string fileName = Path.GetFileName(entry.FullName);
+                        if (string.IsNullOrWhiteSpace(fileName) || !required.Contains(fileName))
+                            continue;
+
+                        string destination = Path.Combine(AssetFolder, fileName).Replace('\\', '/');
+                        entry.ExtractToFile(destination, true);
+                        extracted++;
+                    }
+                }
+
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+                ImportSprites();
+
+                Debug.Log(
+                    "[LevelSelection] Imported " + extracted + "/" + Required.Length +
+                    " generated sprites into " + AssetFolder + ".");
+
+                return extracted > 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[LevelSelection] Failed to import generated art pack: " + ex);
+                EditorUtility.DisplayDialog(
+                    "Level Selection import failed",
+                    "Could not import the selected ZIP.\n\n" + ex.Message,
+                    "OK");
+                return false;
+            }
+        }
+
+        public static void InstallAfterArtImport()
+        {
+            if (MissingAssets().Count == 0)
+                BakeInternal(false);
+        }
+
         private static void ImportSprites()
         {
             if (!Directory.Exists(AssetFolder))
@@ -826,7 +1106,7 @@ namespace Watermelon.EditorTools
                     return;
 
                 if (Directory.Exists("Assets/Project Data/Game/Images/LevelSelection"))
-                    EditorApplication.ExecuteMenuItem("Conveyor Chef/Level Selection/1. Bake or Replace Editable Level Selection");
+                    LevelSelectionSceneBuilder.InstallAfterArtImport();
             };
         }
     }
