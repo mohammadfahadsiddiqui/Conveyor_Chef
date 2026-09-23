@@ -94,7 +94,7 @@ namespace Watermelon.BusStop
             }
 
             if (lockOverlay != null)
-                lockOverlay.SetActive(!isUnlocked);
+                lockOverlay.SetActive(false);
 
             if (completedBadge != null)
                 completedBadge.SetActive(isCompleted);
