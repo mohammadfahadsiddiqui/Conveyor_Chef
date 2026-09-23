@@ -66,11 +66,24 @@ namespace Watermelon.EditorTools
         static LevelSelectionSceneBuilder()
         {
             EditorApplication.delayCall += TryAutoBakeOpenScene;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+        }
+
+        private static void OnPlayModeStateChanged(PlayModeStateChange state)
+        {
+            if (state != PlayModeStateChange.EnteredEditMode)
+                return;
+
+            // If the user compiled/pulled while the old LevelSelection scene was
+            // running, the initial auto-bake is intentionally skipped. Run it as
+            // soon as Unity returns to Edit Mode so the serialized Scene hierarchy
+            // is replaced and becomes directly editable in the Canvas.
+            EditorApplication.delayCall += TryAutoBakeOpenScene;
         }
 
         private static void TryAutoBakeOpenScene()
         {
-            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling)
+            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
                 return;
 
             Scene active = SceneManager.GetActiveScene();
@@ -80,8 +93,18 @@ namespace Watermelon.EditorTools
             if (GameObject.Find("NEW Level Selection") != null)
                 return;
 
-            if (MissingAssets().Count == 0)
+            List<string> missing = MissingAssets();
+            if (missing.Count == 0)
+            {
+                Debug.Log("[LevelSelection] Old/legacy scene detected. Installing the new editable Level Selection hierarchy.");
                 BakeInternal(false);
+                return;
+            }
+
+            Debug.LogWarning(
+                "[LevelSelection] The scene is still using the legacy UI because the generated Level Selection art pack " +
+                "has not been imported into '" + AssetFolder + "'. Missing " + missing.Count + " generated sprites. " +
+                "Use Conveyor Chef > Level Selection > 0. Import Generated Art Pack.");
         }
 
         [MenuItem("Conveyor Chef/Level Selection/0. Import Generated Art Pack", priority = 0)]
@@ -768,6 +791,43 @@ namespace Watermelon.EditorTools
                 scenes.Add(new EditorBuildSettingsScene(path, true));
                 EditorBuildSettings.scenes = scenes.ToArray();
             }
+        }
+    }
+
+    /// <summary>
+    /// If the generated Level Selection PNGs are copied into the project manually
+    /// (instead of using the ZIP importer), trigger the same edit-mode installation
+    /// once Unity finishes importing them.
+    /// </summary>
+    public sealed class LevelSelectionGeneratedArtPostprocessor : AssetPostprocessor
+    {
+        private static void OnPostprocessAllAssets(
+            string[] importedAssets,
+            string[] deletedAssets,
+            string[] movedAssets,
+            string[] movedFromAssetPaths)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
+
+            bool touchedLevelSelectionArt = importedAssets.Any(path =>
+                path.StartsWith("Assets/Project Data/Game/Images/LevelSelection/", StringComparison.OrdinalIgnoreCase));
+
+            if (!touchedLevelSelectionArt)
+                return;
+
+            EditorApplication.delayCall += () =>
+            {
+                Scene active = SceneManager.GetActiveScene();
+                if (!active.IsValid() || active.path != "Assets/Project Data/Game/Scenes/LevelSelection.unity")
+                    return;
+
+                if (GameObject.Find("NEW Level Selection") != null)
+                    return;
+
+                if (Directory.Exists("Assets/Project Data/Game/Images/LevelSelection"))
+                    EditorApplication.ExecuteMenuItem("Conveyor Chef/Level Selection/1. Bake or Replace Editable Level Selection");
+            };
         }
     }
 }
