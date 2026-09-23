@@ -28,6 +28,7 @@ namespace Watermelon.BusStop
         [SerializeField] private Image[] stars;
         [SerializeField] private Image actionButtonImage;
         [SerializeField] private TextMeshProUGUI actionText;
+        [SerializeField] private GameObject actionLockIcon;
         [SerializeField] private GameObject lockOverlay;
         [SerializeField] private GameObject completedBadge;
 
@@ -122,7 +123,10 @@ namespace Watermelon.BusStop
             }
 
             if (actionText != null)
-                actionText.text = isUnlocked ? "PLAY" : "LOCKED";
+                actionText.text = isUnlocked ? "PLAY" : string.Empty;
+
+            if (actionLockIcon != null)
+                actionLockIcon.SetActive(!isUnlocked);
 
             if (actionButton != null)
                 actionButton.interactable = isUnlocked;
@@ -157,6 +161,7 @@ namespace Watermelon.BusStop
             Image[] starImages,
             Image playButtonImage,
             TextMeshProUGUI playText,
+            GameObject playLockIcon,
             GameObject lockRoot,
             GameObject completedRoot,
             Sprite selectedFrame,
@@ -176,6 +181,7 @@ namespace Watermelon.BusStop
             stars = starImages;
             actionButtonImage = playButtonImage;
             actionText = playText;
+            actionLockIcon = playLockIcon;
             lockOverlay = lockRoot;
             completedBadge = completedRoot;
             selectedFrameSprite = selectedFrame;
