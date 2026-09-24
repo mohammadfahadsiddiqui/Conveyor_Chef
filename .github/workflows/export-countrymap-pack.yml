@@ -1,0 +1,39 @@
+name: Export Country Map asset pack
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  export-countrymap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact map snapshot
+        uses: actions/checkout@v4
+        with:
+          ref: 04a78d64bef5e2bffc4cae7100d3214c88ad9797
+
+      - name: Build Country Map Unity asset pack
+        run: |
+          mkdir -p pack
+          cp "Assets/Project Data/Game/Images/CountryMap/"*.png pack/
+          cd pack
+          zip -r ../ConveyorChef_CountryMap_Assets_ForUnity.zip .
+          cd ..
+          unzip -l ConveyorChef_CountryMap_Assets_ForUnity.zip
+
+      - name: Publish Country Map pack
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view conveyor-chef-map-assets-04a78d6 >/dev/null 2>&1; then
+            gh release create conveyor-chef-map-assets-04a78d6 \
+              --target 04a78d64bef5e2bffc4cae7100d3214c88ad9797 \
+              --title "Conveyor Chef Map Asset Packs - 04a78d6" \
+              --notes "Unity-ready map asset packs from the restored project snapshot."
+          fi
+          gh release upload conveyor-chef-map-assets-04a78d6 ConveyorChef_CountryMap_Assets_ForUnity.zip --clobber
