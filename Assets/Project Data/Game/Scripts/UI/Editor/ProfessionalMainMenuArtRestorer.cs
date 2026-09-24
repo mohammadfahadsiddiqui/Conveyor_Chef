@@ -53,10 +53,11 @@ namespace Watermelon
         [InitializeOnLoadMethod]
         private static void RestoreOnceAfterCompile()
         {
-            // Automatic menu scene modification is disabled.
-            // menu.unity is authoritative and should remain exactly as authored.
-            // Use Tools > Conveyor Chef > Restore Approved Main Menu Artwork only
-            // when an explicit manual restore is desired.
+            if (SessionState.GetBool(SessionKey, false))
+                return;
+
+            SessionState.SetBool(SessionKey, true);
+            EditorApplication.delayCall += TryRestoreAutomatically;
         }
 
         private static void TryRestoreAutomatically()
