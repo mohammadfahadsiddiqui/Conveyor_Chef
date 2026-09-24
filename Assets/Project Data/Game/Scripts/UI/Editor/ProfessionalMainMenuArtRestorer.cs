@@ -53,11 +53,10 @@ namespace Watermelon
         [InitializeOnLoadMethod]
         private static void RestoreOnceAfterCompile()
         {
-            if (SessionState.GetBool(SessionKey, false))
-                return;
-
-            SessionState.SetBool(SessionKey, true);
-            EditorApplication.delayCall += TryRestoreAutomatically;
+            // menu.unity is the authoritative serialized Main Menu.
+            // Never open/save or rewrite it automatically after a compile.
+            // The manual Tools > Conveyor Chef > Restore Approved Main Menu Artwork
+            // command remains available when an explicit restore is desired.
         }
 
         private static void TryRestoreAutomatically()
