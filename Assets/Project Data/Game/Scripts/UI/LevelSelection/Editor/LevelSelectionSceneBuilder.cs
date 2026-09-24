@@ -66,13 +66,8 @@ namespace Watermelon.EditorTools
 
         static LevelSelectionSceneBuilder()
         {
-            EditorApplication.delayCall += TryAutoBakeOpenScene;
-
-            EditorSceneManager.sceneOpened -= OnSceneOpened;
-            EditorSceneManager.sceneOpened += OnSceneOpened;
-
-            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
-            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            // Golden build: the one-time restore helper creates the serialized scene.
+            // After that, LevelSelection.unity is authoritative and is never auto-rebaked.
         }
 
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
