@@ -2,7 +2,6 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Watermelon.BusStop;
 using Watermelon.IAPStore;
@@ -132,8 +131,14 @@ namespace Watermelon
 
         private static void EnsureEventSystem()
         {
-            UIEventSystemRuntime.UseCurrentSceneEventSystem();
+            if (EventSystem.current != null && EventSystem.current.gameObject.activeInHierarchy)
+                return;
+
+            EventSystem existing = FindFirstObjectByType<EventSystem>(FindObjectsInactive.Include);
+            if (existing != null)
+                existing.gameObject.SetActive(true);
         }
+
         private static void EnsureSaveControllerReady()
         {
             if (SaveController.IsSaveLoaded)
