@@ -123,9 +123,9 @@ namespace Watermelon.EditorTools
                 Watermelon.LevelSelectionResponsiveLayout marker =
                     newRoot.GetComponent<Watermelon.LevelSelectionResponsiveLayout>();
 
-                if (missing.Count == 0 && (marker == null || marker.LayoutVersion < 7))
+                if (missing.Count == 0 && (marker == null || marker.LayoutVersion < 8))
                 {
-                    Debug.Log("[LevelSelection] Upgrading the authored Level Selection layout to corrected level-card layout v7.");
+                    Debug.Log("[LevelSelection] Upgrading the authored Level Selection layout to corrected header and hero layout v8.");
                     BakeInternal(false);
                     return;
                 }
@@ -339,7 +339,7 @@ namespace Watermelon.EditorTools
             Stretch(root);
             Watermelon.LevelSelectionResponsiveLayout layoutMarker =
                 root.gameObject.AddComponent<Watermelon.LevelSelectionResponsiveLayout>();
-            layoutMarker.EditorConfigure(7);
+            layoutMarker.EditorConfigure(8);
 
             Image background = I("Background Artwork", root, bg, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(W, H), false);
             Stretch(background.rectTransform);
@@ -377,44 +377,66 @@ namespace Watermelon.EditorTools
             Button settingsButton = B("SettingsButton", topHud, settingsSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(133f, 135f), true);
             SetReferenceRect(settingsButton.GetComponent<RectTransform>(), 922f, 0f, 133f, 135f);
 
-            // COUNTRY HEADER
+            // COUNTRY HEADER - locked to the approved INDIA reference.
             RectTransform countryHeader = R("Country Header", root);
-            SetReferenceRect(countryHeader, 166f, 138f, 795f, 241f);
+            SetReferenceRect(countryHeader, 150f, 132f, 810f, 245f);
 
-            Image leftLeaf = I("Left Leaf", countryHeader, leafLeft, new Vector2(0f, 0.5f), new Vector2(82f, -6f), new Vector2(205f, 205f), true);
+            Image leftLeaf = I("Left Leaf", countryHeader, leafLeft, new Vector2(0f, 0.5f), new Vector2(86f, -4f), new Vector2(210f, 210f), true);
             leftLeaf.raycastTarget = false;
-            Image rightLeaf = I("Right Leaf", countryHeader, leafRight, new Vector2(1f, 0.5f), new Vector2(-82f, -6f), new Vector2(205f, 205f), true);
+            Image rightLeaf = I("Right Leaf", countryHeader, leafRight, new Vector2(1f, 0.5f), new Vector2(-86f, -4f), new Vector2(210f, 210f), true);
             rightLeaf.raycastTarget = false;
 
-            Image headerImage = I("Header Plaque", countryHeader, header, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(700f, 230f), false);
-            TextMeshProUGUI countryTitle = T("Country Title", headerImage.transform, "INDIA", 72f, new Vector2(0f, 28f), new Vector2(470f, 92f));
+            Image headerImage = I("Header Plaque", countryHeader, header, new Vector2(0.5f, 0.5f), new Vector2(-8f, 0f), new Vector2(720f, 235f), false);
+            headerImage.raycastTarget = false;
+
+            TextMeshProUGUI countryTitle = T("Country Title", headerImage.transform, "INDIA", 78f, new Vector2(0f, 30f), new Vector2(500f, 96f));
             countryTitle.fontStyle = FontStyles.Bold;
-            countryTitle.color = new Color(1f, 0.92f, 0.30f, 1f);
+            countryTitle.color = new Color(1f, 0.86f, 0.18f, 1f);
+            countryTitle.outlineWidth = 0.16f;
+            countryTitle.outlineColor = new Color(0.42f, 0.16f, 0.02f, 1f);
+            countryTitle.overflowMode = TextOverflowModes.Overflow;
 
-            Image subtitle = I("Subtitle Plate", headerImage.transform, subtitlePlate, new Vector2(0.5f, 0.5f), new Vector2(-12f, -58f), new Vector2(500f, 66f), false);
-            TextMeshProUGUI subtitleText = T("Country Subtitle", subtitle.transform, "FLAVORS, CULTURE, JOURNEY", 22f, Vector2.zero, new Vector2(360f, 40f));
-            subtitleText.color = new Color(0.17f, 0.14f, 0.18f, 1f);
+            Image subtitle = I("Subtitle Plate", headerImage.transform, subtitlePlate, new Vector2(0.5f, 0.5f), new Vector2(-8f, -62f), new Vector2(520f, 70f), false);
+            subtitle.raycastTarget = false;
+            TextMeshProUGUI subtitleText = T("Country Subtitle", subtitle.transform, "FLAVORS, CULTURE, JOURNEY", 22f, Vector2.zero, new Vector2(420f, 42f));
+            subtitleText.fontStyle = FontStyles.Bold;
+            subtitleText.color = new Color(0.20f, 0.12f, 0.08f, 1f);
+            subtitleText.overflowMode = TextOverflowModes.Overflow;
 
-            Image flagImage = I("Country Flag", countryHeader, flag, new Vector2(1f, 0.5f), new Vector2(-2f, -12f), new Vector2(195f, 155f), true);
+            Image flagImage = I("Country Flag", countryHeader, flag, new Vector2(1f, 0.5f), new Vector2(-18f, -6f), new Vector2(190f, 150f), true);
             flagImage.raycastTarget = false;
 
-            // HERO / DESCRIPTION
-            Image hero = I("Hero Info Frame", root, heroOuter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(984f, 441f), false);
-            SetReferenceRect(hero.rectTransform, 37f, 367f, 984f, 441f);
+            // Explicit draw order: plaque -> leaves -> title/subtitle -> flag.
+            headerImage.transform.SetAsFirstSibling();
+            leftLeaf.transform.SetSiblingIndex(1);
+            rightLeaf.transform.SetSiblingIndex(2);
+            countryTitle.transform.SetAsLastSibling();
+            subtitle.transform.SetAsLastSibling();
+            flagImage.transform.SetAsLastSibling();
+
+            // HERO / DESCRIPTION - same proportions and spacing as the reference.
+            Image hero = I("Hero Info Frame", root, heroOuter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(996f, 442f), false);
+            SetReferenceRect(hero.rectTransform, 42f, 370f, 996f, 442f);
+            hero.raycastTarget = false;
 
             RectTransform heroViewport = R("Hero Image Viewport", hero.transform);
-            Set(heroViewport, new Vector2(0f, 0.5f), new Vector2(302f, 0f), new Vector2(585f, 382f));
+            Set(heroViewport, new Vector2(0f, 0.5f), new Vector2(309f, 0f), new Vector2(610f, 382f));
             heroViewport.gameObject.AddComponent<RectMask2D>();
-            Image heroImage = I("Hero Image", heroViewport, bg, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(585f, 418f), false);
+
+            Image heroImage = I("Hero Image", heroViewport, bg, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(610f, 416f), false);
             heroImage.raycastTarget = false;
 
-            Image descPanel = I("Description Panel", hero.transform, descriptionPanel, new Vector2(1f, 0.5f), new Vector2(-165f, 0f), new Vector2(322f, 382f), false);
+            Image descPanel = I("Description Panel", hero.transform, descriptionPanel, new Vector2(1f, 0.5f), new Vector2(-166f, 0f), new Vector2(320f, 382f), false);
+            descPanel.raycastTarget = false;
+
             TextMeshProUGUI descText = T("Description Text", descPanel.transform,
-                "Explore India's rich food culture, vibrant cities and iconic destinations as you deliver delicious dishes across the country!",
-                25f, Vector2.zero, new Vector2(250f, 305f));
+                "Explore India’s rich food culture, vibrant cities and iconic destinations as you deliver delicious dishes across the country!",
+                24f, Vector2.zero, new Vector2(276f, 310f));
             descText.textWrappingMode = TextWrappingModes.Normal;
             descText.alignment = TextAlignmentOptions.MidlineLeft;
             descText.color = new Color(0.20f, 0.14f, 0.10f, 1f);
+            descText.margin = new Vector4(8f, 6f, 8f, 6f);
+            descText.overflowMode = TextOverflowModes.Overflow;
 
             // LEVEL CARDS - exact global rectangles avoid parent-offset drift.
             RectTransform cardsRoot = R("Level Cards", root);
