@@ -95,6 +95,14 @@ namespace Watermelon.EditorTools
 
         private static void TryAutoBakeOpenScene()
         {
+            // Automatic rebuilding is intentionally disabled. LevelSelection.unity is
+            // now treated as a normal serialized Unity scene and must not be replaced
+            // merely by opening the scene, compiling scripts, or entering/exiting Play Mode.
+            // The explicit Conveyor Chef > Level Selection > Bake menu action still works
+            // when a deliberate rebuild is required.
+            return;
+
+#pragma warning disable CS0162
             if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling || EditorApplication.isUpdating)
                 return;
 
@@ -149,6 +157,7 @@ namespace Watermelon.EditorTools
                 " sprites. Keep " + AssetPackFileName + " in Downloads/project root for automatic import, or use " +
                 "Conveyor Chef > Level Selection > 0. Import Generated Art Pack. The legacy UI is preserved until " +
                 "the new serialized editable hierarchy can be installed.");
+#pragma warning restore CS0162
         }
 
         [MenuItem("Conveyor Chef/Level Selection/0. Import Generated Art Pack", priority = 0)]
