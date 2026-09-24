@@ -41,6 +41,11 @@ namespace Watermelon.EditorTools
             // complete World Map and was accidentally dropped during later scene recovery.
             EditorSceneManager.sceneOpened -= OnWorldMapSceneOpened;
             EditorSceneManager.sceneOpened += OnWorldMapSceneOpened;
+
+            // Also repair the currently-open WorldMap immediately after scripts
+            // recompile, so a git pull does not require the designer to rebake or
+            // manually run a menu command.
+            EditorApplication.delayCall += RepairScrollableContentBackgroundOnly;
         }
 
         private static void OnWorldMapSceneOpened(Scene scene, OpenSceneMode mode)
@@ -75,8 +80,8 @@ namespace Watermelon.EditorTools
             {
                 Debug.LogWarning(
                     "[WorldMap] Scrollable MapContent background is still missing. " +
-                    "Expected the original World Ocean Background (preferred) or " +
-                    "tropical_ocean_map_adventure.png as fallback.");
+                    "Expected the portrait World Ocean Background or the bundled portrait fallback. " +
+                    "The landscape fixed backdrop will not be reused.");
                 return;
             }
 
