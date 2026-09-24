@@ -35,9 +35,12 @@ namespace Watermelon.EditorTools
 
         static WorldMapSceneBuilder()
         {
-            // The restored WorldMap.unity is authoritative.
-            // Never repair, save, or refocus it automatically on compile,
-            // scene-open, or Play Mode changes. Use manual menu commands only.
+            // Bootstrap ONLY the committed placeholder into the real editable scene.
+            // Once WorldMap.unity has been baked, the serialized authored hierarchy
+            // is authoritative and is never auto-rebuilt or repositioned.
+            EditorSceneManager.sceneOpened -= OnWorldMapSceneOpened;
+            EditorSceneManager.sceneOpened += OnWorldMapSceneOpened;
+            EditorApplication.delayCall += QueueWorldMapArtworkRepair;
         }
 
         private static void OnWorldMapSceneOpened(Scene scene, OpenSceneMode mode)
@@ -92,26 +95,23 @@ namespace Watermelon.EditorTools
 
             if (missing.Count == 0)
             {
-                int repairedCards = EnsureChapterSelectorComplete(saveScene: false);
-                int rebound = RebindArtworkInOpenWorldMap(saveScene: false);
-
-                if (repairedCards > 0 || rebound > 0)
+                if (IsPlaceholderScene())
                 {
-                    EditorSceneManager.MarkSceneDirty(scene);
-                    EditorSceneManager.SaveScene(scene);
-
-                    Debug.Log(
-                        "[WorldMap] Auto-repair complete. Chapter cards repaired: " + repairedCards +
-                        ", artwork/references rebound: " + rebound + ".");
+                    Debug.Log("[WorldMap] Generated artwork is ready. Replacing the committed placeholder with the complete editable World Map once.");
+                    BakeScene();
+                    return;
                 }
+
+                // A real authored WorldMap scene already exists. Do not silently
+                // rebuild, repair, rebind, save, or move anything in it.
+                FocusEditableWorldMapInSceneView(scene);
+                return;
             }
-            else
-            {
-                Debug.LogWarning(
-                    "[WorldMap] Generated artwork is not in the Unity project yet. " +
-                    "Download/select " + AssetPackFileName + " using Conveyor Chef > World Map > 1. Import Generated Art Pack. " +
-                    "Until those PNGs exist, Unity can only show blank/white placeholder Images.");
-            }
+
+            Debug.LogWarning(
+                "[WorldMap] Generated artwork is not in the Unity project yet. " +
+                "Download/select " + AssetPackFileName + " using Conveyor Chef > World Map > 1. Import Generated Art Pack. " +
+                "Until those PNGs exist, Unity can only show the committed placeholder.");
 
             FocusEditableWorldMapInSceneView(scene);
         }
@@ -119,6 +119,21 @@ namespace Watermelon.EditorTools
         private const string ScenePath = "Assets/Project Data/Game/Scenes/WorldMap.unity";
         private const string AssetFolder = "Assets/Project Data/Game/Images/WorldMap";
         private const string AssetPackFileName = "ConveyorChef_WorldMap_Assets_ForUnity.zip";
+
+        private static bool IsPlaceholderScene()
+        {
+            if (!File.Exists(ScenePath))
+                return false;
+
+            try
+            {
+                return File.ReadAllText(ScenePath).Contains("__WORLD_MAP_PLACEHOLDER__");
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         private const float DesignWidth = 1080f;
         private const float DesignHeight = 1920f;
