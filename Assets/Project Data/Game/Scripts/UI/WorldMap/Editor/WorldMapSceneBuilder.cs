@@ -35,13 +35,9 @@ namespace Watermelon.EditorTools
 
         static WorldMapSceneBuilder()
         {
-            EditorSceneManager.sceneOpened -= OnWorldMapSceneOpened;
-            EditorSceneManager.sceneOpened += OnWorldMapSceneOpened;
-
-            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
-            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
-
-            QueueWorldMapArtworkRepair();
+            // Do not repair, save, or refocus WorldMap.unity automatically on compile,
+            // scene-open, or Play Mode changes. The serialized scene is authoritative.
+            // Use the explicit Conveyor Chef > World Map commands for deliberate repairs.
         }
 
         private static void OnWorldMapSceneOpened(Scene scene, OpenSceneMode mode)
