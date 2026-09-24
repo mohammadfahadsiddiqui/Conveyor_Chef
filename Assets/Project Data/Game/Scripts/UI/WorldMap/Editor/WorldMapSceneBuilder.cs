@@ -179,7 +179,7 @@ namespace Watermelon.EditorTools
             "Vibrant Cartoon World Ocean Map.png",
             "vibrant_cartoon_world_ocean_map.png",
             "world_ocean_background.png",
-            "tropical_ocean_map_adventure.png"
+            "world_ocean_scroll_background_fallback.jpg"
         };
 
         private const float DesignWidth = 1080f;
@@ -499,7 +499,10 @@ namespace Watermelon.EditorTools
             Sprite ocean = RequireSprite("tropical_ocean_map_adventure.png");
             Sprite scrollBackground = FindScrollableContentBackgroundSprite();
             if (scrollBackground == null)
-                scrollBackground = ocean;
+                throw new InvalidOperationException(
+                    "World Map scroll-content background is missing. " +
+                    "Expected the portrait World Ocean Background; refusing to reuse " +
+                    "the landscape fixed backdrop because that produces the giant-compass regression.");
 
             Sprite logo = RequireSprite("conveyor_chef_world_map_logo.png");
             Sprite back = RequireSprite("glossy_blue_game_back_button.png");
@@ -1559,12 +1562,19 @@ namespace Watermelon.EditorTools
 
             Sprite ocean = RequireSprite("tropical_ocean_map_adventure.png");
             Sprite scrollBackground = FindScrollableContentBackgroundSprite();
+
             if (scrollBackground == null)
-                scrollBackground = ocean;
+            {
+                Debug.LogWarning(
+                    "[WorldMap] Portrait MapContent background is missing. " +
+                    "ScrollableOcean was NOT rebound to the landscape fixed backdrop.");
+            }
 
             // Restore the dedicated MapContent background independently from the fixed
             // screen backdrop. This is the hierarchy used by the last complete map.
-            changed += EnsureScrollableContentBackground(scrollBackground);
+            if (scrollBackground != null)
+                changed += EnsureScrollableContentBackground(scrollBackground);
+
             changed += EnsureScrollableMapWiring();
 
             // Fixed background stays fixed. ScrollableOcean gets the dedicated
@@ -1575,10 +1585,13 @@ namespace Watermelon.EditorTools
                 "Background Artwork",
                 "World Map Backdrop");
 
-            changed += BindSpriteByNames(
-                scrollBackground,
-                false,
-                "ScrollableOcean");
+            if (scrollBackground != null)
+            {
+                changed += BindSpriteByNames(
+                    scrollBackground,
+                    false,
+                    "ScrollableOcean");
+            }
 
             changed += BindSpriteByNames(
                 RequireSprite("conveyor_chef_world_map_logo.png"),
