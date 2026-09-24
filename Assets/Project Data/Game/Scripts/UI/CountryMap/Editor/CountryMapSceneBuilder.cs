@@ -110,9 +110,11 @@ namespace Watermelon.EditorTools
 
         static CountryMapSceneBuilder()
         {
-            // The restored CountryMap.unity is authoritative.
-            // Do not auto-bake/upgrade it when generated progress-widget artwork
-            // is missing. Manual Conveyor Chef menu commands remain available.
+            // Bootstrap ONLY the committed placeholder into the complete editable
+            // Country Map. After that, the serialized scene is authoritative.
+            EditorApplication.delayCall += TryAutoBake;
+            EditorSceneManager.sceneOpened -= OnSceneOpened;
+            EditorSceneManager.sceneOpened += OnSceneOpened;
         }
 
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
@@ -142,14 +144,7 @@ namespace Watermelon.EditorTools
             }
             else
             {
-                EnsureChefBehindProgressPanel(active, false);
-
-                if (MissingProgressWidgetAssets().Count == 0)
-                    UpgradeEditableProgressWidget(active, false);
-
-                if (active.isDirty)
-                    EditorSceneManager.SaveScene(active);
-
+                // Never mutate an already-authored CountryMap scene automatically.
                 Focus(active);
             }
         }
@@ -636,9 +631,9 @@ namespace Watermelon.EditorTools
             List<string> missingProgressAssets = MissingProgressWidgetAssets();
             if (missingProgressAssets.Count > 0)
             {
-                throw new InvalidOperationException(
-                    "Country Map progress widget assets are missing:\n- " +
-                    string.Join("\n- ", missingProgressAssets));
+                Debug.LogWarning(
+                    "[CountryMap] Dedicated progress_ui_* artwork is not installed. " +
+                    "Building the progress widget with the original Country Map sprites instead.");
             }
 
             BuildEditableProgressWidget(
@@ -1293,20 +1288,18 @@ namespace Watermelon.EditorTools
 
         private static Sprite ProgressSprite(string preferredFile, string fallbackFile)
         {
-            // Progress widget must use only the dedicated progress_ui_* sprites.
-            // Keeping the second parameter preserves existing call sites while
-            // intentionally disabling the old fallback art.
             string preferredPath = AssetFolder + "/" + preferredFile;
             Sprite preferred = AssetDatabase.LoadAssetAtPath<Sprite>(preferredPath);
+            if (preferred != null)
+                return preferred;
 
-            if (preferred == null)
-            {
-                throw new InvalidOperationException(
-                    "Missing required Country Map progress sprite: " + preferredFile +
-                    "\nExpected at: " + preferredPath);
-            }
+            Sprite fallback = AssetDatabase.LoadAssetAtPath<Sprite>(AssetFolder + "/" + fallbackFile);
+            if (fallback != null)
+                return fallback;
 
-            return preferred;
+            throw new InvalidOperationException(
+                "Missing Country Map progress sprite and fallback: " +
+                preferredFile + " / " + fallbackFile);
         }
 
         private static Sprite S(string file)
