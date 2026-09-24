@@ -42,11 +42,42 @@ namespace Watermelon.BusStop
         private LevelSelectionController owner;
         private bool unlocked;
 
+        // The Level Selection scene is designer-authored. Cache every RectTransform
+        // under this card when Play Mode starts and restore it after runtime UI
+        // updates so state changes can never resize/reposition an individual card.
+        private RectTransformState[] authoredGeometry;
+
+        private struct RectTransformState
+        {
+            public RectTransform rect;
+            public Vector2 anchorMin;
+            public Vector2 anchorMax;
+            public Vector2 pivot;
+            public Vector2 anchoredPosition;
+            public Vector2 sizeDelta;
+            public Vector3 localScale;
+            public Quaternion localRotation;
+        }
+
         public int SlotIndex => slotIndex;
+
+        private void Awake()
+        {
+            CaptureAuthoredGeometry();
+        }
+
+        private void LateUpdate()
+        {
+            RestoreAuthoredGeometry();
+        }
 
         public void Bind(LevelSelectionController controller)
         {
             owner = controller;
+
+            // Capture here as well in case this component was enabled after Awake
+            // or the scene was rebuilt by the editor baker immediately before play.
+            CaptureAuthoredGeometry();
 
             if (selectButton != null)
             {
@@ -90,6 +121,10 @@ namespace Watermelon.BusStop
                 else if (unlockedFrameSprite != null)
                     cardFrame.sprite = unlockedFrameSprite;
 
+                // State sprites may have different source texture dimensions or
+                // transparent margins. Never let that affect the authored UI rect.
+                cardFrame.type = Image.Type.Simple;
+                cardFrame.preserveAspect = false;
                 cardFrame.color = Color.white;
             }
 
@@ -133,6 +168,51 @@ namespace Watermelon.BusStop
 
             if (selectButton != null)
                 selectButton.interactable = true;
+
+            RestoreAuthoredGeometry();
+        }
+
+        private void CaptureAuthoredGeometry()
+        {
+            RectTransform[] rects = GetComponentsInChildren<RectTransform>(true);
+            authoredGeometry = new RectTransformState[rects.Length];
+
+            for (int i = 0; i < rects.Length; i++)
+            {
+                RectTransform rect = rects[i];
+                authoredGeometry[i] = new RectTransformState
+                {
+                    rect = rect,
+                    anchorMin = rect.anchorMin,
+                    anchorMax = rect.anchorMax,
+                    pivot = rect.pivot,
+                    anchoredPosition = rect.anchoredPosition,
+                    sizeDelta = rect.sizeDelta,
+                    localScale = rect.localScale,
+                    localRotation = rect.localRotation
+                };
+            }
+        }
+
+        private void RestoreAuthoredGeometry()
+        {
+            if (authoredGeometry == null)
+                return;
+
+            for (int i = 0; i < authoredGeometry.Length; i++)
+            {
+                RectTransformState state = authoredGeometry[i];
+                if (state.rect == null)
+                    continue;
+
+                state.rect.anchorMin = state.anchorMin;
+                state.rect.anchorMax = state.anchorMax;
+                state.rect.pivot = state.pivot;
+                state.rect.anchoredPosition = state.anchoredPosition;
+                state.rect.sizeDelta = state.sizeDelta;
+                state.rect.localScale = state.localScale;
+                state.rect.localRotation = state.localRotation;
+            }
         }
 
         private void HandleSelected()
