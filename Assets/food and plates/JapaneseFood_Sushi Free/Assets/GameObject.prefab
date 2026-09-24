@@ -38,71 +38,71 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 8656509740547741913}
     m_Modifications:
-    - target: {fileID: 8983551931403042585, guid: 493d6596ce89c60449105f2ae8234abc,
+    - target: {fileID: 4449700313103077667, guid: 9962e92589c14aa45be915db7e4088a0,
         type: 3}
       propertyPath: m_Name
       value: Nigiri_Sake (1)
       objectReference: {fileID: 0}
-    - target: {fileID: 1815687892593156614, guid: 493d6596ce89c60449105f2ae8234abc,
+    - target: {fileID: 3847468486123867527, guid: 9962e92589c14aa45be915db7e4088a0,
         type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.66410065
       objectReference: {fileID: 0}
-    - target: {fileID: 1815687892593156614, guid: 493d6596ce89c60449105f2ae8234abc,
+    - target: {fileID: 3847468486123867527, guid: 9962e92589c14aa45be915db7e4088a0,
         type: 3}
       propertyPath: m_LocalPosition.y
       value: -0.120719165
       objectReference: {fileID: 0}
-    - target: {fileID: 1815687892593156614, guid: 493d6596ce89c60449105f2ae8234abc,
+    - target: {fileID: 3847468486123867527, guid: 9962e92589c14aa45be915db7e4088a0,
         type: 3}
       propertyPath: m_LocalPosition.z
       value: -0.77803916
       objectReference: {fileID: 0}
-    - target: {fileID: 1815687892593156614, guid: 493d6596ce89c60449105f2ae8234abc,
+    - target: {fileID: 3847468486123867527, guid: 9962e92589c14aa45be915db7e4088a0,
         type: 3}
       propertyPath: m_LocalRotation.x
       value: -0
       objectReference: {fileID: 0}
-    - target: {fileID: 1815687892593156614, guid: 493d6596ce89c60449105f2ae8234abc,
+    - target: {fileID: 3847468486123867527, guid: 9962e92589c14aa45be915db7e4088a0,
         type: 3}
       propertyPath: m_LocalRotation.y
       value: -0.25510633
       objectReference: {fileID: 0}
-    - target: {fileID: 1815687892593156614, guid: 493d6596ce89c60449105f2ae8234abc,
+    - target: {fileID: 3847468486123867527, guid: 9962e92589c14aa45be915db7e4088a0,
         type: 3}
       propertyPath: m_LocalRotation.z
       value: -0
       objectReference: {fileID: 0}
-    - target: {fileID: 1815687892593156614, guid: 493d6596ce89c60449105f2ae8234abc,
+    - target: {fileID: 3847468486123867527, guid: 9962e92589c14aa45be915db7e4088a0,
         type: 3}
       propertyPath: m_LocalRotation.w
       value: 0.966913
       objectReference: {fileID: 0}
-    - target: {fileID: 1815687892593156614, guid: 493d6596ce89c60449105f2ae8234abc,
+    - target: {fileID: 3847468486123867527, guid: 9962e92589c14aa45be915db7e4088a0,
         type: 3}
       propertyPath: m_RootOrder
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 1815687892593156614, guid: 493d6596ce89c60449105f2ae8234abc,
+    - target: {fileID: 3847468486123867527, guid: 9962e92589c14aa45be915db7e4088a0,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 1815687892593156614, guid: 493d6596ce89c60449105f2ae8234abc,
+    - target: {fileID: 3847468486123867527, guid: 9962e92589c14aa45be915db7e4088a0,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
       value: -29.560001
       objectReference: {fileID: 0}
-    - target: {fileID: 1815687892593156614, guid: 493d6596ce89c60449105f2ae8234abc,
+    - target: {fileID: 3847468486123867527, guid: 9962e92589c14aa45be915db7e4088a0,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 493d6596ce89c60449105f2ae8234abc, type: 3}
+  m_SourcePrefab: {fileID: 100100000, guid: 9962e92589c14aa45be915db7e4088a0, type: 3}
 --- !u!4 &2639066325180632689 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: 1815687892593156614, guid: 493d6596ce89c60449105f2ae8234abc,
+  m_CorrespondingSourceObject: {fileID: 3847468486123867527, guid: 9962e92589c14aa45be915db7e4088a0,
     type: 3}
   m_PrefabInstance: {fileID: 4444285732129369207}
   m_PrefabAsset: {fileID: 0}
