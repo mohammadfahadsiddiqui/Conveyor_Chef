@@ -66,13 +66,9 @@ namespace Watermelon.EditorTools
 
         static LevelSelectionSceneBuilder()
         {
-            EditorApplication.delayCall += TryAutoBakeOpenScene;
-
-            EditorSceneManager.sceneOpened -= OnSceneOpened;
-            EditorSceneManager.sceneOpened += OnSceneOpened;
-
-            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
-            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            // The restored LevelSelection.unity is authoritative.
+            // Do not auto-import downloaded ZIPs or rebake the scene on compile,
+            // scene-open, or Play Mode changes. Manual menu commands still work.
         }
 
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
