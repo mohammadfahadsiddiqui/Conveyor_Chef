@@ -1867,6 +1867,12 @@ namespace Watermelon.EditorTools
 
         private static Sprite FindScrollableContentBackgroundSprite()
         {
+            // First recover the original portrait background from Downloads when it
+            // still exists there from the generated-art session. This is intentionally
+            // narrow: it copies only the known World Ocean Background and never
+            // replaces any of the six continent sprites or other scene artwork.
+            TryImportOriginalScrollableBackgroundFromDownloads();
+
             foreach (string fileName in ScrollableBackgroundCandidates)
             {
                 Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(AssetFolder + "/" + fileName);
@@ -1896,6 +1902,75 @@ namespace Watermelon.EditorTools
             }
 
             return null;
+        }
+
+        private static void TryImportOriginalScrollableBackgroundFromDownloads()
+        {
+            string targetPath = AssetFolder + "/" + PreferredScrollableBackgroundFile;
+            if (AssetDatabase.LoadAssetAtPath<Sprite>(targetPath) != null)
+                return;
+
+            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (string.IsNullOrEmpty(userProfile))
+                return;
+
+            string downloads = Path.Combine(userProfile, "Downloads");
+            if (!Directory.Exists(downloads))
+                return;
+
+            string[] exactCandidates =
+            {
+                "Vibrant Cartoon World Ocean Map.png",
+                "Vibrant Cartoon World Ocean Map (1).png",
+                "Vibrant Cartoon World Ocean Map(1).png"
+            };
+
+            string source = null;
+
+            foreach (string fileName in exactCandidates)
+            {
+                string candidate = Path.Combine(downloads, fileName);
+                if (File.Exists(candidate))
+                {
+                    source = candidate;
+                    break;
+                }
+            }
+
+            if (source == null)
+            {
+                string[] matches = Directory.GetFiles(
+                    downloads,
+                    "Vibrant Cartoon World Ocean Map*.png",
+                    SearchOption.TopDirectoryOnly);
+
+                if (matches.Length > 0)
+                    source = matches[0];
+            }
+
+            if (source == null)
+                return;
+
+            EnsureFolders();
+
+            string absoluteTarget = Path.GetFullPath(targetPath);
+            File.Copy(source, absoluteTarget, true);
+
+            AssetDatabase.ImportAsset(targetPath, ImportAssetOptions.ForceSynchronousImport);
+
+            TextureImporter importer = AssetImporter.GetAtPath(targetPath) as TextureImporter;
+            if (importer != null)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.mipmapEnabled = false;
+                importer.alphaIsTransparency = true;
+                importer.SaveAndReimport();
+            }
+
+            Debug.Log(
+                "[WorldMap] Recovered original scrollable World Ocean Background from: " +
+                source);
         }
 
         private static int EnsureScrollableMapWiring()
