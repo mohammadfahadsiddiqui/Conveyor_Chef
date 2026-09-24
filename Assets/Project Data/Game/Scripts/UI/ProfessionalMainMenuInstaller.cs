@@ -1313,7 +1313,7 @@ namespace Watermelon
             text.alignment = alignment;
             text.color = Color.white;
             text.raycastTarget = false;
-            text.textWrappingMode = TextWrappingModes.Normal;
+            text.enableWordWrapping = true;
             text.outlineWidth = 0.18f;
             text.outlineColor = new Color32(9, 32, 72, 255);
             return text;
