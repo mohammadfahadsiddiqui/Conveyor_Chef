@@ -66,13 +66,9 @@ namespace Watermelon.EditorTools
 
         static LevelSelectionSceneBuilder()
         {
-            EditorApplication.delayCall += TryAutoBakeOpenScene;
-
-            EditorSceneManager.sceneOpened -= OnSceneOpened;
-            EditorSceneManager.sceneOpened += OnSceneOpened;
-
-            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
-            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            // Do not mutate LevelSelection.unity automatically on compile, scene-open,
+            // or Play Mode changes. The serialized scene is authoritative.
+            // Import/rebuild only through the explicit Conveyor Chef menu commands.
         }
 
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
