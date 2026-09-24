@@ -110,9 +110,9 @@ namespace Watermelon.EditorTools
 
         static CountryMapSceneBuilder()
         {
-            EditorApplication.delayCall += TryAutoBake;
-            EditorSceneManager.sceneOpened -= OnSceneOpened;
-            EditorSceneManager.sceneOpened += OnSceneOpened;
+            // Automatic scene mutation is disabled.
+            // CountryMap.unity is an authoritative serialized scene and must only
+            // be rebuilt through the explicit Conveyor Chef > Country Map menu commands.
         }
 
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
