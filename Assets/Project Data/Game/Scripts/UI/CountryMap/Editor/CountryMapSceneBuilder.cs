@@ -110,9 +110,8 @@ namespace Watermelon.EditorTools
 
         static CountryMapSceneBuilder()
         {
-            EditorApplication.delayCall += TryAutoBake;
-            EditorSceneManager.sceneOpened -= OnSceneOpened;
-            EditorSceneManager.sceneOpened += OnSceneOpened;
+            // Golden build: the one-time restore helper creates the serialized scene.
+            // After that, CountryMap.unity is authoritative and is never auto-baked.
         }
 
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
