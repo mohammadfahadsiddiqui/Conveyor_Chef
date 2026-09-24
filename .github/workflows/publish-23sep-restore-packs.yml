@@ -1,0 +1,93 @@
+name: Publish 23 Sep 2026 restore packs
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  scene-packs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact 23 Sep snapshot
+        uses: actions/checkout@v4
+        with:
+          ref: 5e9c0a7af0bd92774b8246749ab053b4456215f5
+          filter: blob:none
+          sparse-checkout: |
+            Assets/Project Data/Game/Scenes
+            Assets/Project Data/Game/Images/Loading
+            Assets/Project Data/Game/Images/ProfessionalMainMenuSource
+            Assets/Project Data/Game/Images/CountryMap
+            Assets/Project Data/Game/Images/WorldMap
+            Assets/Project Data/Game/Resources/ProfessionalMainMenuAssets.asset
+            Assets/Project Data/Game/Resources/ProfessionalMainMenuAssets.asset.meta
+            Assets/Project Data/Game/Resources/ProfessionalMainMenuData
+            Assets/Project Data/Game/Scripts/UI
+            Assets/Project Data/Game/Scripts/enhancedLoadingScreen.cs
+            Assets/Project Data/Game/Scripts/enhancedLoadingScreen.cs.meta
+            Assets/Project Data/Game/Scripts/sceneloading.cs
+            Assets/Project Data/Game/Scripts/sceneloading.cs.meta
+            Assets/Project Data/Game/Scripts/LevelSelectionManager.cs
+            Assets/Project Data/Game/Scripts/LevelSelectionManager.cs.meta
+            ProjectSettings
+            Packages
+
+      - name: Build scene restore ZIPs
+        run: |
+          mkdir -p restore_packs
+
+          zip -r restore_packs/ConveyorChef_23Sep2026_AllScenes.zip             "Assets/Project Data/Game/Scenes"
+
+          zip -r restore_packs/ConveyorChef_23Sep2026_MenuScenePack.zip             "Assets/Project Data/Game/Scenes/menu.unity"             "Assets/Project Data/Game/Scenes/menu.unity.meta"             "Assets/Project Data/Game/Images/ProfessionalMainMenuSource"             "Assets/Project Data/Game/Resources/ProfessionalMainMenuAssets.asset"             "Assets/Project Data/Game/Resources/ProfessionalMainMenuAssets.asset.meta"             "Assets/Project Data/Game/Resources/ProfessionalMainMenuData"             "Assets/Project Data/Game/Scripts/UI/MainMenuApprovedArtBinder.cs"             "Assets/Project Data/Game/Scripts/UI/MainMenuApprovedArtBinder.cs.meta"             "Assets/Project Data/Game/Scripts/UI/MainMenuResponsiveLayout.cs"             "Assets/Project Data/Game/Scripts/UI/MainMenuResponsiveLayout.cs.meta"             "Assets/Project Data/Game/Scripts/UI/MainMenuSceneController.cs"             "Assets/Project Data/Game/Scripts/UI/MainMenuSceneController.cs.meta"             "Assets/Project Data/Game/Scripts/UI/ProfessionalMainMenuAssetCatalog.cs"             "Assets/Project Data/Game/Scripts/UI/ProfessionalMainMenuAssetCatalog.cs.meta"             "Assets/Project Data/Game/Scripts/UI/ProfessionalMainMenuEmbeddedAssets.cs"             "Assets/Project Data/Game/Scripts/UI/ProfessionalMainMenuEmbeddedAssets.cs.meta"             "Assets/Project Data/Game/Scripts/UI/ProfessionalMainMenuInstaller.cs"             "Assets/Project Data/Game/Scripts/UI/ProfessionalMainMenuInstaller.cs.meta"             "Assets/Project Data/Game/Scripts/UI/UIMainMenu.cs"             "Assets/Project Data/Game/Scripts/UI/UIMainMenu.cs.meta"             "Assets/Project Data/Game/Scripts/UI/UIMainMenuButton.cs"             "Assets/Project Data/Game/Scripts/UI/UIMainMenuButton.cs.meta"             "Assets/Project Data/Game/Scripts/UI/Editor/ProfessionalMainMenuArtRestorer.cs"             "Assets/Project Data/Game/Scripts/UI/Editor/ProfessionalMainMenuSceneBaker.cs"
+
+          zip -r restore_packs/ConveyorChef_23Sep2026_LoadingScenePack.zip             "Assets/Project Data/Game/Scenes/loading.unity"             "Assets/Project Data/Game/Scenes/loading.unity.meta"             "Assets/Project Data/Game/Images/Loading"             "Assets/Project Data/Game/Scripts/enhancedLoadingScreen.cs"             "Assets/Project Data/Game/Scripts/enhancedLoadingScreen.cs.meta"             "Assets/Project Data/Game/Scripts/sceneloading.cs"             "Assets/Project Data/Game/Scripts/sceneloading.cs.meta"
+
+          zip -r restore_packs/ConveyorChef_23Sep2026_WorldMapScenePack.zip             "Assets/Project Data/Game/Scenes/WorldMap.unity"             "Assets/Project Data/Game/Scenes/WorldMap.unity.meta"             "Assets/Project Data/Game/Images/WorldMap"             "Assets/Project Data/Game/Scripts/UI/WorldMap"
+
+          zip -r restore_packs/ConveyorChef_23Sep2026_CountryMapScenePack.zip             "Assets/Project Data/Game/Scenes/CountryMap.unity"             "Assets/Project Data/Game/Scenes/CountryMap.unity.meta"             "Assets/Project Data/Game/Images/CountryMap"             "Assets/Project Data/Game/Scripts/UI/CountryMap"
+
+          zip -r restore_packs/ConveyorChef_23Sep2026_LevelSelectionScenePack.zip             "Assets/Project Data/Game/Scenes/LevelSelection.unity"             "Assets/Project Data/Game/Scenes/LevelSelection.unity.meta"             "Assets/Project Data/Game/Scripts/UI/LevelSelection"             "Assets/Project Data/Game/Scripts/LevelSelectionManager.cs"             "Assets/Project Data/Game/Scripts/LevelSelectionManager.cs.meta"
+
+          zip -r restore_packs/ConveyorChef_23Sep2026_ProjectSettings_Pack.zip             ProjectSettings Packages
+
+          sha256sum restore_packs/*.zip > restore_packs/SHA256SUMS.txt
+          ls -lh restore_packs
+
+      - name: Publish scene packs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view restore-23sep-2026 >/dev/null 2>&1; then
+            gh release create restore-23sep-2026               --target 5e9c0a7af0bd92774b8246749ab053b4456215f5               --title "Conveyor Chef - Full Restore Snapshot - 23 Sep 2026"               --notes "Exact repository restore point: 5e9c0a7af0bd92774b8246749ab053b4456215f5. This is the last commit on 23 Sep 2026 in India time. Scene packs are exact tracked files from that snapshot."
+          fi
+          gh release upload restore-23sep-2026 restore_packs/* --clobber
+
+  full-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact 23 Sep snapshot
+        uses: actions/checkout@v4
+        with:
+          ref: 5e9c0a7af0bd92774b8246749ab053b4456215f5
+
+      - name: Archive all tracked Assets
+        run: |
+          zip -r ConveyorChef_23Sep2026_AllTrackedAssets.zip Assets
+          sha256sum ConveyorChef_23Sep2026_AllTrackedAssets.zip > ConveyorChef_23Sep2026_AllTrackedAssets.sha256
+          ls -lh ConveyorChef_23Sep2026_AllTrackedAssets.zip
+
+      - name: Upload full tracked Assets to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in {1..30}; do
+            if gh release view restore-23sep-2026 >/dev/null 2>&1; then
+              break
+            fi
+            sleep 10
+          done
+          gh release upload restore-23sep-2026             ConveyorChef_23Sep2026_AllTrackedAssets.zip             ConveyorChef_23Sep2026_AllTrackedAssets.sha256             --clobber
