@@ -110,9 +110,9 @@ namespace Watermelon.EditorTools
 
         static CountryMapSceneBuilder()
         {
-            EditorApplication.delayCall += TryAutoBake;
-            EditorSceneManager.sceneOpened -= OnSceneOpened;
-            EditorSceneManager.sceneOpened += OnSceneOpened;
+            // The restored CountryMap.unity is authoritative.
+            // Do not auto-bake/upgrade it when generated progress-widget artwork
+            // is missing. Manual Conveyor Chef menu commands remain available.
         }
 
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
