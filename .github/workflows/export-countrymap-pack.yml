@@ -12,10 +12,13 @@ jobs:
   export-countrymap:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout exact map snapshot
+      - name: Checkout exact Country Map assets only
         uses: actions/checkout@v4
         with:
           ref: 04a78d64bef5e2bffc4cae7100d3214c88ad9797
+          filter: blob:none
+          sparse-checkout: |
+            Assets/Project Data/Game/Images/CountryMap
 
       - name: Build Country Map Unity asset pack
         run: |
