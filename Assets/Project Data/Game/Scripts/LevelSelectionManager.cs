@@ -210,39 +210,13 @@ namespace Watermelon.BusStop
             string countryName = CountryNames[selectedCountry];
 
             if (countryTitleText != null)
-            {
-                countryTitleText.enabled = true;
-                countryTitleText.gameObject.SetActive(true);
                 countryTitleText.text = countryName.ToUpperInvariant();
-            }
 
             if (countrySubtitleText != null)
-            {
-                countrySubtitleText.enabled = true;
-                countrySubtitleText.gameObject.SetActive(true);
                 countrySubtitleText.text = CountrySubtitles[selectedCountry];
-            }
-
-            if (countryFlagImage != null)
-            {
-                countryFlagImage.enabled = true;
-                countryFlagImage.gameObject.SetActive(true);
-                countryFlagImage.color = Color.white;
-            }
 
             if (descriptionText != null)
-            {
-                descriptionText.enabled = true;
-                descriptionText.gameObject.SetActive(true);
                 descriptionText.text = CountryDescriptions[selectedCountry];
-            }
-
-            if (heroImage != null)
-            {
-                heroImage.enabled = true;
-                heroImage.gameObject.SetActive(true);
-                heroImage.color = Color.white;
-            }
 
             if (guideText != null)
                 guideText.text = "Complete all 3 missions\nto master " + countryName + "’s flavors!";
