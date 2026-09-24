@@ -53,11 +53,9 @@ namespace Watermelon
         [InitializeOnLoadMethod]
         private static void RestoreOnceAfterCompile()
         {
-            if (SessionState.GetBool(SessionKey, false))
-                return;
-
-            SessionState.SetBool(SessionKey, true);
-            EditorApplication.delayCall += TryRestoreAutomatically;
+            // Golden build: menu.unity is the authoritative serialized scene.
+            // Never rewrite/open/save it automatically after compile.
+            // Manual restore commands remain available.
         }
 
         private static void TryRestoreAutomatically()
