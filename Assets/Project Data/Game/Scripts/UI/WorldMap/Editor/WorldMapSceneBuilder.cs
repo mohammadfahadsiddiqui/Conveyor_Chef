@@ -563,6 +563,22 @@ namespace Watermelon.EditorTools
                 new Vector2(0.5f, 0.5f));
             scroll.content = mapContent;
 
+            // The original complete World Map had its own ocean artwork INSIDE
+            // MapContent. Keep that background as part of the scrollable content
+            // so it pans together with the continent artwork instead of exposing
+            // an empty/transparent content area while dragging.
+            Image scrollableOcean = CreateImage(
+                "ScrollableOcean",
+                mapContent,
+                ocean,
+                new Vector2(0.5f, 0.5f),
+                Vector2.zero,
+                mapContent.sizeDelta,
+                false);
+            scrollableOcean.raycastTarget = false;
+            scrollableOcean.preserveAspect = false;
+            scrollableOcean.rectTransform.SetAsFirstSibling();
+
             // Asia is Chapter 1, so the serialized editor/startup view begins centered on Asia.
             mapContent.anchoredPosition = -ContinentPositions[0];
 
@@ -1474,11 +1490,19 @@ namespace Watermelon.EditorTools
 
             int changed = EnsureChapterSelectorComplete(saveScene: false);
 
+            Sprite ocean = RequireSprite("tropical_ocean_map_adventure.png");
+
+            // Older complete World Map builds contained a ScrollableOcean Image as
+            // the first child of MapContent. Some later editable-scene revisions
+            // accidentally kept only the fixed full-screen background and omitted
+            // this scrollable background. Restore it non-destructively when missing.
+            changed += EnsureScrollableContentBackground(ocean);
+
             // Support both the new editable hierarchy and the old generated hierarchy,
             // so importing artwork can immediately fix the white/blue placeholder look
-            // without touching the designer's RectTransforms.
+            // without touching the designer's existing RectTransforms.
             changed += BindSpriteByNames(
-                RequireSprite("tropical_ocean_map_adventure.png"),
+                ocean,
                 false,
                 "Background Artwork",
                 "World Map Backdrop",
@@ -1767,6 +1791,100 @@ namespace Watermelon.EditorTools
             mapContent.anchoredPosition = desired;
             EditorUtility.SetDirty(mapContent);
             return 1;
+        }
+
+        private static int EnsureScrollableContentBackground(Sprite ocean)
+        {
+            Transform contentTransform = FindObjectByExactNameInScene("MapContent");
+            RectTransform mapContent = contentTransform as RectTransform;
+            if (mapContent == null)
+                return 0;
+
+            Transform existing = null;
+            for (int i = 0; i < mapContent.childCount; i++)
+            {
+                Transform child = mapContent.GetChild(i);
+                if (child != null && child.name == "ScrollableOcean")
+                {
+                    existing = child;
+                    break;
+                }
+            }
+
+            int changed = 0;
+            RectTransform rect;
+            Image image;
+
+            if (existing == null)
+            {
+                rect = CreateRect("ScrollableOcean", mapContent);
+                SetRect(
+                    rect,
+                    new Vector2(0.5f, 0.5f),
+                    Vector2.zero,
+                    mapContent.sizeDelta,
+                    new Vector2(0.5f, 0.5f));
+
+                image = rect.gameObject.AddComponent<Image>();
+                image.color = Color.white;
+                image.raycastTarget = false;
+                image.preserveAspect = false;
+                changed++;
+            }
+            else
+            {
+                rect = existing as RectTransform;
+                if (rect == null)
+                    return changed;
+
+                image = existing.GetComponent<Image>();
+                if (image == null)
+                {
+                    image = existing.gameObject.AddComponent<Image>();
+                    image.color = Color.white;
+                    changed++;
+                }
+
+                // Preserve any existing authored position/size. Only a newly-created
+                // background is sized to MapContent; valid serialized layouts stay intact.
+                if (image.raycastTarget)
+                {
+                    image.raycastTarget = false;
+                    changed++;
+                }
+
+                if (image.preserveAspect)
+                {
+                    image.preserveAspect = false;
+                    changed++;
+                }
+            }
+
+            if (image.sprite != ocean)
+            {
+                image.sprite = ocean;
+                changed++;
+            }
+
+            if (image.color != Color.white)
+            {
+                image.color = Color.white;
+                changed++;
+            }
+
+            if (rect.GetSiblingIndex() != 0)
+            {
+                rect.SetAsFirstSibling();
+                changed++;
+            }
+
+            if (changed > 0)
+            {
+                EditorUtility.SetDirty(rect);
+                EditorUtility.SetDirty(image);
+            }
+
+            return changed;
         }
 
         private static int BindSpriteByNames(Sprite sprite, bool preserveAspect, params string[] names)
