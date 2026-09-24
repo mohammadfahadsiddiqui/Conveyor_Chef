@@ -2,7 +2,6 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Watermelon.BusStop;
 using Watermelon.IAPStore;
@@ -132,8 +131,14 @@ namespace Watermelon
 
         private static void EnsureEventSystem()
         {
-            UIEventSystemRuntime.UseCurrentSceneEventSystem();
+            if (EventSystem.current != null && EventSystem.current.gameObject.activeInHierarchy)
+                return;
+
+            EventSystem existing = FindFirstObjectByType<EventSystem>(FindObjectsInactive.Include);
+            if (existing != null)
+                existing.gameObject.SetActive(true);
         }
+
         private static void EnsureSaveControllerReady()
         {
             if (SaveController.IsSaveLoaded)
@@ -152,7 +157,7 @@ namespace Watermelon
         private void PlayGame()
         {
             PlayClick();
-            EnhancedLoadingScreen.LoadViaLoadingScreen("WorldMap");
+            EnhancedLoadingScreen.LoadViaLoadingScreen("LevelSelection");
         }
 
         private void OpenStory()
@@ -167,7 +172,7 @@ namespace Watermelon
                 $"Levels completed: {completed}\n" +
                 $"Best level reached: {bestLevel}\n" +
                 $"Stars collected: {stars}\n\n" +
-                "Press PLAY to continue through the world map.");
+                "Press PLAY to continue through the level map.");
         }
 
         private void OpenChallenges()
