@@ -658,6 +658,7 @@ namespace Watermelon.EditorTools
             ImportWorldMapTexturesAsSprites();
 
             Sprite ocean = RequireSprite("tropical_ocean_map_adventure.png");
+            Sprite scrollOcean = RequireSprite(CommittedScrollableOceanFile);
             Sprite logo = RequireSprite("conveyor_chef_world_map_logo.png");
             Sprite back = RequireSprite("glossy_blue_game_back_button.png");
             Sprite settings = RequireSprite("glossy_blue_gear_settings_icon.png");
@@ -786,6 +787,22 @@ namespace Watermelon.EditorTools
                 new Vector2(2600f, 2700f),
                 new Vector2(0.5f, 0.5f));
             scroll.content = mapContent;
+
+            // The scrollable ocean MUST be serialized as the first child of MapContent.
+            // This prevents the MapViewport from showing as a white rectangle and makes
+            // the ocean move together with every continent while the player drags.
+            Image scrollableOcean = CreateImage(
+                "ScrollableOcean",
+                mapContent,
+                scrollOcean,
+                new Vector2(0.5f, 0.5f),
+                Vector2.zero,
+                new Vector2(2600f, 2700f),
+                false);
+            scrollableOcean.type = Image.Type.Simple;
+            scrollableOcean.preserveAspect = false;
+            scrollableOcean.raycastTarget = false;
+            scrollableOcean.rectTransform.SetAsFirstSibling();
 
             // Asia is Chapter 1, so the serialized editor/startup view begins centered on Asia.
             mapContent.anchoredPosition = -ContinentPositions[0];
