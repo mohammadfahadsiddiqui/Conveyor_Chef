@@ -33,70 +33,276 @@ namespace Watermelon.EditorTools
     {
         private static bool repairQueued;
 
+        private const string ApprovedWorldMapRestoreKey =
+            "CC_WorldMap_ApprovedScrollRestore_68c7_v1";
+
         static WorldMapSceneBuilder()
         {
-            // WorldMap.unity remains authoritative. We never auto-rebake or move authored UI.
-            // The only automatic repair allowed here is restoring the missing background
-            // layer inside MapViewport/MapContent, because that object existed in the last
-            // complete World Map and was accidentally dropped during later scene recovery.
-            EditorSceneManager.sceneOpened -= OnWorldMapSceneOpened;
-            EditorSceneManager.sceneOpened += OnWorldMapSceneOpened;
+            // The approved World Map was frozen after the Asia-first migration.
+            // Do not run the old broad auto-repair/rebuild path.
+            //
+            // One narrow migration is required for projects affected by the later
+            // ScrollableOcean experiments: restore ONLY the approved MapContent
+            // geometry, continent transforms, and original tropical-ocean backing.
+            EditorSceneManager.sceneOpened -= OnApprovedWorldMapSceneOpened;
+            EditorSceneManager.sceneOpened += OnApprovedWorldMapSceneOpened;
 
-            // Also repair the currently-open WorldMap immediately after scripts
-            // recompile, so a git pull does not require the designer to rebake or
-            // manually run a menu command.
-            EditorApplication.delayCall += RepairScrollableContentBackgroundOnly;
+            if (!EditorPrefs.GetBool(ApprovedWorldMapRestoreKey, false))
+                EditorApplication.delayCall += RestoreApprovedWorldMapScrollableContentOnce;
         }
 
-        private static void OnWorldMapSceneOpened(Scene scene, OpenSceneMode mode)
+        private static void OnApprovedWorldMapSceneOpened(Scene scene, OpenSceneMode mode)
         {
-            if (scene.path != ScenePath)
+            if (scene.path != ScenePath ||
+                EditorPrefs.GetBool(ApprovedWorldMapRestoreKey, false))
+            {
                 return;
+            }
 
-            EditorApplication.delayCall += RepairScrollableContentBackgroundOnly;
+            EditorApplication.delayCall += RestoreApprovedWorldMapScrollableContentOnce;
         }
 
-        private static void RepairScrollableContentBackgroundOnly()
+        [MenuItem("Conveyor Chef/World Map/8. Restore Approved Scroll Content Only", priority = 8)]
+        public static void RestoreApprovedWorldMapScrollableContentCommand()
+        {
+            EditorPrefs.DeleteKey(ApprovedWorldMapRestoreKey);
+
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            RestoreApprovedWorldMapScrollableContentOnce();
+
+            FocusEditableWorldMapInSceneView(scene);
+        }
+
+        private static void RestoreApprovedWorldMapScrollableContentOnce()
         {
             if (EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
+
+            if (EditorPrefs.GetBool(ApprovedWorldMapRestoreKey, false))
                 return;
 
             Scene scene = SceneManager.GetActiveScene();
             if (!scene.IsValid() || scene.path != ScenePath)
                 return;
 
-            // A placeholder scene must not be silently replaced. The full bake command
-            // remains explicit. This repair only touches an already-authored MapContent.
             Transform mapContentTransform = FindObjectByExactNameInScene("MapContent");
-            if (mapContentTransform == null)
+            RectTransform mapContent = mapContentTransform as RectTransform;
+            if (mapContent == null)
                 return;
 
             EnsureFolders();
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             ImportWorldMapTexturesAsSprites();
 
-            Sprite scrollBackground = FindScrollableContentBackgroundSprite();
-            if (scrollBackground == null)
+            Sprite ocean = FindSprite("tropical_ocean_map_adventure.png");
+            if (ocean == null && TryImportAssetPackFromKnownLocations())
+            {
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+                ImportWorldMapTexturesAsSprites();
+                ocean = FindSprite("tropical_ocean_map_adventure.png");
+            }
+
+            if (ocean == null)
             {
                 Debug.LogWarning(
-                    "[WorldMap] Scrollable MapContent background is still missing. " +
-                    "Expected the portrait World Ocean Background or the bundled portrait fallback. " +
-                    "The landscape fixed backdrop will not be reused.");
+                    "[WorldMap] Approved scroll restore is waiting for " +
+                    AssetPackFileName + ". The original background is " +
+                    "tropical_ocean_map_adventure.png from the 20-asset WorldMap pack.");
                 return;
             }
 
-            int changed = EnsureScrollableContentBackground(scrollBackground);
-            changed += EnsureScrollableMapWiring();
+            int changed = 0;
 
-            if (changed <= 0)
-                return;
+            // Exact geometry from the frozen Asia-first WorldMap builder.
+            Vector2 approvedContentSize = new Vector2(2600f, 2700f);
+            Vector2 approvedContentPosition = -ContinentPositions[0];
+
+            if (mapContent.anchorMin != new Vector2(0.5f, 0.5f) ||
+                mapContent.anchorMax != new Vector2(0.5f, 0.5f) ||
+                mapContent.pivot != new Vector2(0.5f, 0.5f) ||
+                mapContent.sizeDelta != approvedContentSize ||
+                mapContent.anchoredPosition != approvedContentPosition ||
+                mapContent.localScale != Vector3.one ||
+                mapContent.localRotation != Quaternion.identity)
+            {
+                mapContent.anchorMin = new Vector2(0.5f, 0.5f);
+                mapContent.anchorMax = new Vector2(0.5f, 0.5f);
+                mapContent.pivot = new Vector2(0.5f, 0.5f);
+                mapContent.sizeDelta = approvedContentSize;
+                mapContent.anchoredPosition = approvedContentPosition;
+                mapContent.localScale = Vector3.one;
+                mapContent.localRotation = Quaternion.identity;
+                EditorUtility.SetDirty(mapContent);
+                changed++;
+            }
+
+            Transform scrollableTransform = null;
+            for (int i = 0; i < mapContent.childCount; i++)
+            {
+                Transform child = mapContent.GetChild(i);
+                if (child != null && child.name == "ScrollableOcean")
+                {
+                    scrollableTransform = child;
+                    break;
+                }
+            }
+
+            RectTransform scrollableRect;
+            Image scrollableImage;
+
+            if (scrollableTransform == null)
+            {
+                scrollableRect = CreateRect("ScrollableOcean", mapContent);
+                scrollableImage = scrollableRect.gameObject.AddComponent<Image>();
+                changed++;
+            }
+            else
+            {
+                scrollableRect = scrollableTransform as RectTransform;
+                if (scrollableRect == null)
+                    return;
+
+                scrollableImage = scrollableTransform.GetComponent<Image>();
+                if (scrollableImage == null)
+                {
+                    scrollableImage = scrollableTransform.gameObject.AddComponent<Image>();
+                    changed++;
+                }
+
+                if (!scrollableTransform.gameObject.activeSelf)
+                {
+                    scrollableTransform.gameObject.SetActive(true);
+                    changed++;
+                }
+            }
+
+            // This is the original September WorldMap behavior:
+            // tropical_ocean_map_adventure.png fills MapContent exactly.
+            if (scrollableRect.anchorMin != new Vector2(0.5f, 0.5f) ||
+                scrollableRect.anchorMax != new Vector2(0.5f, 0.5f) ||
+                scrollableRect.pivot != new Vector2(0.5f, 0.5f) ||
+                scrollableRect.anchoredPosition != Vector2.zero ||
+                scrollableRect.sizeDelta != approvedContentSize ||
+                scrollableRect.localScale != Vector3.one ||
+                scrollableRect.localRotation != Quaternion.identity)
+            {
+                scrollableRect.anchorMin = new Vector2(0.5f, 0.5f);
+                scrollableRect.anchorMax = new Vector2(0.5f, 0.5f);
+                scrollableRect.pivot = new Vector2(0.5f, 0.5f);
+                scrollableRect.anchoredPosition = Vector2.zero;
+                scrollableRect.sizeDelta = approvedContentSize;
+                scrollableRect.localScale = Vector3.one;
+                scrollableRect.localRotation = Quaternion.identity;
+                changed++;
+            }
+
+            if (!scrollableImage.enabled)
+            {
+                scrollableImage.enabled = true;
+                changed++;
+            }
+
+            if (scrollableImage.sprite != ocean)
+            {
+                scrollableImage.sprite = ocean;
+                changed++;
+            }
+
+            if (scrollableImage.color != Color.white)
+            {
+                scrollableImage.color = Color.white;
+                changed++;
+            }
+
+            if (scrollableImage.preserveAspect)
+            {
+                scrollableImage.preserveAspect = false;
+                changed++;
+            }
+
+            if (scrollableImage.raycastTarget)
+            {
+                scrollableImage.raycastTarget = false;
+                changed++;
+            }
+
+            if (scrollableRect.GetSiblingIndex() != 0)
+            {
+                scrollableRect.SetAsFirstSibling();
+                changed++;
+            }
+
+            EditorUtility.SetDirty(scrollableRect);
+            EditorUtility.SetDirty(scrollableImage);
+
+            // Restore the six continent roots to the exact positions/sizes recorded
+            // in the frozen Asia-first builder. This fixes drift introduced while
+            // experimenting with a different portrait background.
+            for (int i = 0; i < ContinentNames.Length; i++)
+            {
+                WorldMapContinentNode node = FindContinentNodeByDisplayName(ContinentNames[i]);
+                RectTransform nodeRect = node != null ? node.transform as RectTransform : null;
+                if (nodeRect == null)
+                    continue;
+
+                if (nodeRect.anchorMin != new Vector2(0.5f, 0.5f) ||
+                    nodeRect.anchorMax != new Vector2(0.5f, 0.5f) ||
+                    nodeRect.pivot != new Vector2(0.5f, 0.5f) ||
+                    nodeRect.anchoredPosition != ContinentPositions[i] ||
+                    nodeRect.sizeDelta != ContinentSizes[i] ||
+                    nodeRect.localScale != Vector3.one ||
+                    nodeRect.localRotation != Quaternion.identity)
+                {
+                    nodeRect.anchorMin = new Vector2(0.5f, 0.5f);
+                    nodeRect.anchorMax = new Vector2(0.5f, 0.5f);
+                    nodeRect.pivot = new Vector2(0.5f, 0.5f);
+                    nodeRect.anchoredPosition = ContinentPositions[i];
+                    nodeRect.sizeDelta = ContinentSizes[i];
+                    nodeRect.localScale = Vector3.one;
+                    nodeRect.localRotation = Quaternion.identity;
+                    EditorUtility.SetDirty(nodeRect);
+                    changed++;
+                }
+            }
+
+            // Keep the existing ScrollRect, but make sure it still owns this content.
+            RectTransform viewport = mapContent.parent as RectTransform;
+            ScrollRect scroll = viewport != null ? viewport.GetComponent<ScrollRect>() : null;
+            if (scroll != null)
+            {
+                if (scroll.viewport != viewport)
+                {
+                    scroll.viewport = viewport;
+                    changed++;
+                }
+
+                if (scroll.content != mapContent)
+                {
+                    scroll.content = mapContent;
+                    changed++;
+                }
+
+                EditorUtility.SetDirty(scroll);
+            }
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
 
+            EditorPrefs.SetBool(ApprovedWorldMapRestoreKey, true);
+
             Debug.Log(
-                "[WorldMap] Restored the serialized MapViewport/MapContent background " +
-                "without changing continent positions, header UI or chapter selector.");
+                "[WorldMap] Restored approved Asia-first scroll content: " +
+                "MapContent 2600x2700, original tropical_ocean_map_adventure.png, " +
+                "and frozen continent positions/sizes. No other scene UI was rebuilt.");
+        }
+
+        private static void OnWorldMapSceneOpened(Scene scene, OpenSceneMode mode)
+        {
+            if (scene.path == ScenePath)
+                QueueWorldMapArtworkRepair();
         }
 
         private static void OnPlayModeStateChanged(PlayModeStateChange state)
@@ -172,20 +378,6 @@ namespace Watermelon.EditorTools
         private const string ScenePath = "Assets/Project Data/Game/Scenes/WorldMap.unity";
         private const string AssetFolder = "Assets/Project Data/Game/Images/WorldMap";
         private const string AssetPackFileName = "ConveyorChef_WorldMap_Assets_ForUnity.zip";
-        private const string PreferredScrollableBackgroundFile = "world_ocean_scroll_background.png";
-
-        // The last complete World Map used a dedicated tall World Ocean Background
-        // inside MapContent. During recovery, the fixed/landscape ocean canvas was
-        // accidentally reused for ScrollableOcean. Prefer the original portrait
-        // background whenever it is present, then fall back safely.
-        private static readonly string[] ScrollableBackgroundCandidates =
-        {
-            PreferredScrollableBackgroundFile,
-            "world_ocean_scroll_background.jpg",
-            "Vibrant Cartoon World Ocean Map.png",
-            "vibrant_cartoon_world_ocean_map.png",
-            "world_ocean_background.png"
-        };
 
         private const float DesignWidth = 1080f;
         private const float DesignHeight = 1920f;
@@ -502,13 +694,6 @@ namespace Watermelon.EditorTools
             ImportWorldMapTexturesAsSprites();
 
             Sprite ocean = RequireSprite("tropical_ocean_map_adventure.png");
-            Sprite scrollBackground = FindScrollableContentBackgroundSprite();
-            if (scrollBackground == null)
-                throw new InvalidOperationException(
-                    "World Map scroll-content background is missing. " +
-                    "Expected the portrait World Ocean Background; refusing to reuse " +
-                    "the landscape fixed backdrop because that produces the giant-compass regression.");
-
             Sprite logo = RequireSprite("conveyor_chef_world_map_logo.png");
             Sprite back = RequireSprite("glossy_blue_game_back_button.png");
             Sprite settings = RequireSprite("glossy_blue_gear_settings_icon.png");
@@ -637,22 +822,6 @@ namespace Watermelon.EditorTools
                 new Vector2(2600f, 2700f),
                 new Vector2(0.5f, 0.5f));
             scroll.content = mapContent;
-
-            // The original complete World Map had its own ocean artwork INSIDE
-            // MapContent. Keep that background as part of the scrollable content
-            // so it pans together with the continent artwork instead of exposing
-            // an empty/transparent content area while dragging.
-            Image scrollableOcean = CreateImage(
-                "ScrollableOcean",
-                mapContent,
-                scrollBackground,
-                new Vector2(0.5f, 0.5f),
-                Vector2.zero,
-                mapContent.sizeDelta,
-                false);
-            scrollableOcean.raycastTarget = false;
-            scrollableOcean.preserveAspect = false;
-            scrollableOcean.rectTransform.SetAsFirstSibling();
 
             // Asia is Chapter 1, so the serialized editor/startup view begins centered on Asia.
             mapContent.anchoredPosition = -ContinentPositions[0];
@@ -1565,38 +1734,15 @@ namespace Watermelon.EditorTools
 
             int changed = EnsureChapterSelectorComplete(saveScene: false);
 
-            Sprite ocean = RequireSprite("tropical_ocean_map_adventure.png");
-            Sprite scrollBackground = FindScrollableContentBackgroundSprite();
-
-            if (scrollBackground == null)
-            {
-                Debug.LogWarning(
-                    "[WorldMap] Portrait MapContent background is missing. " +
-                    "ScrollableOcean was NOT rebound to the landscape fixed backdrop.");
-            }
-
-            // Restore the dedicated MapContent background independently from the fixed
-            // screen backdrop. This is the hierarchy used by the last complete map.
-            if (scrollBackground != null)
-                changed += EnsureScrollableContentBackground(scrollBackground);
-
-            changed += EnsureScrollableMapWiring();
-
-            // Fixed background stays fixed. ScrollableOcean gets the dedicated
-            // MapContent background and moves only with MapContent.
+            // Support both the new editable hierarchy and the old generated hierarchy,
+            // so importing artwork can immediately fix the white/blue placeholder look
+            // without touching the designer's RectTransforms.
             changed += BindSpriteByNames(
-                ocean,
+                RequireSprite("tropical_ocean_map_adventure.png"),
                 false,
                 "Background Artwork",
-                "World Map Backdrop");
-
-            if (scrollBackground != null)
-            {
-                changed += BindSpriteByNames(
-                    scrollBackground,
-                    false,
-                    "ScrollableOcean");
-            }
+                "World Map Backdrop",
+                "ScrollableOcean");
 
             changed += BindSpriteByNames(
                 RequireSprite("conveyor_chef_world_map_logo.png"),
@@ -1881,325 +2027,6 @@ namespace Watermelon.EditorTools
             mapContent.anchoredPosition = desired;
             EditorUtility.SetDirty(mapContent);
             return 1;
-        }
-
-        private static Sprite FindScrollableContentBackgroundSprite()
-        {
-            // First recover the original portrait background from Downloads when it
-            // still exists there from the generated-art session. This is intentionally
-            // narrow: it copies only the known World Ocean Background and never
-            // replaces any of the six continent sprites or other scene artwork.
-            TryImportOriginalScrollableBackgroundFromDownloads();
-
-            foreach (string fileName in ScrollableBackgroundCandidates)
-            {
-                Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(AssetFolder + "/" + fileName);
-                if (sprite != null)
-                    return sprite;
-            }
-
-            // Also support the original generated file if it was imported elsewhere
-            // in Assets before the pack was assembled.
-            string[] searchNames =
-            {
-                "Vibrant Cartoon World Ocean Map",
-                "world_ocean_scroll_background",
-                "world_ocean_background"
-            };
-
-            foreach (string searchName in searchNames)
-            {
-                string[] guids = AssetDatabase.FindAssets(searchName + " t:Sprite");
-                foreach (string guid in guids)
-                {
-                    string assetPath = AssetDatabase.GUIDToAssetPath(guid);
-                    Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
-                    if (sprite != null)
-                        return sprite;
-                }
-            }
-
-            return null;
-        }
-
-        private static void TryImportOriginalScrollableBackgroundFromDownloads()
-        {
-            string targetPath = AssetFolder + "/" + PreferredScrollableBackgroundFile;
-            if (AssetDatabase.LoadAssetAtPath<Sprite>(targetPath) != null)
-                return;
-
-            string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-            if (string.IsNullOrEmpty(userProfile))
-                return;
-
-            string downloads = Path.Combine(userProfile, "Downloads");
-            if (!Directory.Exists(downloads))
-                return;
-
-            string[] exactCandidates =
-            {
-                "Vibrant Cartoon World Ocean Map.png",
-                "Vibrant Cartoon World Ocean Map (1).png",
-                "Vibrant Cartoon World Ocean Map(1).png"
-            };
-
-            string source = null;
-
-            foreach (string fileName in exactCandidates)
-            {
-                string candidate = Path.Combine(downloads, fileName);
-                if (File.Exists(candidate))
-                {
-                    source = candidate;
-                    break;
-                }
-            }
-
-            if (source == null)
-            {
-                string[] matches = Directory.GetFiles(
-                    downloads,
-                    "Vibrant Cartoon World Ocean Map*.png",
-                    SearchOption.TopDirectoryOnly);
-
-                if (matches.Length > 0)
-                    source = matches[0];
-            }
-
-            if (source == null)
-                return;
-
-            EnsureFolders();
-
-            string absoluteTarget = Path.GetFullPath(targetPath);
-            File.Copy(source, absoluteTarget, true);
-
-            AssetDatabase.ImportAsset(targetPath, ImportAssetOptions.ForceSynchronousImport);
-
-            TextureImporter importer = AssetImporter.GetAtPath(targetPath) as TextureImporter;
-            if (importer != null)
-            {
-                importer.textureType = TextureImporterType.Sprite;
-                importer.spriteImportMode = SpriteImportMode.Single;
-                importer.mipmapEnabled = false;
-                importer.alphaIsTransparency = true;
-                importer.textureCompression = TextureImporterCompression.Uncompressed;
-                importer.maxTextureSize = 4096;
-                importer.filterMode = FilterMode.Bilinear;
-                importer.npotScale = TextureImporterNPOTScale.None;
-                importer.SaveAndReimport();
-            }
-
-            Debug.Log(
-                "[WorldMap] Recovered original scrollable World Ocean Background from: " +
-                source);
-        }
-
-        private static int EnsureScrollableMapWiring()
-        {
-            Transform viewportTransform = FindObjectByExactNameInScene("MapViewport");
-            Transform contentTransform = FindObjectByExactNameInScene("MapContent");
-
-            RectTransform viewport = viewportTransform as RectTransform;
-            RectTransform content = contentTransform as RectTransform;
-
-            if (viewport == null || content == null)
-                return 0;
-
-            int changed = 0;
-
-            if (!viewport.gameObject.activeSelf)
-            {
-                viewport.gameObject.SetActive(true);
-                changed++;
-            }
-
-            if (!content.gameObject.activeSelf)
-            {
-                content.gameObject.SetActive(true);
-                changed++;
-            }
-
-            ScrollRect scroll = viewport.GetComponent<ScrollRect>();
-            if (scroll == null)
-            {
-                scroll = viewport.gameObject.AddComponent<ScrollRect>();
-                changed++;
-            }
-
-            if (scroll.viewport != viewport)
-            {
-                scroll.viewport = viewport;
-                changed++;
-            }
-
-            if (scroll.content != content)
-            {
-                scroll.content = content;
-                changed++;
-            }
-
-            if (!scroll.enabled)
-            {
-                scroll.enabled = true;
-                changed++;
-            }
-
-            if (!scroll.horizontal)
-            {
-                scroll.horizontal = true;
-                changed++;
-            }
-
-            if (!scroll.vertical)
-            {
-                scroll.vertical = true;
-                changed++;
-            }
-
-            RectMask2D mask = viewport.GetComponent<RectMask2D>();
-            if (mask == null)
-            {
-                viewport.gameObject.AddComponent<RectMask2D>();
-                changed++;
-            }
-
-            if (changed > 0)
-            {
-                EditorUtility.SetDirty(viewport);
-                EditorUtility.SetDirty(content);
-                EditorUtility.SetDirty(scroll);
-            }
-
-            return changed;
-        }
-
-        private static int EnsureScrollableContentBackground(Sprite scrollBackground)
-        {
-            Transform contentTransform = FindObjectByExactNameInScene("MapContent");
-            RectTransform mapContent = contentTransform as RectTransform;
-            if (mapContent == null || scrollBackground == null)
-                return 0;
-
-            Transform existing = null;
-            for (int i = 0; i < mapContent.childCount; i++)
-            {
-                Transform child = mapContent.GetChild(i);
-                if (child != null && child.name == "ScrollableOcean")
-                {
-                    existing = child;
-                    break;
-                }
-            }
-
-            int changed = 0;
-            RectTransform rect;
-            Image image;
-
-            if (existing == null)
-            {
-                rect = CreateRect("ScrollableOcean", mapContent);
-                image = rect.gameObject.AddComponent<Image>();
-                changed++;
-            }
-            else
-            {
-                rect = existing as RectTransform;
-                if (rect == null)
-                    return changed;
-
-                if (!existing.gameObject.activeSelf)
-                {
-                    existing.gameObject.SetActive(true);
-                    changed++;
-                }
-
-                image = existing.GetComponent<Image>();
-                if (image == null)
-                {
-                    image = existing.gameObject.AddComponent<Image>();
-                    changed++;
-                }
-            }
-
-            // The scroll background and continent positions were authored against the
-            // same MapContent coordinate space. Therefore the background MUST match the
-            // MapContent bounds exactly. Using Aspect-Fill/Cover changes the visual scale
-            // of the ocean artwork and makes the authored continent positions drift.
-            //
-            // Sharpness is handled by the high-resolution, uncompressed texture import;
-            // geometry stays 1:1 with MapContent.
-            Vector2 targetSize = mapContent.rect.size;
-            if (targetSize.x <= 1f || targetSize.y <= 1f)
-                targetSize = mapContent.sizeDelta;
-
-            if (rect.anchorMin != new Vector2(0.5f, 0.5f) ||
-                rect.anchorMax != new Vector2(0.5f, 0.5f) ||
-                rect.pivot != new Vector2(0.5f, 0.5f) ||
-                rect.anchoredPosition != Vector2.zero ||
-                rect.sizeDelta != targetSize ||
-                rect.localScale != Vector3.one ||
-                rect.localRotation != Quaternion.identity)
-            {
-                SetRect(
-                    rect,
-                    new Vector2(0.5f, 0.5f),
-                    Vector2.zero,
-                    targetSize,
-                    new Vector2(0.5f, 0.5f));
-                changed++;
-            }
-
-            if (!image.enabled)
-            {
-                image.enabled = true;
-                changed++;
-            }
-
-            if (image.sprite != scrollBackground)
-            {
-                image.sprite = scrollBackground;
-                changed++;
-            }
-
-            if (image.color != Color.white)
-            {
-                image.color = Color.white;
-                changed++;
-            }
-
-            if (image.preserveAspect)
-            {
-                image.preserveAspect = false;
-                changed++;
-            }
-
-            if (image.raycastTarget)
-            {
-                image.raycastTarget = false;
-                changed++;
-            }
-
-            CanvasRenderer renderer = image.canvasRenderer;
-            if (renderer != null && renderer.cullTransparentMesh)
-            {
-                renderer.cullTransparentMesh = false;
-                changed++;
-            }
-
-            if (rect.GetSiblingIndex() != 0)
-            {
-                rect.SetAsFirstSibling();
-                changed++;
-            }
-
-            if (changed > 0)
-            {
-                EditorUtility.SetDirty(rect);
-                EditorUtility.SetDirty(image);
-            }
-
-            return changed;
         }
 
         private static int BindSpriteByNames(Sprite sprite, bool preserveAspect, params string[] names)
