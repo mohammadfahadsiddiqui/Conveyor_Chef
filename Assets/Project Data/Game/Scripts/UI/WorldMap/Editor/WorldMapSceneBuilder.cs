@@ -340,7 +340,8 @@ namespace Watermelon.EditorTools
 
         private const string ScenePath = "Assets/Project Data/Game/Scenes/WorldMap.unity";
         private const string AssetFolder = "Assets/Project Data/Game/Images/WorldMap";
-        private const string AssetPackFileName = "ConveyorChef_WorldMap_Assets_ForUnity.zip";\n        private const string CommittedScrollableOceanFile = "world_map_ocean_canvas.jpg";
+        private const string AssetPackFileName = "ConveyorChef_WorldMap_Assets_ForUnity.zip";
+        private const string CommittedScrollableOceanFile = "world_map_ocean_canvas.jpg";
 
         private const float DesignWidth = 1080f;
         private const float DesignHeight = 1920f;
