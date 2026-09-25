@@ -33,55 +33,36 @@ namespace Watermelon.EditorTools
     {
         private static bool repairQueued;
 
-        private const string ApprovedWorldMapRestoreKey =
-            "CC_WorldMap_ApprovedScrollRestore_68c7_v1";
-
         static WorldMapSceneBuilder()
         {
-            // The approved World Map was frozen after the Asia-first migration.
-            // Do not run the old broad auto-repair/rebuild path.
-            //
-            // One narrow migration is required for projects affected by the later
-            // ScrollableOcean experiments: restore ONLY the approved MapContent
-            // geometry, continent transforms, and original tropical-ocean backing.
+            // The approved WorldMap scene is authoritative. Never rebuild/reposition it
+            // automatically. The only automatic editor repair allowed is the scroll-ocean
+            // backing layer because later experiments could leave that Image white/missing.
             EditorSceneManager.sceneOpened -= OnApprovedWorldMapSceneOpened;
             EditorSceneManager.sceneOpened += OnApprovedWorldMapSceneOpened;
-
-            if (!EditorPrefs.GetBool(ApprovedWorldMapRestoreKey, false))
-                EditorApplication.delayCall += RestoreApprovedWorldMapScrollableContentOnce;
+            EditorApplication.delayCall += RepairApprovedWorldMapScrollBackground;
         }
 
         private static void OnApprovedWorldMapSceneOpened(Scene scene, OpenSceneMode mode)
         {
-            if (scene.path != ScenePath ||
-                EditorPrefs.GetBool(ApprovedWorldMapRestoreKey, false))
-            {
-                return;
-            }
-
-            EditorApplication.delayCall += RestoreApprovedWorldMapScrollableContentOnce;
+            if (scene.path == ScenePath)
+                EditorApplication.delayCall += RepairApprovedWorldMapScrollBackground;
         }
 
-        [MenuItem("Conveyor Chef/World Map/8. Restore Approved Scroll Content Only", priority = 8)]
-        public static void RestoreApprovedWorldMapScrollableContentCommand()
+        [MenuItem("Conveyor Chef/World Map/8. Repair Approved Scroll Background Only", priority = 8)]
+        public static void RepairApprovedWorldMapScrollBackgroundCommand()
         {
-            EditorPrefs.DeleteKey(ApprovedWorldMapRestoreKey);
-
             Scene scene = SceneManager.GetActiveScene();
             if (!scene.IsValid() || scene.path != ScenePath)
                 scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
-            RestoreApprovedWorldMapScrollableContentOnce();
-
+            RepairApprovedWorldMapScrollBackground();
             FocusEditableWorldMapInSceneView(scene);
         }
 
-        private static void RestoreApprovedWorldMapScrollableContentOnce()
+        private static void RepairApprovedWorldMapScrollBackground()
         {
             if (EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode)
-                return;
-
-            if (EditorPrefs.GetBool(ApprovedWorldMapRestoreKey, false))
                 return;
 
             Scene scene = SceneManager.GetActiveScene();
@@ -97,46 +78,67 @@ namespace Watermelon.EditorTools
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
             ImportWorldMapTexturesAsSprites();
 
-            Sprite ocean = FindSprite("tropical_ocean_map_adventure.png");
-            if (ocean == null && TryImportAssetPackFromKnownLocations())
-            {
-                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
-                ImportWorldMapTexturesAsSprites();
-                ocean = FindSprite("tropical_ocean_map_adventure.png");
-            }
-
-            if (ocean == null)
+            // This image is the original ocean-canvas artwork recovered from the
+            // WorldMap asset-generation session. It is now committed in GitHub so the
+            // scroll background no longer depends on a Downloads ZIP being present.
+            Sprite scrollOcean = FindSprite(CommittedScrollableOceanFile);
+            if (scrollOcean == null)
             {
                 Debug.LogWarning(
-                    "[WorldMap] Approved scroll restore is waiting for " +
-                    AssetPackFileName + ". The original background is " +
-                    "tropical_ocean_map_adventure.png from the 20-asset WorldMap pack.");
+                    "[WorldMap] Committed scroll-ocean sprite is missing: " +
+                    CommittedScrollableOceanFile + ". No layout objects were changed.");
                 return;
             }
 
             int changed = 0;
 
-            // Exact geometry from the frozen Asia-first WorldMap builder.
-            Vector2 approvedContentSize = new Vector2(2600f, 2700f);
-            Vector2 approvedContentPosition = -ContinentPositions[0];
-
-            if (mapContent.anchorMin != new Vector2(0.5f, 0.5f) ||
-                mapContent.anchorMax != new Vector2(0.5f, 0.5f) ||
-                mapContent.pivot != new Vector2(0.5f, 0.5f) ||
-                mapContent.sizeDelta != approvedContentSize ||
-                mapContent.anchoredPosition != approvedContentPosition ||
-                mapContent.localScale != Vector3.one ||
-                mapContent.localRotation != Quaternion.identity)
+            RectTransform viewport = mapContent.parent as RectTransform;
+            if (viewport != null)
             {
-                mapContent.anchorMin = new Vector2(0.5f, 0.5f);
-                mapContent.anchorMax = new Vector2(0.5f, 0.5f);
-                mapContent.pivot = new Vector2(0.5f, 0.5f);
-                mapContent.sizeDelta = approvedContentSize;
-                mapContent.anchoredPosition = approvedContentPosition;
-                mapContent.localScale = Vector3.one;
-                mapContent.localRotation = Quaternion.identity;
-                EditorUtility.SetDirty(mapContent);
-                changed++;
+                // Old generated scenes used an opaque white Image on MapViewport only
+                // to receive pointer events. Make it transparent so it can never cover
+                // the scroll-ocean artwork when a sprite reference is being repaired.
+                Image viewportGraphic = viewport.GetComponent<Image>();
+                if (viewportGraphic != null)
+                {
+                    Color desiredViewportColor = viewportGraphic.color;
+                    desiredViewportColor.r = 1f;
+                    desiredViewportColor.g = 1f;
+                    desiredViewportColor.b = 1f;
+                    desiredViewportColor.a = 0.001f;
+
+                    if (viewportGraphic.color != desiredViewportColor)
+                    {
+                        viewportGraphic.color = desiredViewportColor;
+                        changed++;
+                    }
+
+                    if (!viewportGraphic.raycastTarget)
+                    {
+                        viewportGraphic.raycastTarget = true;
+                        changed++;
+                    }
+
+                    EditorUtility.SetDirty(viewportGraphic);
+                }
+
+                ScrollRect scroll = viewport.GetComponent<ScrollRect>();
+                if (scroll != null)
+                {
+                    if (scroll.viewport != viewport)
+                    {
+                        scroll.viewport = viewport;
+                        changed++;
+                    }
+
+                    if (scroll.content != mapContent)
+                    {
+                        scroll.content = mapContent;
+                        changed++;
+                    }
+
+                    EditorUtility.SetDirty(scroll);
+                }
             }
 
             Transform scrollableTransform = null;
@@ -165,27 +167,32 @@ namespace Watermelon.EditorTools
                 if (scrollableRect == null)
                     return;
 
+                if (!scrollableTransform.gameObject.activeSelf)
+                {
+                    scrollableTransform.gameObject.SetActive(true);
+                    changed++;
+                }
+
                 scrollableImage = scrollableTransform.GetComponent<Image>();
                 if (scrollableImage == null)
                 {
                     scrollableImage = scrollableTransform.gameObject.AddComponent<Image>();
                     changed++;
                 }
-
-                if (!scrollableTransform.gameObject.activeSelf)
-                {
-                    scrollableTransform.gameObject.SetActive(true);
-                    changed++;
-                }
             }
 
-            // This is the original September WorldMap behavior:
-            // tropical_ocean_map_adventure.png fills MapContent exactly.
+            // IMPORTANT: do not touch MapContent position/size and do not touch any
+            // continent transform. Match the background to whatever authored MapContent
+            // geometry already exists in the scene.
+            Vector2 contentSize = mapContent.rect.size;
+            if (contentSize.x <= 1f || contentSize.y <= 1f)
+                contentSize = mapContent.sizeDelta;
+
             if (scrollableRect.anchorMin != new Vector2(0.5f, 0.5f) ||
                 scrollableRect.anchorMax != new Vector2(0.5f, 0.5f) ||
                 scrollableRect.pivot != new Vector2(0.5f, 0.5f) ||
                 scrollableRect.anchoredPosition != Vector2.zero ||
-                scrollableRect.sizeDelta != approvedContentSize ||
+                scrollableRect.sizeDelta != contentSize ||
                 scrollableRect.localScale != Vector3.one ||
                 scrollableRect.localRotation != Quaternion.identity)
             {
@@ -193,7 +200,7 @@ namespace Watermelon.EditorTools
                 scrollableRect.anchorMax = new Vector2(0.5f, 0.5f);
                 scrollableRect.pivot = new Vector2(0.5f, 0.5f);
                 scrollableRect.anchoredPosition = Vector2.zero;
-                scrollableRect.sizeDelta = approvedContentSize;
+                scrollableRect.sizeDelta = contentSize;
                 scrollableRect.localScale = Vector3.one;
                 scrollableRect.localRotation = Quaternion.identity;
                 changed++;
@@ -205,15 +212,21 @@ namespace Watermelon.EditorTools
                 changed++;
             }
 
-            if (scrollableImage.sprite != ocean)
+            if (scrollableImage.sprite != scrollOcean)
             {
-                scrollableImage.sprite = ocean;
+                scrollableImage.sprite = scrollOcean;
                 changed++;
             }
 
             if (scrollableImage.color != Color.white)
             {
                 scrollableImage.color = Color.white;
+                changed++;
+            }
+
+            if (scrollableImage.type != Image.Type.Simple)
+            {
+                scrollableImage.type = Image.Type.Simple;
                 changed++;
             }
 
@@ -238,65 +251,15 @@ namespace Watermelon.EditorTools
             EditorUtility.SetDirty(scrollableRect);
             EditorUtility.SetDirty(scrollableImage);
 
-            // Restore the six continent roots to the exact positions/sizes recorded
-            // in the frozen Asia-first builder. This fixes drift introduced while
-            // experimenting with a different portrait background.
-            for (int i = 0; i < ContinentNames.Length; i++)
-            {
-                WorldMapContinentNode node = FindContinentNodeByDisplayName(ContinentNames[i]);
-                RectTransform nodeRect = node != null ? node.transform as RectTransform : null;
-                if (nodeRect == null)
-                    continue;
-
-                if (nodeRect.anchorMin != new Vector2(0.5f, 0.5f) ||
-                    nodeRect.anchorMax != new Vector2(0.5f, 0.5f) ||
-                    nodeRect.pivot != new Vector2(0.5f, 0.5f) ||
-                    nodeRect.anchoredPosition != ContinentPositions[i] ||
-                    nodeRect.sizeDelta != ContinentSizes[i] ||
-                    nodeRect.localScale != Vector3.one ||
-                    nodeRect.localRotation != Quaternion.identity)
-                {
-                    nodeRect.anchorMin = new Vector2(0.5f, 0.5f);
-                    nodeRect.anchorMax = new Vector2(0.5f, 0.5f);
-                    nodeRect.pivot = new Vector2(0.5f, 0.5f);
-                    nodeRect.anchoredPosition = ContinentPositions[i];
-                    nodeRect.sizeDelta = ContinentSizes[i];
-                    nodeRect.localScale = Vector3.one;
-                    nodeRect.localRotation = Quaternion.identity;
-                    EditorUtility.SetDirty(nodeRect);
-                    changed++;
-                }
-            }
-
-            // Keep the existing ScrollRect, but make sure it still owns this content.
-            RectTransform viewport = mapContent.parent as RectTransform;
-            ScrollRect scroll = viewport != null ? viewport.GetComponent<ScrollRect>() : null;
-            if (scroll != null)
-            {
-                if (scroll.viewport != viewport)
-                {
-                    scroll.viewport = viewport;
-                    changed++;
-                }
-
-                if (scroll.content != mapContent)
-                {
-                    scroll.content = mapContent;
-                    changed++;
-                }
-
-                EditorUtility.SetDirty(scroll);
-            }
+            if (changed <= 0)
+                return;
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
 
-            EditorPrefs.SetBool(ApprovedWorldMapRestoreKey, true);
-
             Debug.Log(
-                "[WorldMap] Restored approved Asia-first scroll content: " +
-                "MapContent 2600x2700, original tropical_ocean_map_adventure.png, " +
-                "and frozen continent positions/sizes. No other scene UI was rebuilt.");
+                "[WorldMap] Repaired ScrollableOcean only. Preserved MapContent and all " +
+                "continent/header/chapter-selector transforms.");
         }
 
         private static void OnWorldMapSceneOpened(Scene scene, OpenSceneMode mode)
@@ -377,7 +340,7 @@ namespace Watermelon.EditorTools
 
         private const string ScenePath = "Assets/Project Data/Game/Scenes/WorldMap.unity";
         private const string AssetFolder = "Assets/Project Data/Game/Images/WorldMap";
-        private const string AssetPackFileName = "ConveyorChef_WorldMap_Assets_ForUnity.zip";
+        private const string AssetPackFileName = "ConveyorChef_WorldMap_Assets_ForUnity.zip";\n        private const string CommittedScrollableOceanFile = "world_map_ocean_canvas.jpg";
 
         private const float DesignWidth = 1080f;
         private const float DesignHeight = 1920f;
@@ -1741,8 +1704,16 @@ namespace Watermelon.EditorTools
                 RequireSprite("tropical_ocean_map_adventure.png"),
                 false,
                 "Background Artwork",
-                "World Map Backdrop",
-                "ScrollableOcean");
+                "World Map Backdrop");
+
+            Sprite committedScrollOcean = FindSprite(CommittedScrollableOceanFile);
+            if (committedScrollOcean != null)
+            {
+                changed += BindSpriteByNames(
+                    committedScrollOcean,
+                    false,
+                    "ScrollableOcean");
+            }
 
             changed += BindSpriteByNames(
                 RequireSprite("conveyor_chef_world_map_logo.png"),
