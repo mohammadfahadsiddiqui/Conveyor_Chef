@@ -2122,28 +2122,16 @@ namespace Watermelon.EditorTools
                 }
             }
 
-            // Keep the ocean artwork sharp. The old regression came from stretching
-            // a portrait image non-uniformly across the nearly-square MapContent.
-            // Size it like an Aspect-Fill/Cover image instead: preserve the sprite's
-            // native aspect ratio and allow only the excess edge to sit outside the
-            // content bounds. No continent/header/card RectTransform is touched.
-            Vector2 contentSize = mapContent.rect.size;
-            if (contentSize.x <= 1f || contentSize.y <= 1f)
-                contentSize = mapContent.sizeDelta;
-
-            Vector2 targetSize = contentSize;
-            Rect spriteRect = scrollBackground.rect;
-            if (spriteRect.width > 1f && spriteRect.height > 1f &&
-                contentSize.x > 1f && contentSize.y > 1f)
-            {
-                float spriteAspect = spriteRect.width / spriteRect.height;
-                float contentAspect = contentSize.x / contentSize.y;
-
-                if (spriteAspect > contentAspect)
-                    targetSize.x = contentSize.y * spriteAspect;
-                else
-                    targetSize.y = contentSize.x / spriteAspect;
-            }
+            // The scroll background and continent positions were authored against the
+            // same MapContent coordinate space. Therefore the background MUST match the
+            // MapContent bounds exactly. Using Aspect-Fill/Cover changes the visual scale
+            // of the ocean artwork and makes the authored continent positions drift.
+            //
+            // Sharpness is handled by the high-resolution, uncompressed texture import;
+            // geometry stays 1:1 with MapContent.
+            Vector2 targetSize = mapContent.rect.size;
+            if (targetSize.x <= 1f || targetSize.y <= 1f)
+                targetSize = mapContent.sizeDelta;
 
             if (rect.anchorMin != new Vector2(0.5f, 0.5f) ||
                 rect.anchorMax != new Vector2(0.5f, 0.5f) ||
@@ -2180,9 +2168,9 @@ namespace Watermelon.EditorTools
                 changed++;
             }
 
-            if (!image.preserveAspect)
+            if (image.preserveAspect)
             {
-                image.preserveAspect = true;
+                image.preserveAspect = false;
                 changed++;
             }
 
