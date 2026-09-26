@@ -21,7 +21,8 @@ namespace Watermelon
     {
         private const string MenuSceneName = "menu";
         private const string ResourceRoot = "ProfessionalMainMenu/";
-        private const string DiamondsKey = "CC_Diamonds";
+        private const string DiamondsKey = "CC_Diamonds"; // legacy PlayerPrefs key
+        private const string DiamondCurrencyMigrationKey = "CC_DiamondCurrencyMigrated";
         private const string PlayerNameKey = "CC_PlayerName";
         private const string LocalBestScoreKey = "CC_LocalBestScore";
 
@@ -1068,19 +1069,33 @@ namespace Watermelon
                 }
             }
 
-            if (!PlayerPrefs.HasKey(DiamondsKey))
-            {
-                PlayerPrefs.SetInt(DiamondsKey, 50);
-                PlayerPrefs.Save();
-            }
-
             if (diamondText != null)
-                diamondText.text = PlayerPrefs.GetInt(DiamondsKey, 50).ToString("N0");
+                diamondText.text = GetDiamondAmount().ToString("N0");
         }
 
         private void OnCurrencyChanged(Currency currency, int difference)
         {
             RefreshHUD();
+        }
+
+        private static int GetDiamondAmount()
+        {
+            try
+            {
+                if (!PlayerPrefs.HasKey(DiamondCurrencyMigrationKey))
+                {
+                    int legacyAmount = PlayerPrefs.GetInt(DiamondsKey, 50);
+                    PlayerPrefs.SetInt(DiamondCurrencyMigrationKey, 1);
+                    PlayerPrefs.Save();
+                    CurrenciesController.Set(CurrencyType.Diamonds, legacyAmount);
+                }
+
+                return CurrenciesController.Get(CurrencyType.Diamonds);
+            }
+            catch
+            {
+                return PlayerPrefs.GetInt(DiamondsKey, 50);
+            }
         }
 
         private void GetProgress(out int completed, out int stars, out int bestLevel)
