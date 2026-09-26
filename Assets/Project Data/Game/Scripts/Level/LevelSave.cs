@@ -42,6 +42,25 @@ namespace Watermelon.BusStop
             return null;
         }
 
+        public int GetTotalStars()
+        {
+            int total = 0;
+
+            if (levelProgress == null)
+                return total;
+
+            for (int i = 0; i < levelProgress.Count; i++)
+            {
+                LevelProgressData data = levelProgress[i];
+                if (data == null)
+                    continue;
+
+                total += System.Math.Max(0, data.starsEarned);
+            }
+
+            return total;
+        }
+
         public void SetLevelProgress(int levelIndex, bool isCompleted, int starsEarned)
         {
             LevelProgressData data = GetLevelProgress(levelIndex);
