@@ -126,6 +126,42 @@ namespace Watermelon.EditorTools
 
             bool changed = false;
 
+            // Keep the top HUD consistent with the approved main-menu resource artwork.
+            Transform topHud = newRoot.transform.Find("Top HUD");
+            if (topHud != null)
+            {
+                Transform diamondCounter = topHud.Find("Diamond Counter");
+                if (diamondCounter != null)
+                {
+                    Image diamondCounterImage = diamondCounter.GetComponent<Image>();
+                    Sprite approvedDiamondBar = ProfessionalMainMenuEmbeddedAssets.GetSprite("diamond_bar");
+                    if (diamondCounterImage != null && approvedDiamondBar != null &&
+                        diamondCounterImage.sprite != approvedDiamondBar)
+                    {
+                        diamondCounterImage.sprite = approvedDiamondBar;
+                        diamondCounterImage.color = Color.white;
+                        diamondCounterImage.preserveAspect = false;
+                        EditorUtility.SetDirty(diamondCounterImage);
+                        changed = true;
+                    }
+
+                    Transform oldDiamondIcon = diamondCounter.Find("Diamond Icon");
+                    if (oldDiamondIcon != null && oldDiamondIcon.gameObject.activeSelf)
+                    {
+                        oldDiamondIcon.gameObject.SetActive(false);
+                        changed = true;
+                    }
+
+                    Transform diamondPlus = diamondCounter.Find("Diamond Plus");
+                    Image diamondPlusImage = diamondPlus != null ? diamondPlus.GetComponent<Image>() : null;
+                    if (diamondPlusImage != null && diamondPlusImage.color.a > 0.001f)
+                    {
+                        diamondPlusImage.color = new Color(1f, 1f, 1f, 0f);
+                        changed = true;
+                    }
+                }
+            }
+
             // All present and future mission art is assigned to Thumbnail. Keep the
             // viewport first and the decorative Card Frame immediately above it.
             Transform cardsRoot = newRoot.transform.Find("Level Cards");
