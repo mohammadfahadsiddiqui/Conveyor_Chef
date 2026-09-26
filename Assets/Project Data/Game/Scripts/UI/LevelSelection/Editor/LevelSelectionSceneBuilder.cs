@@ -162,6 +162,130 @@ namespace Watermelon.EditorTools
                 }
             }
 
+            // Restore the top-left BACK button exactly where it was before the HUD
+            // resource update. Older intermediate scenes used a Home button here.
+            Transform topBack = null;
+            Button topBackButton = null;
+            if (topHud != null)
+            {
+                topBack = topHud.Find("Back Button");
+                if (topBack == null)
+                    topBack = topHud.Find("Home Button Frame");
+
+                Sprite approvedBackSprite = Existing("glossy_blue_back_button.png");
+
+                if (topBack == null && approvedBackSprite != null)
+                {
+                    topBackButton = B(
+                        "Back Button",
+                        topHud,
+                        approvedBackSprite,
+                        new Vector2(0.5f, 0.5f),
+                        Vector2.zero,
+                        new Vector2(210f, 100f),
+                        true);
+                    topBack = topBackButton.transform;
+                    changed = true;
+                }
+
+                if (topBack != null)
+                {
+                    if (topBack.name != "Back Button")
+                    {
+                        topBack.name = "Back Button";
+                        changed = true;
+                    }
+
+                    RectTransform topBackRect = topBack as RectTransform;
+                    if (topBackRect != null)
+                    {
+                        Vector2 wantedMin = new Vector2(12f / W, 1f - ((18f + 100f) / H));
+                        Vector2 wantedMax = new Vector2((12f + 210f) / W, 1f - (18f / H));
+                        if (topBackRect.anchorMin != wantedMin ||
+                            topBackRect.anchorMax != wantedMax ||
+                            topBackRect.offsetMin != Vector2.zero ||
+                            topBackRect.offsetMax != Vector2.zero)
+                        {
+                            SetReferenceRect(topBackRect, 12f, 18f, 210f, 100f);
+                            changed = true;
+                        }
+                    }
+
+                    Image topBackImage = topBack.GetComponent<Image>();
+                    if (topBackImage != null && approvedBackSprite != null &&
+                        topBackImage.sprite != approvedBackSprite)
+                    {
+                        topBackImage.sprite = approvedBackSprite;
+                        topBackImage.color = Color.white;
+                        topBackImage.preserveAspect = true;
+                        changed = true;
+                    }
+
+                    topBackButton = topBack.GetComponent<Button>();
+                    if (topBackButton == null && topBackImage != null)
+                    {
+                        topBackButton = topBack.gameObject.AddComponent<Button>();
+                        topBackButton.targetGraphic = topBackImage;
+                        changed = true;
+                    }
+
+                    Transform oldHomeIcon = topBack.Find("Home Icon");
+                    if (oldHomeIcon == null)
+                        oldHomeIcon = topBack.Find("Legacy Home Icon [Hidden]");
+                    if (oldHomeIcon != null && oldHomeIcon.gameObject.activeSelf)
+                    {
+                        oldHomeIcon.gameObject.SetActive(false);
+                        changed = true;
+                    }
+                }
+            }
+
+            // Remove the temporary duplicate bottom Back button created during the
+            // HUD transition. Back navigation now lives only in the approved top-left spot.
+            Transform legacyBottomBack = newRoot.transform.Find("BackButton");
+            if (legacyBottomBack == null)
+                legacyBottomBack = newRoot.transform.Find("Legacy BackButton [Hidden]");
+            if (legacyBottomBack != null && legacyBottomBack.gameObject.activeSelf)
+            {
+                legacyBottomBack.gameObject.SetActive(false);
+                changed = true;
+            }
+
+            // Keep controller wiring synchronized with the visible top-left Back button.
+            LevelSelectionController existingController =
+                newRoot.GetComponentInChildren<LevelSelectionController>(true);
+            if (existingController != null && topBackButton != null)
+            {
+                SerializedObject controllerSO = new SerializedObject(existingController);
+                SerializedProperty homeProperty = controllerSO.FindProperty("homeButton");
+                SerializedProperty backProperty = controllerSO.FindProperty("backButton");
+                SerializedProperty diamondCounterProperty = controllerSO.FindProperty("diamondCounterImage");
+
+                if (homeProperty != null && homeProperty.objectReferenceValue != null)
+                {
+                    homeProperty.objectReferenceValue = null;
+                    changed = true;
+                }
+
+                if (backProperty != null && backProperty.objectReferenceValue != topBackButton)
+                {
+                    backProperty.objectReferenceValue = topBackButton;
+                    changed = true;
+                }
+
+                Transform diamondCounter = topHud != null ? topHud.Find("Diamond Counter") : null;
+                Image diamondImage = diamondCounter != null ? diamondCounter.GetComponent<Image>() : null;
+                if (diamondCounterProperty != null &&
+                    diamondCounterProperty.objectReferenceValue != diamondImage)
+                {
+                    diamondCounterProperty.objectReferenceValue = diamondImage;
+                    changed = true;
+                }
+
+                if (controllerSO.hasModifiedProperties)
+                    controllerSO.ApplyModifiedPropertiesWithoutUndo();
+            }
+
             // All present and future mission art is assigned to Thumbnail. Keep the
             // viewport first and the decorative Card Frame immediately above it.
             Transform cardsRoot = newRoot.transform.Find("Level Cards");
@@ -267,8 +391,9 @@ namespace Watermelon.EditorTools
             EditorSceneManager.SaveScene(active);
 
             Debug.Log(
-                "[LevelSelection] Repaired image layering only: mission thumbnails are behind " +
-                "their Card Frame and the hero artwork is behind Hero Frame Overlay.");
+                "[LevelSelection] Repaired approved HUD/art layering: the top-left Back button " +
+                "is restored, the approved Main Menu diamond bar is reused, mission thumbnails " +
+                "remain behind their Card Frame, and hero artwork remains behind its overlay.");
         }
 
         private static void TryAutoBakeOpenScene()
@@ -527,18 +652,11 @@ namespace Watermelon.EditorTools
             RectTransform topHud = R("Top HUD", root);
             Stretch(topHud);
 
-            // Keep the approved Home button plus the original Back button. The resource
-            // strip is compacted only enough to fit Coins, Diamonds and Stars cleanly.
-            Image homeDisc = I("Home Button Frame", topHud, numberBadge, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(138f, 135f), true);
-            SetReferenceRect(homeDisc.rectTransform, 7f, 0f, 138f, 135f);
-            homeDisc.raycastTarget = true;
-            Button homeButton = homeDisc.gameObject.AddComponent<Button>();
-            homeButton.targetGraphic = homeDisc;
-            if (homeIcon != null)
-            {
-                Image hi = I("Home Icon", homeDisc.transform, homeIcon, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(60f, 60f), true);
-                hi.raycastTarget = false;
-            }
+            // Restore the approved top-left BACK button from the earlier Level Selection
+            // layout. Do not replace it with a Home button.
+            Sprite finalTopBackSprite = existingBackButton != null ? existingBackButton : numberBadge;
+            Button backButton = B("Back Button", topHud, finalTopBackSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(210f, 100f), true);
+            SetReferenceRect(backButton.GetComponent<RectTransform>(), 12f, 18f, 210f, 100f);
 
             Image coinBar = I("Coin Counter", topHud, counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(205f, 78f), false);
             SetReferenceRect(coinBar.rectTransform, 240f, 24f, 205f, 78f);
@@ -716,14 +834,6 @@ namespace Watermelon.EditorTools
             progressValue.fontStyle = FontStyles.Bold;
             progressValue.color = new Color(0.06f, 0.18f, 0.42f, 1f);
 
-            // BACK - keep the previously approved Level Selection back button exactly as authored.
-            Sprite finalBackSprite = existingBackButton != null ? existingBackButton : progressOuter;
-            Image backRootImage = I("BackButton", root, finalBackSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(316f, 124f), true);
-            SetReferenceRect(backRootImage.rectTransform, 20f, 1697f, 316f, 124f);
-            backRootImage.raycastTarget = true;
-            Button backButton = backRootImage.gameObject.AddComponent<Button>();
-            backButton.targetGraphic = backRootImage;
-
             TextMeshProUGUI statusText = T("Status Text", root, string.Empty, 18f, new Vector2(0f, -800f), new Vector2(600f, 36f));
             statusText.color = new Color(1f, 1f, 1f, 0.0f);
 
@@ -737,7 +847,7 @@ namespace Watermelon.EditorTools
             LevelSelectionController controller = controllerObject.AddComponent<LevelSelectionController>();
 
             controller.EditorConfigure(
-                homeButton,
+                null,
                 backButton,
                 settingsButton,
                 coinPlus,
