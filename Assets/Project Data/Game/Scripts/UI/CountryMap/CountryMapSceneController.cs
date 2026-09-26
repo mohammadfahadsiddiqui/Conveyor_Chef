@@ -27,7 +27,7 @@ namespace Watermelon.BusStop
 
         private static readonly string[] ContinentNames =
         {
-            "Asia", "North America", "South America", "Europe", "Africa", "Australia / Oceania"
+            "Asia", "North America", "South America", "Europe", "Africa", "Australia"
         };
 
         [Header("Countries")]
