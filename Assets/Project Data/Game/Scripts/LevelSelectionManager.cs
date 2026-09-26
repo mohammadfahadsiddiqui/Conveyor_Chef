@@ -19,6 +19,8 @@ namespace Watermelon.BusStop
         private const string SelectedCountryKey = "CC_CountryMap_SelectedCountry";
         private const string FromCountryMapKey = "CC_LevelSelection_FromCountryMap";
         private const string SelectedCountryLevelStartKey = "CC_CountryMap_SelectedLevelStart";
+        private const string DiamondsKey = "CC_Diamonds";
+        private const string DiamondCurrencyMigrationKey = "CC_DiamondCurrencyMigrated";
         private const int LevelsPerCountry = 3;
 
         private static readonly string[] CountryNames =
@@ -275,10 +277,30 @@ namespace Watermelon.BusStop
                 coinText.text = GetCurrencyAmountSafe(CurrencyType.Coins).ToString("N0");
 
             if (diamondText != null)
-                diamondText.text = GetCurrencyAmountSafe(CurrencyType.Diamonds).ToString("N0");
+                diamondText.text = GetDiamondAmount().ToString("N0");
 
             if (starText != null)
                 starText.text = (levelSave != null ? levelSave.GetTotalStars() : 0).ToString("N0");
+        }
+
+        private static int GetDiamondAmount()
+        {
+            try
+            {
+                if (!PlayerPrefs.HasKey(DiamondCurrencyMigrationKey))
+                {
+                    int legacyAmount = PlayerPrefs.GetInt(DiamondsKey, 50);
+                    PlayerPrefs.SetInt(DiamondCurrencyMigrationKey, 1);
+                    PlayerPrefs.Save();
+                    CurrenciesController.Set(CurrencyType.Diamonds, legacyAmount);
+                }
+
+                return CurrenciesController.Get(CurrencyType.Diamonds);
+            }
+            catch
+            {
+                return PlayerPrefs.GetInt(DiamondsKey, 50);
+            }
         }
 
         private static int GetCurrencyAmountSafe(CurrencyType currencyType)
