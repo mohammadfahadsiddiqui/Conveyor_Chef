@@ -22,3 +22,13 @@ MonoBehaviour:
       specialPrefab: {fileID: 0}
       appearAudioClip: {fileID: 8300000, guid: 7ed02add2c2a9df4baaa5a74a78e355a, type: 3}
       collectAudioClip: {fileID: 8300000, guid: 1b3a9aa133dd17e4a80144d16ef86d0b, type: 3}
+  - currencyType: 1
+    defaultAmount: 0
+    icon: {fileID: 0}
+    displayAlways: 1
+    floatingCloud:
+      addToCloud: 0
+      radius: 200
+      specialPrefab: {fileID: 0}
+      appearAudioClip: {fileID: 0}
+      collectAudioClip: {fileID: 0}
