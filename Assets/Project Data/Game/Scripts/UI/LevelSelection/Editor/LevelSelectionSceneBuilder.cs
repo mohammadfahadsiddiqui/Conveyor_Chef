@@ -66,14 +66,19 @@ namespace Watermelon.EditorTools
 
         static LevelSelectionSceneBuilder()
         {
-            // Golden build: the one-time restore helper creates the serialized scene.
-            // After that, LevelSelection.unity is authoritative and is never auto-rebaked.
+            // Keep the serialized scene authoritative. On open/compile we only run the
+            // versioned one-time upgrade (when required) and the safe visual-layer repair.
+            EditorSceneManager.sceneOpened -= OnSceneOpened;
+            EditorSceneManager.sceneOpened += OnSceneOpened;
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            EditorApplication.delayCall += UpgradeAndRepairOpenScene;
         }
 
         private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
         {
             if (scene.path == ScenePath)
-                EditorApplication.delayCall += TryAutoBakeOpenScene;
+                EditorApplication.delayCall += UpgradeAndRepairOpenScene;
         }
 
         private static void OnPlayModeStateChanged(PlayModeStateChange state)
@@ -85,7 +90,149 @@ namespace Watermelon.EditorTools
             // running, the initial auto-bake is intentionally skipped. Run it as
             // soon as Unity returns to Edit Mode so the serialized Scene hierarchy
             // is replaced and becomes directly editable in the Canvas.
-            EditorApplication.delayCall += TryAutoBakeOpenScene;
+            EditorApplication.delayCall += UpgradeAndRepairOpenScene;
+        }
+
+        private static void UpgradeAndRepairOpenScene()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode ||
+                EditorApplication.isCompiling ||
+                EditorApplication.isUpdating)
+            {
+                return;
+            }
+
+            TryAutoBakeOpenScene();
+            RepairApprovedImageLayeringInOpenScene();
+        }
+
+        [MenuItem("Conveyor Chef/Level Selection/8. Repair Image Layering Only", priority = 8)]
+        private static void RepairApprovedImageLayeringInOpenScene()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode ||
+                EditorApplication.isCompiling ||
+                EditorApplication.isUpdating)
+            {
+                return;
+            }
+
+            Scene active = SceneManager.GetActiveScene();
+            if (!active.IsValid() || active.path != ScenePath)
+                return;
+
+            GameObject newRoot = GameObject.Find("NEW Level Selection");
+            if (newRoot == null)
+                return;
+
+            bool changed = false;
+
+            // All present and future mission art is assigned to Thumbnail. Keep the
+            // viewport first and the decorative Card Frame immediately above it.
+            Transform cardsRoot = newRoot.transform.Find("Level Cards");
+            if (cardsRoot != null)
+            {
+                for (int i = 1; i <= 3; i++)
+                {
+                    Transform cardRoot = cardsRoot.Find("Level " + i);
+                    if (cardRoot == null)
+                        continue;
+
+                    Transform thumbnailViewport = cardRoot.Find("Thumbnail Viewport");
+                    Transform cardFrame = cardRoot.Find("Card Frame");
+
+                    if (thumbnailViewport != null && thumbnailViewport.GetSiblingIndex() != 0)
+                    {
+                        thumbnailViewport.SetSiblingIndex(0);
+                        changed = true;
+                    }
+
+                    if (cardFrame != null)
+                    {
+                        int desiredFrameIndex = Mathf.Min(1, cardRoot.childCount - 1);
+                        if (cardFrame.GetSiblingIndex() != desiredFrameIndex)
+                        {
+                            cardFrame.SetSiblingIndex(desiredFrameIndex);
+                            changed = true;
+                        }
+                    }
+                }
+            }
+
+            // Older v7 scenes placed the hero frame Image on the parent, which means
+            // Unity always rendered child hero art on top of the decorative border.
+            // Convert that to an overlay child without moving/resizing the approved UI.
+            Transform heroRoot = newRoot.transform.Find("Hero Info Frame");
+            if (heroRoot != null)
+            {
+                Transform heroViewport = heroRoot.Find("Hero Image Viewport");
+                Transform descriptionPanel = heroRoot.Find("Description Panel");
+                Transform overlayTransform = heroRoot.Find("Hero Frame Overlay");
+                Image parentFrame = heroRoot.GetComponent<Image>();
+                Image overlayImage = overlayTransform != null ? overlayTransform.GetComponent<Image>() : null;
+
+                if (overlayTransform == null && parentFrame != null && parentFrame.sprite != null)
+                {
+                    GameObject overlayObject = new GameObject(
+                        "Hero Frame Overlay",
+                        typeof(RectTransform),
+                        typeof(CanvasRenderer),
+                        typeof(Image));
+                    overlayObject.transform.SetParent(heroRoot, false);
+
+                    RectTransform overlayRect = overlayObject.GetComponent<RectTransform>();
+                    Stretch(overlayRect);
+
+                    overlayImage = overlayObject.GetComponent<Image>();
+                    overlayImage.sprite = parentFrame.sprite;
+                    overlayImage.color = parentFrame.color;
+                    overlayImage.type = parentFrame.type;
+                    overlayImage.preserveAspect = parentFrame.preserveAspect;
+                    overlayImage.raycastTarget = false;
+
+                    overlayTransform = overlayObject.transform;
+                    parentFrame.enabled = false;
+                    changed = true;
+                }
+                else if (parentFrame != null && parentFrame.enabled && overlayImage != null)
+                {
+                    parentFrame.enabled = false;
+                    changed = true;
+                }
+
+                if (heroViewport != null && heroViewport.GetSiblingIndex() != 0)
+                {
+                    heroViewport.SetSiblingIndex(0);
+                    changed = true;
+                }
+
+                if (overlayTransform != null)
+                {
+                    int desiredOverlayIndex = Mathf.Min(1, heroRoot.childCount - 1);
+                    if (overlayTransform.GetSiblingIndex() != desiredOverlayIndex)
+                    {
+                        overlayTransform.SetSiblingIndex(desiredOverlayIndex);
+                        changed = true;
+                    }
+                }
+
+                if (descriptionPanel != null &&
+                    descriptionPanel.GetSiblingIndex() != heroRoot.childCount - 1)
+                {
+                    descriptionPanel.SetAsLastSibling();
+                    changed = true;
+                }
+            }
+
+            if (!changed)
+                return;
+
+            EditorUtility.SetDirty(newRoot);
+            EditorSceneManager.MarkSceneDirty(active);
+            EditorSceneManager.SaveScene(active);
+
+            Debug.Log(
+                "[LevelSelection] Repaired image layering only: mission thumbnails are behind " +
+                "their Card Frame and the hero artwork is behind Hero Frame Overlay.");
         }
 
         private static void TryAutoBakeOpenScene()
@@ -118,9 +265,9 @@ namespace Watermelon.EditorTools
                 Watermelon.LevelSelectionResponsiveLayout marker =
                     newRoot.GetComponent<Watermelon.LevelSelectionResponsiveLayout>();
 
-                if (missing.Count == 0 && (marker == null || marker.LayoutVersion < 7))
+                if (missing.Count == 0 && (marker == null || marker.LayoutVersion < 8))
                 {
-                    Debug.Log("[LevelSelection] Upgrading the authored Level Selection layout to corrected level-card layout v7.");
+                    Debug.Log("[LevelSelection] Upgrading the authored Level Selection layout to image-layer-safe layout v8.");
                     BakeInternal(false);
                     return;
                 }
@@ -334,7 +481,7 @@ namespace Watermelon.EditorTools
             Stretch(root);
             Watermelon.LevelSelectionResponsiveLayout layoutMarker =
                 root.gameObject.AddComponent<Watermelon.LevelSelectionResponsiveLayout>();
-            layoutMarker.EditorConfigure(7);
+            layoutMarker.EditorConfigure(8);
 
             Image background = I("Background Artwork", root, bg, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(W, H), false);
             Stretch(background.rectTransform);
@@ -394,16 +541,29 @@ namespace Watermelon.EditorTools
             flagImage.raycastTarget = false;
 
             // HERO / DESCRIPTION
-            Image hero = I("Hero Info Frame", root, heroOuter, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(984f, 441f), false);
-            SetReferenceRect(hero.rectTransform, 37f, 367f, 984f, 441f);
+            // Root has no Graphic of its own. This lets the hero artwork render first,
+            // then the decorative frame overlay, while the description stays readable.
+            RectTransform hero = R("Hero Info Frame", root);
+            SetReferenceRect(hero, 37f, 367f, 984f, 441f);
 
-            RectTransform heroViewport = R("Hero Image Viewport", hero.transform);
+            RectTransform heroViewport = R("Hero Image Viewport", hero);
             Set(heroViewport, new Vector2(0f, 0.5f), new Vector2(302f, 0f), new Vector2(585f, 382f));
             heroViewport.gameObject.AddComponent<RectMask2D>();
             Image heroImage = I("Hero Image", heroViewport, bg, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(585f, 418f), false);
             heroImage.raycastTarget = false;
 
-            Image descPanel = I("Description Panel", hero.transform, descriptionPanel, new Vector2(1f, 0.5f), new Vector2(-165f, 0f), new Vector2(322f, 382f), false);
+            Image heroFrameOverlay = I(
+                "Hero Frame Overlay",
+                hero,
+                heroOuter,
+                new Vector2(0.5f, 0.5f),
+                Vector2.zero,
+                new Vector2(984f, 441f),
+                false);
+            Stretch(heroFrameOverlay.rectTransform);
+            heroFrameOverlay.raycastTarget = false;
+
+            Image descPanel = I("Description Panel", hero, descriptionPanel, new Vector2(1f, 0.5f), new Vector2(-165f, 0f), new Vector2(322f, 382f), false);
             TextMeshProUGUI descText = T("Description Text", descPanel.transform,
                 "Explore India's rich food culture, vibrant cities and iconic destinations as you deliver delicious dishes across the country!",
                 25f, Vector2.zero, new Vector2(250f, 305f));
@@ -589,6 +749,14 @@ namespace Watermelon.EditorTools
             RectTransform root = R("Level " + (index + 1), parent);
             SetReferenceRect(root, x, yTop, width, height);
 
+            // Thumbnail is deliberately created BEFORE Card Frame so every current
+            // and future mission image stays behind the decorative frame.
+            RectTransform thumbnailViewport = R("Thumbnail Viewport", root);
+            Set(thumbnailViewport, new Vector2(0.5f, 1f), new Vector2(0f, -176f), new Vector2(230f, 176f));
+            thumbnailViewport.gameObject.AddComponent<RectMask2D>();
+            Image tImage = I("Thumbnail", thumbnailViewport, thumbnail, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(230f, 194f), false);
+            tImage.raycastTarget = false;
+
             Image frame = I("Card Frame", root, initialFrame, new Vector2(0.5f, 0.5f), new Vector2(0f, -6f), new Vector2(292f, 500f), false);
             frame.raycastTarget = true;
             Button selectButton = frame.gameObject.AddComponent<Button>();
@@ -599,12 +767,6 @@ namespace Watermelon.EditorTools
             TextMeshProUGUI number = T("Level Number", badge.transform, (index + 1).ToString(), 40f, Vector2.zero, new Vector2(62f, 58f));
             number.fontStyle = FontStyles.Bold;
             number.color = Color.white;
-
-            RectTransform thumbnailViewport = R("Thumbnail Viewport", root);
-            Set(thumbnailViewport, new Vector2(0.5f, 1f), new Vector2(0f, -176f), new Vector2(230f, 176f));
-            thumbnailViewport.gameObject.AddComponent<RectMask2D>();
-            Image tImage = I("Thumbnail", thumbnailViewport, thumbnail, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(230f, 194f), false);
-            tImage.raycastTarget = false;
 
             TextMeshProUGUI title = T("Level Name", root, missionName, 21f, new Vector2(0f, -40f), new Vector2(220f, 42f));
             title.fontStyle = FontStyles.Bold;
