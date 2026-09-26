@@ -68,6 +68,7 @@ namespace Watermelon.BusStop
         [FormerlySerializedAs("chefCurrencyText")]
         [SerializeField] private TextMeshProUGUI diamondText;
         [SerializeField] private TextMeshProUGUI starText;
+        [SerializeField] private Image diamondCounterImage;
 
         [Header("Country Header")]
         [SerializeField] private TextMeshProUGUI countryTitleText;
@@ -116,6 +117,7 @@ namespace Watermelon.BusStop
             UIEventSystemRuntime.UseCurrentSceneEventSystem();
 
             levelSave = SaveController.GetSaveObject<LevelSave>("level");
+            ApplyApprovedDiamondArtwork();
 
             Wire(homeButton, HomePressed);
             Wire(backButton, BackPressed);
@@ -251,6 +253,20 @@ namespace Watermelon.BusStop
 
             if (rightArrowButton != null)
                 rightArrowButton.interactable = selectedSlot < LevelsPerCountry - 1;
+        }
+
+        private void ApplyApprovedDiamondArtwork()
+        {
+            if (diamondCounterImage == null)
+                return;
+
+            Sprite approvedDiamondBar = ProfessionalMainMenuEmbeddedAssets.GetSprite("diamond_bar");
+            if (approvedDiamondBar != null)
+            {
+                diamondCounterImage.sprite = approvedDiamondBar;
+                diamondCounterImage.color = Color.white;
+                diamondCounterImage.preserveAspect = false;
+            }
         }
 
         private void RefreshHUD()
@@ -595,6 +611,7 @@ namespace Watermelon.BusStop
             TextMeshProUGUI coins,
             TextMeshProUGUI diamonds,
             TextMeshProUGUI stars,
+            Image diamondCounter,
             TextMeshProUGUI countryTitle,
             TextMeshProUGUI countrySubtitle,
             Image flag,
@@ -626,6 +643,7 @@ namespace Watermelon.BusStop
             coinText = coins;
             diamondText = diamonds;
             starText = stars;
+            diamondCounterImage = diamondCounter;
             countryTitleText = countryTitle;
             countrySubtitleText = countrySubtitle;
             countryFlagImage = flag;
