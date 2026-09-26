@@ -466,6 +466,8 @@ namespace Watermelon.EditorTools
 
             Sprite settingsSprite = Existing("glossy_blue_gear_settings_icon.png");
             Sprite coinSprite = Existing("glossy_gold_dollar_coin_icon.png");
+            Sprite diamondSprite = AssetDatabase.LoadAssetAtPath<Sprite>(
+                AssetDatabase.GUIDToAssetPath("ba48b895cde381941acbe44bb1938df6"));
             Sprite plusSprite = Existing("glossy_green_add_button.png");
             Sprite starSprite = Existing("glossy_golden_game_star_icon.png");
             Sprite lockSprite = Existing("glossy_blue_locked_level_icon.png");
@@ -507,11 +509,10 @@ namespace Watermelon.EditorTools
 
             Image diamondBar = I("Diamond Counter", topHud, counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(205f, 78f), false);
             SetReferenceRect(diamondBar.rectTransform, 455f, 24f, 205f, 78f);
-            Image diamondIcon = I("Diamond Icon", diamondBar.transform, null, new Vector2(0f, 0.5f), new Vector2(34f, 0f), new Vector2(40f, 40f), false);
-            diamondIcon.color = new Color(0.20f, 0.88f, 1f, 1f);
-            diamondIcon.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            Image diamondIcon = I("Diamond Icon", diamondBar.transform, diamondSprite, new Vector2(0f, 0.5f), new Vector2(34f, 0f), new Vector2(50f, 50f), true);
+            diamondIcon.color = new Color(0.15f, 0.85f, 1f, 1f);
             diamondIcon.raycastTarget = false;
-            TextMeshProUGUI diamondText = T("Diamond Value", diamondBar.transform, "0", 27f, new Vector2(8f, 0f), new Vector2(92f, 52f));
+            TextMeshProUGUI diamondText = T("Diamond Value", diamondBar.transform, "50", 27f, new Vector2(8f, 0f), new Vector2(92f, 52f));
             Button diamondPlus = B("Diamond Plus", diamondBar.transform, plusSprite, new Vector2(1f, 0.5f), new Vector2(-29f, 0f), new Vector2(48f, 48f), true);
 
             Image starBar = I("Star Counter", topHud, counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(205f, 78f), false);
