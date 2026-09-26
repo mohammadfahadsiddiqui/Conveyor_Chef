@@ -631,9 +631,9 @@ namespace Watermelon.EditorTools
             Sprite starSprite = Existing("glossy_golden_game_star_icon.png");
             Sprite lockSprite = Existing("glossy_blue_locked_level_icon.png");
             Sprite chefSprite = Existing("cheerful_chef_mascot_welcoming_gesture.png");
-            Sprite bubbleSprite = Existing("glossy_chef_s_dialogue_bubble.png");
+            Sprite bubbleSprite = Existing("restored_glossy_chef_s_dialogue_bubble.png");
             Sprite homeIcon = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Home.png") ?? Existing("Home.png");
-            Sprite counterFrame = Existing("glossy_blue_game_progress_panel.png");
+            Sprite counterFrame = Existing("restored_glossy_blue_game_progress_panel.png");
             Sprite existingBackButton = Existing("glossy_blue_back_button.png");
 
             Scene scene = PrepareExistingLevelSelectionScene(out Canvas canvas);
