@@ -502,8 +502,6 @@ namespace Watermelon.EditorTools
 
             Sprite settingsSprite = Existing("glossy_blue_gear_settings_icon.png");
             Sprite coinSprite = Existing("glossy_gold_dollar_coin_icon.png");
-            Sprite diamondSprite = AssetDatabase.LoadAssetAtPath<Sprite>(
-                AssetDatabase.GUIDToAssetPath("ba48b895cde381941acbe44bb1938df6"));
             Sprite plusSprite = Existing("glossy_green_add_button.png");
             Sprite starSprite = Existing("glossy_golden_game_star_icon.png");
             Sprite lockSprite = Existing("glossy_blue_locked_level_icon.png");
@@ -529,9 +527,8 @@ namespace Watermelon.EditorTools
             RectTransform topHud = R("Top HUD", root);
             Stretch(topHud);
 
-            // Compact top navigation/resource strip: Back | Coins | Diamonds | Stars | Settings.
-            // These values match the real game resource model and leave enough room for all
-            // three counters without overlapping on the 1080x1920 reference canvas.
+            // Keep the approved Home button plus the original Back button. The resource
+            // strip is compacted only enough to fit Coins, Diamonds and Stars cleanly.
             Image homeDisc = I("Home Button Frame", topHud, numberBadge, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(138f, 135f), true);
             SetReferenceRect(homeDisc.rectTransform, 7f, 0f, 138f, 135f);
             homeDisc.raycastTarget = true;
@@ -550,12 +547,19 @@ namespace Watermelon.EditorTools
             TextMeshProUGUI coinText = T("Coin Value", coinBar.transform, "1,250", 27f, new Vector2(8f, 0f), new Vector2(92f, 52f));
             Button coinPlus = B("Coin Plus", coinBar.transform, plusSprite, new Vector2(1f, 0.5f), new Vector2(-29f, 0f), new Vector2(48f, 48f), true);
 
-            Image diamondBar = I("Diamond Counter", topHud, counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(205f, 78f), false);
+            // Reuse the exact approved Main Menu diamond-bar artwork so the gem has
+            // the same faceted blue appearance everywhere in the game.
+            Sprite approvedDiamondBar = ProfessionalMainMenuEmbeddedAssets.GetSprite("diamond_bar");
+            Image diamondBar = I("Diamond Counter", topHud, approvedDiamondBar != null ? approvedDiamondBar : counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(205f, 78f), false);
             SetReferenceRect(diamondBar.rectTransform, 455f, 24f, 205f, 78f);
-            Image diamondIcon = I("Diamond Icon", diamondBar.transform, diamondSprite, new Vector2(0f, 0.5f), new Vector2(34f, 0f), new Vector2(50f, 50f), true);
-            diamondIcon.color = new Color(0.15f, 0.85f, 1f, 1f);
+
+            // The approved bar already contains the diamond icon. Keep this legacy child
+            // only for backwards-compatible hierarchy references, but never render it.
+            Image diamondIcon = I("Diamond Icon", diamondBar.transform, null, new Vector2(0f, 0.5f), new Vector2(34f, 0f), new Vector2(50f, 50f), true);
             diamondIcon.raycastTarget = false;
-            TextMeshProUGUI diamondText = T("Diamond Value", diamondBar.transform, "50", 27f, new Vector2(8f, 0f), new Vector2(92f, 52f));
+            diamondIcon.gameObject.SetActive(false);
+
+            TextMeshProUGUI diamondText = T("Diamond Value", diamondBar.transform, "50", 27f, new Vector2(17f, 0f), new Vector2(92f, 52f));
             Button diamondPlus = B("Diamond Plus", diamondBar.transform, plusSprite, new Vector2(1f, 0.5f), new Vector2(-29f, 0f), new Vector2(48f, 48f), true);
 
             Image starBar = I("Star Counter", topHud, counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(205f, 78f), false);
