@@ -23,8 +23,8 @@ MonoBehaviour:
       appearAudioClip: {fileID: 8300000, guid: 7ed02add2c2a9df4baaa5a74a78e355a, type: 3}
       collectAudioClip: {fileID: 8300000, guid: 1b3a9aa133dd17e4a80144d16ef86d0b, type: 3}
   - currencyType: 1
-    defaultAmount: 0
-    icon: {fileID: 0}
+    defaultAmount: 50
+    icon: {fileID: 21300000, guid: ba48b895cde381941acbe44bb1938df6, type: 3}
     displayAlways: 1
     floatingCloud:
       addToCloud: 0
