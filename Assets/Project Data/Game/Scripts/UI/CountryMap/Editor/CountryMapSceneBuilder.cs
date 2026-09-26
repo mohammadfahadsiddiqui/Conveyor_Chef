@@ -43,7 +43,7 @@ namespace Watermelon.EditorTools
             "glossy_chef_s_wooden_title_banner.png",
             "hanging_culinary_treasure_map_scroll.png",
             "glossy_country_name_badge_frame.png",
-            "glossy_blue_game_progress_panel.png",
+            "restored_glossy_blue_game_progress_panel.png",
             "chinese_pagoda_and_dumpling_garden.png",
             "japanese_island_diorama_with_mount_fuji.png",
             "india_themed_taj_mahal_garden_diorama.png",
@@ -55,7 +55,7 @@ namespace Watermelon.EditorTools
             "glossy_south_korean_flag_badge.png",
             "glossy_thailand_flag_badge.png",
             "cheerful_chef_mascot_welcoming_gesture.png",
-            "glossy_chef_s_dialogue_bubble.png",
+            "restored_glossy_chef_s_dialogue_bubble.png",
             "asia_progress_map_ui_panel.png",
             "glossy_green_to_gold_progress_bar.png",
             "crowned_globe_completion_badge.png",
@@ -539,9 +539,9 @@ namespace Watermelon.EditorTools
             Sprite titleBoard = S("glossy_chef_s_wooden_title_banner.png");
             Sprite parchment = S("hanging_culinary_treasure_map_scroll.png");
             Sprite nameFrame = S("glossy_country_name_badge_frame.png");
-            Sprite progressFrame = S("glossy_blue_game_progress_panel.png");
+            Sprite progressFrame = S("restored_glossy_blue_game_progress_panel.png");
             Sprite chef = S("cheerful_chef_mascot_welcoming_gesture.png");
-            Sprite bubble = S("glossy_chef_s_dialogue_bubble.png");
+            Sprite bubble = S("restored_glossy_chef_s_dialogue_bubble.png");
             Sprite bottomPanel = S("asia_progress_map_ui_panel.png");
             Sprite progressFillSprite = S("glossy_green_to_gold_progress_bar.png");
             Sprite completedBadge = S("crowned_globe_completion_badge.png");
@@ -821,7 +821,7 @@ namespace Watermelon.EditorTools
             progressTitle.color = new Color(0.05f, 0.19f, 0.43f, 1f);
             progressTitle.textWrappingMode = TextWrappingModes.NoWrap;
 
-            Image track = I("Progress Track", panel, ProgressSprite("progress_ui_track.png", "glossy_blue_game_progress_panel.png"),
+            Image track = I("Progress Track", panel, ProgressSprite("progress_ui_track.png", "restored_glossy_blue_game_progress_panel.png"),
                 new Vector2(0.5f, 0.5f), new Vector2(30f, -28f), new Vector2(420f, 82f), false);
 
             fill = I("Progress Fill", track.transform, ProgressSprite("progress_ui_fill.png", "glossy_green_to_gold_progress_bar.png"),
