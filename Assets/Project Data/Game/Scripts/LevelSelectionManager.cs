@@ -2,6 +2,7 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 
 namespace Watermelon.BusStop
 {
@@ -57,13 +58,16 @@ namespace Watermelon.BusStop
         [SerializeField] private Button backButton;
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button coinPlusButton;
-        [SerializeField] private Button chefPlusButton;
+        [FormerlySerializedAs("chefPlusButton")]
+        [SerializeField] private Button diamondPlusButton;
         [SerializeField] private Button leftArrowButton;
         [SerializeField] private Button rightArrowButton;
 
         [Header("Top HUD")]
         [SerializeField] private TextMeshProUGUI coinText;
-        [SerializeField] private TextMeshProUGUI chefCurrencyText;
+        [FormerlySerializedAs("chefCurrencyText")]
+        [SerializeField] private TextMeshProUGUI diamondText;
+        [SerializeField] private TextMeshProUGUI starText;
 
         [Header("Country Header")]
         [SerializeField] private TextMeshProUGUI countryTitleText;
@@ -117,7 +121,7 @@ namespace Watermelon.BusStop
             Wire(backButton, BackPressed);
             Wire(settingsButton, OpenSettings);
             Wire(coinPlusButton, CoinPlusPressed);
-            Wire(chefPlusButton, ChefPlusPressed);
+            Wire(diamondPlusButton, DiamondPlusPressed);
             Wire(leftArrowButton, PreviousLevel);
             Wire(rightArrowButton, NextLevel);
             Wire(closeSettingsButton, CloseSettings);
@@ -183,8 +187,14 @@ namespace Watermelon.BusStop
 
         private void OnCurrencyChanged(Currency currency, int difference)
         {
-            if (currency != null && currency.CurrencyType == CurrencyType.Coins)
+            if (currency == null)
+                return;
+
+            if (currency.CurrencyType == CurrencyType.Coins ||
+                currency.CurrencyType == CurrencyType.Diamonds)
+            {
                 RefreshHUD();
+            }
         }
 
         private int ResolveInitialSelectedSlot()
@@ -246,19 +256,25 @@ namespace Watermelon.BusStop
         private void RefreshHUD()
         {
             if (coinText != null)
-            {
-                try
-                {
-                    coinText.text = CurrenciesController.Get(CurrencyType.Coins).ToString("N0");
-                }
-                catch
-                {
-                    coinText.text = "0";
-                }
-            }
+                coinText.text = GetCurrencyAmountSafe(CurrencyType.Coins).ToString("N0");
 
-            if (chefCurrencyText != null)
-                chefCurrencyText.text = "0";
+            if (diamondText != null)
+                diamondText.text = GetCurrencyAmountSafe(CurrencyType.Diamonds).ToString("N0");
+
+            if (starText != null)
+                starText.text = (levelSave != null ? levelSave.GetTotalStars() : 0).ToString("N0");
+        }
+
+        private static int GetCurrencyAmountSafe(CurrencyType currencyType)
+        {
+            try
+            {
+                return CurrenciesController.Get(currencyType);
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         private void RefreshCards()
@@ -455,11 +471,11 @@ namespace Watermelon.BusStop
                 statusText.text = "COINS ARE MANAGED FROM THE MAIN MENU SHOP";
         }
 
-        private void ChefPlusPressed()
+        private void DiamondPlusPressed()
         {
             PlayClick();
             if (statusText != null)
-                statusText.text = "CHEF BOOSTS WILL BE AVAILABLE SOON";
+                statusText.text = "DIAMONDS ARE MANAGED FROM THE MAIN MENU SHOP";
         }
 
         private void OpenSettings()
@@ -573,11 +589,12 @@ namespace Watermelon.BusStop
             Button back,
             Button settings,
             Button coinPlus,
-            Button chefPlus,
+            Button diamondPlus,
             Button leftArrow,
             Button rightArrow,
             TextMeshProUGUI coins,
-            TextMeshProUGUI chefCurrency,
+            TextMeshProUGUI diamonds,
+            TextMeshProUGUI stars,
             TextMeshProUGUI countryTitle,
             TextMeshProUGUI countrySubtitle,
             Image flag,
@@ -603,11 +620,12 @@ namespace Watermelon.BusStop
             backButton = back;
             settingsButton = settings;
             coinPlusButton = coinPlus;
-            chefPlusButton = chefPlus;
+            diamondPlusButton = diamondPlus;
             leftArrowButton = leftArrow;
             rightArrowButton = rightArrow;
             coinText = coins;
-            chefCurrencyText = chefCurrency;
+            diamondText = diamonds;
+            starText = stars;
             countryTitleText = countryTitle;
             countrySubtitleText = countrySubtitle;
             countryFlagImage = flag;
