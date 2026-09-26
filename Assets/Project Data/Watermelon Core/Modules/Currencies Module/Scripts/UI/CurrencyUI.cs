@@ -40,7 +40,20 @@ namespace Watermelon
             canvasGroup.alpha = 0.0f;
             layoutElement.preferredHeight = CurrencyUIHelper.PANEL_HEIGHT;
 
-            icon.sprite = currency.Icon;
+            if (currency.CurrencyType == CurrencyType.Diamonds && currency.Icon == null)
+            {
+                // Diamonds use a lightweight procedural UI mark so the shared currency
+                // system stays visually valid even without a dedicated diamond sprite.
+                icon.sprite = null;
+                icon.color = new Color(0.20f, 0.88f, 1f, 1f);
+                icon.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            }
+            else
+            {
+                icon.sprite = currency.Icon;
+                icon.color = Color.white;
+                icon.rectTransform.localRotation = Quaternion.identity;
+            }
 
             Redraw();
         }
