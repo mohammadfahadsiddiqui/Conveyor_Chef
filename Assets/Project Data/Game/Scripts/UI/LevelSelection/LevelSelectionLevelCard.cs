@@ -63,6 +63,7 @@ namespace Watermelon.BusStop
 
         private void Awake()
         {
+            EnsureVisualLayering();
             CaptureAuthoredGeometry();
         }
 
@@ -77,6 +78,7 @@ namespace Watermelon.BusStop
 
             // Capture here as well in case this component was enabled after Awake
             // or the scene was rebuilt by the editor baker immediately before play.
+            EnsureVisualLayering();
             CaptureAuthoredGeometry();
 
             if (selectButton != null)
@@ -111,6 +113,11 @@ namespace Watermelon.BusStop
 
             if (thumbnailImage != null && thumbnail != null)
                 thumbnailImage.sprite = thumbnail;
+
+            // Sprite swaps must never bring mission art in front of the card chrome.
+            // This keeps Varanasi/Delhi/Mumbai and future thumbnail sprites behind
+            // Card Frame without resizing or reparenting designer-authored UI.
+            EnsureVisualLayering();
 
             if (cardFrame != null)
             {
@@ -170,6 +177,26 @@ namespace Watermelon.BusStop
                 selectButton.interactable = true;
 
             RestoreAuthoredGeometry();
+        }
+
+        private void EnsureVisualLayering()
+        {
+            if (thumbnailImage == null || cardFrame == null)
+                return;
+
+            Transform thumbnailViewport = thumbnailImage.transform.parent;
+            if (thumbnailViewport == null || thumbnailViewport.parent != transform)
+                return;
+
+            if (thumbnailViewport.GetSiblingIndex() != 0)
+                thumbnailViewport.SetSiblingIndex(0);
+
+            int desiredFrameIndex = Mathf.Min(1, transform.childCount - 1);
+            if (cardFrame.transform.parent == transform &&
+                cardFrame.transform.GetSiblingIndex() != desiredFrameIndex)
+            {
+                cardFrame.transform.SetSiblingIndex(desiredFrameIndex);
+            }
         }
 
         private void CaptureAuthoredGeometry()
