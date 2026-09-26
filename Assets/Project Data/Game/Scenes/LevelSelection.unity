@@ -1025,7 +1025,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -3593,7 +3593,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 8, y: 0}
+  m_AnchoredPosition: {x: 17, y: 0}
   m_SizeDelta: {x: 92, y: 52}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &780737507
@@ -4681,8 +4681,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f6de449266e1a4ecfbe04941d68e83f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  homeButton: {fileID: 0}
-  backButton: {fileID: 1165725084}
+  homeButton: {fileID: 1165725084}
+  backButton: {fileID: 2092602384}
   settingsButton: {fileID: 575631315}
   coinPlusButton: {fileID: 930595740}
   diamondPlusButton: {fileID: 264354593}
@@ -4691,6 +4691,7 @@ MonoBehaviour:
   coinText: {fileID: 904699756}
   diamondText: {fileID: 759929771}
   starText: {fileID: 3100000021}
+  diamondCounterImage: {fileID: 1150012061}
   countryTitleText: {fileID: 0}
   countrySubtitleText: {fileID: 0}
   countryFlagImage: {fileID: 0}
@@ -5648,8 +5649,8 @@ RectTransform:
   - {fileID: 264354590}
   m_Father: {fileID: 410034757}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.4212962962962963, y: 0.946875}
-  m_AnchorMax: {x: 0.6111111111111112, y: 0.9875}
+  m_AnchorMin: {x: 0.4185185185185185, y: 0.9484375}
+  m_AnchorMax: {x: 0.6175925925925926, y: 0.9859375}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -5704,7 +5705,7 @@ GameObject:
   - component: {fileID: 1165725085}
   - component: {fileID: 1165725084}
   m_Layer: 0
-  m_Name: Back Button
+  m_Name: Home Button Frame
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5774,7 +5775,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: e802a79f5fd2cf045bac42f67a7be4ab, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 1958486f1e162e34080319c16420cf17, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -5807,8 +5808,8 @@ RectTransform:
   - {fileID: 1724351606}
   m_Father: {fileID: 410034757}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.011111111111111112, y: 0.9385416666666667}
-  m_AnchorMax: {x: 0.20555555555555555, y: 0.990625}
+  m_AnchorMin: {x: 0.0064814813, y: 0.9296875}
+  m_AnchorMax: {x: 0.13425925, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -8467,7 +8468,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1620812734
 RectTransform:
   m_ObjectHideFlags: 0
@@ -9684,12 +9685,12 @@ GameObject:
   - component: {fileID: 1724351608}
   - component: {fileID: 1724351607}
   m_Layer: 0
-  m_Name: Legacy Home Icon [Hidden]
+  m_Name: Home Icon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1724351606
 RectTransform:
   m_ObjectHideFlags: 0
@@ -10815,12 +10816,12 @@ GameObject:
   - component: {fileID: 2092602385}
   - component: {fileID: 2092602384}
   m_Layer: 0
-  m_Name: Legacy BackButton [Hidden]
+  m_Name: BackButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &2092602384
 MonoBehaviour:
   m_ObjectHideFlags: 0
