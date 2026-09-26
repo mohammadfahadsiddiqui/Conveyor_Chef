@@ -262,6 +262,8 @@ namespace Watermelon.BusStop
             if (diamondCounterImage == null)
                 return;
 
+            // Use the exact approved Main Menu diamond counter artwork. That artwork
+            // already contains the faceted blue gem and the green plus-button chrome.
             Sprite approvedDiamondBar = ProfessionalMainMenuEmbeddedAssets.GetSprite("diamond_bar");
             if (approvedDiamondBar != null)
             {
@@ -269,6 +271,18 @@ namespace Watermelon.BusStop
                 diamondCounterImage.color = Color.white;
                 diamondCounterImage.preserveAspect = false;
             }
+
+            // Older LevelSelection scenes had a separate placeholder diamond icon and
+            // a visible Plus image. Hide those visuals so only the approved artwork is
+            // rendered, while keeping the Plus Button component clickable.
+            Transform legacyIcon = diamondCounterImage.transform.Find("Diamond Icon");
+            if (legacyIcon != null)
+                legacyIcon.gameObject.SetActive(false);
+
+            Transform plusTransform = diamondCounterImage.transform.Find("Diamond Plus");
+            Image plusImage = plusTransform != null ? plusTransform.GetComponent<Image>() : null;
+            if (plusImage != null)
+                plusImage.color = new Color(1f, 1f, 1f, 0f);
         }
 
         private void RefreshHUD()
