@@ -496,9 +496,16 @@ namespace Watermelon.EditorTools
             // Compact top navigation/resource strip: Back | Coins | Diamonds | Stars | Settings.
             // These values match the real game resource model and leave enough room for all
             // three counters without overlapping on the 1080x1920 reference canvas.
-            Sprite finalTopBackSprite = existingBackButton != null ? existingBackButton : numberBadge;
-            Button backButton = B("Back Button", topHud, finalTopBackSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(210f, 100f), true);
-            SetReferenceRect(backButton.GetComponent<RectTransform>(), 12f, 18f, 210f, 100f);
+            Image homeDisc = I("Home Button Frame", topHud, numberBadge, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(138f, 135f), true);
+            SetReferenceRect(homeDisc.rectTransform, 7f, 0f, 138f, 135f);
+            homeDisc.raycastTarget = true;
+            Button homeButton = homeDisc.gameObject.AddComponent<Button>();
+            homeButton.targetGraphic = homeDisc;
+            if (homeIcon != null)
+            {
+                Image hi = I("Home Icon", homeDisc.transform, homeIcon, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(60f, 60f), true);
+                hi.raycastTarget = false;
+            }
 
             Image coinBar = I("Coin Counter", topHud, counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(205f, 78f), false);
             SetReferenceRect(coinBar.rectTransform, 240f, 24f, 205f, 78f);
@@ -669,6 +676,14 @@ namespace Watermelon.EditorTools
             progressValue.fontStyle = FontStyles.Bold;
             progressValue.color = new Color(0.06f, 0.18f, 0.42f, 1f);
 
+            // BACK - keep the previously approved Level Selection back button exactly as authored.
+            Sprite finalBackSprite = existingBackButton != null ? existingBackButton : progressOuter;
+            Image backRootImage = I("BackButton", root, finalBackSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(316f, 124f), true);
+            SetReferenceRect(backRootImage.rectTransform, 20f, 1697f, 316f, 124f);
+            backRootImage.raycastTarget = true;
+            Button backButton = backRootImage.gameObject.AddComponent<Button>();
+            backButton.targetGraphic = backRootImage;
+
             TextMeshProUGUI statusText = T("Status Text", root, string.Empty, 18f, new Vector2(0f, -800f), new Vector2(600f, 36f));
             statusText.color = new Color(1f, 1f, 1f, 0.0f);
 
@@ -682,7 +697,7 @@ namespace Watermelon.EditorTools
             LevelSelectionController controller = controllerObject.AddComponent<LevelSelectionController>();
 
             controller.EditorConfigure(
-                null,
+                homeButton,
                 backButton,
                 settingsButton,
                 coinPlus,
@@ -692,6 +707,7 @@ namespace Watermelon.EditorTools
                 coinText,
                 diamondText,
                 starText,
+                diamondBar,
                 countryTitle,
                 subtitleText,
                 flagImage,
