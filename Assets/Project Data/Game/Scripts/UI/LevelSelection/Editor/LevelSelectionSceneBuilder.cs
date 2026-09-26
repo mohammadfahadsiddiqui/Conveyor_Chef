@@ -491,33 +491,37 @@ namespace Watermelon.EditorTools
             RectTransform topHud = R("Top HUD", root);
             Stretch(topHud);
 
-            Image homeDisc = I("Home Button Frame", topHud, numberBadge, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(138f, 135f), true);
-            SetReferenceRect(homeDisc.rectTransform, 7f, 0f, 138f, 135f);
-            homeDisc.raycastTarget = true;
-            Button homeButton = homeDisc.gameObject.AddComponent<Button>();
-            homeButton.targetGraphic = homeDisc;
-            if (homeIcon != null)
-            {
-                Image hi = I("Home Icon", homeDisc.transform, homeIcon, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(60f, 60f), true);
-                hi.raycastTarget = false;
-            }
+            // Compact top navigation/resource strip: Back | Coins | Diamonds | Stars | Settings.
+            // These values match the real game resource model and leave enough room for all
+            // three counters without overlapping on the 1080x1920 reference canvas.
+            Sprite finalTopBackSprite = existingBackButton != null ? existingBackButton : numberBadge;
+            Button backButton = B("Back Button", topHud, finalTopBackSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(210f, 100f), true);
+            SetReferenceRect(backButton.GetComponent<RectTransform>(), 12f, 18f, 210f, 100f);
 
-            Image coinBar = I("Coin Counter", topHud, counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(255f, 81f), false);
-            SetReferenceRect(coinBar.rectTransform, 289f, 22f, 255f, 81f);
-            Image coinIcon = I("Coin Icon", coinBar.transform, coinSprite, new Vector2(0f, 0.5f), new Vector2(42f, 0f), new Vector2(66f, 66f), true);
+            Image coinBar = I("Coin Counter", topHud, counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(205f, 78f), false);
+            SetReferenceRect(coinBar.rectTransform, 240f, 24f, 205f, 78f);
+            Image coinIcon = I("Coin Icon", coinBar.transform, coinSprite, new Vector2(0f, 0.5f), new Vector2(34f, 0f), new Vector2(50f, 50f), true);
             coinIcon.raycastTarget = false;
-            TextMeshProUGUI coinText = T("Coin Value", coinBar.transform, "1,250", 31f, new Vector2(15f, 0f), new Vector2(120f, 56f));
-            Button coinPlus = B("Coin Plus", coinBar.transform, plusSprite, new Vector2(1f, 0.5f), new Vector2(-38f, 0f), new Vector2(62f, 62f), true);
+            TextMeshProUGUI coinText = T("Coin Value", coinBar.transform, "1,250", 27f, new Vector2(8f, 0f), new Vector2(92f, 52f));
+            Button coinPlus = B("Coin Plus", coinBar.transform, plusSprite, new Vector2(1f, 0.5f), new Vector2(-29f, 0f), new Vector2(48f, 48f), true);
 
-            Image chefBar = I("Chef Counter", topHud, counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(244f, 81f), false);
-            SetReferenceRect(chefBar.rectTransform, 581f, 22f, 244f, 81f);
-            Image chefMini = I("Chef Icon", chefBar.transform, chefSprite, new Vector2(0f, 0.5f), new Vector2(43f, 0f), new Vector2(62f, 68f), true);
-            chefMini.raycastTarget = false;
-            TextMeshProUGUI chefText = T("Chef Value", chefBar.transform, "0", 31f, new Vector2(12f, 0f), new Vector2(100f, 56f));
-            Button chefPlus = B("Chef Plus", chefBar.transform, plusSprite, new Vector2(1f, 0.5f), new Vector2(-36f, 0f), new Vector2(60f, 60f), true);
+            Image diamondBar = I("Diamond Counter", topHud, counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(205f, 78f), false);
+            SetReferenceRect(diamondBar.rectTransform, 455f, 24f, 205f, 78f);
+            Image diamondIcon = I("Diamond Icon", diamondBar.transform, null, new Vector2(0f, 0.5f), new Vector2(34f, 0f), new Vector2(40f, 40f), false);
+            diamondIcon.color = new Color(0.20f, 0.88f, 1f, 1f);
+            diamondIcon.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 45f);
+            diamondIcon.raycastTarget = false;
+            TextMeshProUGUI diamondText = T("Diamond Value", diamondBar.transform, "0", 27f, new Vector2(8f, 0f), new Vector2(92f, 52f));
+            Button diamondPlus = B("Diamond Plus", diamondBar.transform, plusSprite, new Vector2(1f, 0.5f), new Vector2(-29f, 0f), new Vector2(48f, 48f), true);
 
-            Button settingsButton = B("SettingsButton", topHud, settingsSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(133f, 135f), true);
-            SetReferenceRect(settingsButton.GetComponent<RectTransform>(), 922f, 0f, 133f, 135f);
+            Image starBar = I("Star Counter", topHud, counterFrame, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(205f, 78f), false);
+            SetReferenceRect(starBar.rectTransform, 670f, 24f, 205f, 78f);
+            Image topStarIcon = I("Star Icon", starBar.transform, starSprite, new Vector2(0f, 0.5f), new Vector2(36f, 0f), new Vector2(52f, 52f), true);
+            topStarIcon.raycastTarget = false;
+            TextMeshProUGUI starText = T("Star Value", starBar.transform, "0", 27f, new Vector2(24f, 0f), new Vector2(105f, 52f));
+
+            Button settingsButton = B("SettingsButton", topHud, settingsSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(105f, 105f), true);
+            SetReferenceRect(settingsButton.GetComponent<RectTransform>(), 958f, 15f, 105f, 105f);
 
             // COUNTRY HEADER
             RectTransform countryHeader = R("Country Header", root);
@@ -664,14 +668,6 @@ namespace Watermelon.EditorTools
             progressValue.fontStyle = FontStyles.Bold;
             progressValue.color = new Color(0.06f, 0.18f, 0.42f, 1f);
 
-            // BACK - reuse the already-approved CountryMap back-button art when available.
-            Sprite finalBackSprite = existingBackButton != null ? existingBackButton : progressOuter;
-            Image backRootImage = I("BackButton", root, finalBackSprite, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(316f, 124f), true);
-            SetReferenceRect(backRootImage.rectTransform, 20f, 1697f, 316f, 124f);
-            backRootImage.raycastTarget = true;
-            Button backButton = backRootImage.gameObject.AddComponent<Button>();
-            backButton.targetGraphic = backRootImage;
-
             TextMeshProUGUI statusText = T("Status Text", root, string.Empty, 18f, new Vector2(0f, -800f), new Vector2(600f, 36f));
             statusText.color = new Color(1f, 1f, 1f, 0.0f);
 
@@ -685,15 +681,16 @@ namespace Watermelon.EditorTools
             LevelSelectionController controller = controllerObject.AddComponent<LevelSelectionController>();
 
             controller.EditorConfigure(
-                homeButton,
+                null,
                 backButton,
                 settingsButton,
                 coinPlus,
-                chefPlus,
+                diamondPlus,
                 leftArrow,
                 rightArrow,
                 coinText,
-                chefText,
+                diamondText,
+                starText,
                 countryTitle,
                 subtitleText,
                 flagImage,
