@@ -1,0 +1,452 @@
+[
+  {
+    "file": "TopHUD/heart_icon.png",
+    "source": "glossy_red_heart_icon.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "TopHUD/life_counter_panel.png",
+    "source": "glossy_teal_and_gold_game_hud_banner.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "TopHUD/green_plus_button.png",
+    "source": "glossy_green_plus_button.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "TopHUD/level_title_panel.png",
+    "source": "glossy_blue_and_gold_game_ui_banner.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "TopHUD/chef_hat_icon.png",
+    "source": "glossy_cartoon_chef_hat_icon.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "TopHUD/coin_counter_panel.png",
+    "source": "glossy_golden_coin_counter_bar.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "TopHUD/coin_icon.png",
+    "source": "glossy_gold_chef_hat_coin.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "TopHUD/diamond_counter_panel.png",
+    "source": "glossy_teal_and_gold_game_ui_banner.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "TopHUD/diamond_icon.png",
+    "source": "glossy_blue_diamond_gem.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "TopHUD/pause_button.png",
+    "source": "glossy_golden_pause_button.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Orders/orders_panel.png",
+    "source": "glossy_golden_three_slot_game_panel.png",
+    "size": [
+      683,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Orders/order_item_slot.png",
+    "source": "glossy_golden_game_ui_panel.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Orders/order_completed_overlay.png",
+    "source": "glossy_green_checkmark_button.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Board/serving_slots_panel.png",
+    "source": "glossy_turquoise_game_tray_panel.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Board/serving_slot.png",
+    "source": "glossy_white_plate_tile_icon.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Toolbar/bottom_toolbar_panel.png",
+    "source": "glossy_golden_wood_toolbar_with_four_slots.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Toolbar/menu_button.png",
+    "source": "glossy_blue_grid_button.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Toolbar/undo_button.png",
+    "source": "glossy_orange_undo_arrow_button.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Toolbar/hint_button.png",
+    "source": "glossy_green_lightbulb_hint_button.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Toolbar/shuffle_button.png",
+    "source": "glossy_pink_shuffle_button.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Decor/kitchen_chalkboard_menu.png",
+    "source": "conveyor_chef_game_ui_batch_3/21_kitchen_chalkboard_menu.png",
+    "size": [
+      335,
+      473
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Decor/stocked_kitchen_shelf.png",
+    "source": "conveyor_chef_game_ui_batch_3/22_stocked_kitchen_shelf.png",
+    "size": [
+      411,
+      480
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Decor/dome_kitchen_oven.png",
+    "source": "conveyor_chef_game_ui_batch_3/23_dome_kitchen_oven.png",
+    "size": [
+      288,
+      416
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Decor/condiment_tray.png",
+    "source": "conveyor_chef_game_ui_batch_3/24_condiment_tray.png",
+    "size": [
+      305,
+      328
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Decor/metal_stovetop_station.png",
+    "source": "conveyor_chef_game_ui_batch_3/25_metal_stovetop_station.png",
+    "size": [
+      552,
+      330
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Decor/potted_kitchen_plant.png",
+    "source": "conveyor_chef_game_ui_batch_3/26_potted_kitchen_plant.png",
+    "size": [
+      288,
+      343
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Decor/hanging_pendant_lamp.png",
+    "source": "conveyor_chef_game_ui_batch_3/27_hanging_pendant_lamp.png",
+    "size": [
+      277,
+      337
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Decor/wooden_cutting_board.png",
+    "source": "conveyor_chef_game_ui_batch_3/28_wooden_cutting_board.png",
+    "size": [
+      276,
+      407
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Decor/chef_apron.png",
+    "source": "conveyor_chef_game_ui_batch_3/29_chef_apron.png",
+    "size": [
+      318,
+      434
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Decor/industrial_board_frame.png",
+    "source": "conveyor_chef_game_ui_batch_3/30_industrial_board_frame.png",
+    "size": [
+      325,
+      303
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Kitchen/kitchen_gameplay_background.png",
+    "source": "cozy_cartoon_kitchen_game_background.png",
+    "size": [
+      941,
+      1672
+    ],
+    "alpha": false
+  },
+  {
+    "file": "Kitchen/kitchen_counter_strip.png",
+    "source": "cartoon_honey_oak_kitchen_counter.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Kitchen/conveyor_belt_background.png",
+    "source": "stylised_golden_conveyor_belt_asset.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Kitchen/conveyor_rail_frame.png",
+    "source": "glossy_golden_conveyor_frame.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Kitchen/purple_serving_tray.png",
+    "source": "glossy_purple_serving_tray.png",
+    "size": [
+      1024,
+      683
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Board/game_board_background.png",
+    "source": "deep_blue_ceramic_tile_grid.png",
+    "size": [
+      768,
+      1024
+    ],
+    "alpha": false
+  },
+  {
+    "file": "Board/game_tile_slot.png",
+    "source": "glossy_turquoise_recessed_game_tile.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Toolbar/powerup_count_badge.png",
+    "source": "glossy_red_notification_badge.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Popups/pause_popup_panel.png",
+    "source": "glossy_blue_and_gold_game_dialog_frame.png",
+    "size": [
+      768,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Popups/level_complete_popup.png",
+    "source": "glossy_blue_and_gold_achievement_frame.png",
+    "size": [
+      768,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Popups/level_failed_popup.png",
+    "source": "level_failed_chef_crest_panel.png",
+    "size": [
+      819,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Popups/restart_button.png",
+    "source": "glossy_golden_restart_game_button.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Popups/continue_button.png",
+    "source": "glossy_green_continue_button.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "Toolbar/home_button.png",
+    "source": "glossy_golden_home_button.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "TopHUD/settings_button.png",
+    "source": "glossy_golden_gear_settings_button.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "States/button_pressed_overlay.png",
+    "source": "glossy_pressed_button_overlay.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "States/button_disabled_overlay.png",
+    "source": "frosted_grey_disabled_ui_panel.png",
+    "size": [
+      1536,
+      512
+    ],
+    "alpha": true
+  },
+  {
+    "file": "States/panel_glow.png",
+    "source": "glowing_gold_and_blue_magic_frame.png",
+    "size": [
+      1024,
+      768
+    ],
+    "alpha": true
+  },
+  {
+    "file": "States/notification_badge.png",
+    "source": "glossy_red_cream_circular_badge.png",
+    "size": [
+      1024,
+      1024
+    ],
+    "alpha": true
+  },
+  {
+    "file": "States/objective_highlight.png",
+    "source": "glowing_green_gold_ui_frame.png",
+    "size": [
+      1024,
+      512
+    ],
+    "alpha": true
+  }
+]
