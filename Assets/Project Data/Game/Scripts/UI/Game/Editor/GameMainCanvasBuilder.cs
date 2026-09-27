@@ -73,7 +73,7 @@ namespace Watermelon.EditorTools
         // Bump when the generated layout changes: an older canvas is rebuilt once
         // automatically. Auto-build runs once per version and project copy, so deleting
         // the canvas later is respected.
-        private const int LayoutVersion = 6;
+        private const int LayoutVersion = 7;
         private static readonly string AutoBuiltKey =
             "ConveyorChef.GameMainCanvas.AutoBuilt.v" + LayoutVersion + "." + Application.dataPath.GetHashCode();
 
@@ -1101,18 +1101,19 @@ namespace Watermelon.EditorTools
 
             DimBackground(Find(page, "Background Image"), new Color(0.04f, 0.07f, 0.12f, 0.75f));
 
-            // Frame 900x1200 centred at (0, 30); ribbon at 25% and cream area 33-89% of its height.
+            // level_completed_banner.png: 900x1200 centred at (0, 30); the "LEVEL COMPLETED"
+            // ribbon (part of the art) is at 31% and the cream area 38-87% of its height.
             const float frameY = 30f, frameH = 1200f;
             float top = frameY + frameH * 0.5f;
 
             Transform holder = Find(page, "Level Complered Holder");
             if (holder != null)
             {
-                float ribbonY = top - frameH * 0.25f;
-                Place(holder, Center, Center, new Vector2(0f, ribbonY), new Vector2(620f, 96f));
-                AddPopupFrame(holder, "Popups/level_complete_popup.png", new Vector2(0f, frameY - ribbonY), new Vector2(900f, frameH));
+                float ribbonY = top - frameH * 0.307f;
+                Place(holder, Center, Center, new Vector2(0f, ribbonY), new Vector2(700f, 110f));
+                AddPopupFrame(holder, "Popups/level_completed_banner.png", new Vector2(0f, frameY - ribbonY), new Vector2(900f, frameH));
 
-                // Title art in the same lettering style as the LEVEL FAILED popup.
+                // The title is part of the banner art; the holder stays for its pop-in animation.
                 SetActive(Find(holder, "LevelText"), false);
                 TextMeshProUGUI titleText = FindComponent<TextMeshProUGUI>(holder, "Completed Text");
                 if (titleText != null)
@@ -1121,13 +1122,9 @@ namespace Watermelon.EditorTools
                 Transform previousTitle = holder.Find(TitleArtName);
                 if (previousTitle != null)
                     Object.DestroyImmediate(previousTitle.gameObject);
-
-                RectTransform titleArt = CreateImage(TitleArtName, holder, LoadSprite("Popups/level_completed_title.png"), Color.white, true);
-                Place(titleArt, Center, Center, new Vector2(0f, 6f), new Vector2(660f, 90f));
-                titleArt.SetAsLastSibling();
             }
 
-            Place(Find(page, "Reward Label"), Center, Center, new Vector2(0f, top - frameH * 0.45f), new Vector2(360f, 130f));
+            Place(Find(page, "Reward Label"), Center, Center, new Vector2(0f, top - frameH * 0.47f), new Vector2(360f, 130f));
             StyleText(Find(page, "Reward Amount Text"), BrownText, 40f, 90f);
 
             // The page's own continue button (wired by UIComplete) becomes NEXT. It had
@@ -1136,13 +1133,21 @@ namespace Watermelon.EditorTools
             if (next != null)
             {
                 next.gameObject.SetActive(true);
-                Place(next, Center, Center, new Vector2(0f, top - frameH * 0.66f), new Vector2(500f, 157f));
+                Place(next, Center, Center, new Vector2(0f, top - frameH * 0.62f), new Vector2(500f, 157f));
                 SetSprite(next, LoadSprite("Popups/continue_button.png"), true);
                 SetActive(Find(next, "No Thanks Text"), false);
             }
 
-            // Original width keeps the video icon clear of the "GET X3" label.
-            Place(Find(page, "Multiply Reward Button"), Center, Center, new Vector2(0f, top - frameH * 0.81f), new Vector2(560f, 180f));
+            // get_x3_button.png has the video icon and label drawn in, so the button's own
+            // text, icon and scene-added overlays are switched off.
+            Transform multiply = Find(page, "Multiply Reward Button");
+            if (multiply != null)
+            {
+                Place(multiply, Center, Center, new Vector2(0f, top - frameH * 0.77f), new Vector2(510f, 170f));
+                SetSprite(multiply, LoadSprite("Popups/get_x3_button.png"), true);
+                foreach (Transform child in multiply)
+                    child.gameObject.SetActive(false);
+            }
 
             // A NEXT button added in the scene had no click action; the one above replaces it.
             Transform brokenNext = page.Find("next");
