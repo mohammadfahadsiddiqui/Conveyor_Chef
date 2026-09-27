@@ -73,7 +73,7 @@ namespace Watermelon.EditorTools
         // Bump when the generated layout changes: an older canvas is rebuilt once
         // automatically. Auto-build runs once per version and project copy, so deleting
         // the canvas later is respected.
-        private const int LayoutVersion = 5;
+        private const int LayoutVersion = 6;
         private static readonly string AutoBuiltKey =
             "ConveyorChef.GameMainCanvas.AutoBuilt.v" + LayoutVersion + "." + Application.dataPath.GetHashCode();
 
@@ -1082,6 +1082,7 @@ namespace Watermelon.EditorTools
         #region Result pages
 
         private const string PopupFrameName = "Popup Frame";
+        private const string TitleArtName = "Title Art";
 
         // UI Complete / UI Game Over live in UI Main Canvas. Their full-screen backgrounds
         // had been given the popup art and stretched; here the background becomes a dim
@@ -1111,29 +1112,37 @@ namespace Watermelon.EditorTools
                 Place(holder, Center, Center, new Vector2(0f, ribbonY), new Vector2(620f, 96f));
                 AddPopupFrame(holder, "Popups/level_complete_popup.png", new Vector2(0f, frameY - ribbonY), new Vector2(900f, frameH));
 
+                // Title art in the same lettering style as the LEVEL FAILED popup.
                 SetActive(Find(holder, "LevelText"), false);
-                Transform title = Find(holder, "Completed Text");
-                if (title != null)
-                {
-                    Fill(title, Vector2.zero, Vector2.zero);
-                    StyleText(title, Color.white, 30f, 62f);
-                    title.GetComponent<TextMeshProUGUI>().text = "LEVEL COMPLETED";
-                }
+                TextMeshProUGUI titleText = FindComponent<TextMeshProUGUI>(holder, "Completed Text");
+                if (titleText != null)
+                    titleText.enabled = false;
+
+                Transform previousTitle = holder.Find(TitleArtName);
+                if (previousTitle != null)
+                    Object.DestroyImmediate(previousTitle.gameObject);
+
+                RectTransform titleArt = CreateImage(TitleArtName, holder, LoadSprite("Popups/level_completed_title.png"), Color.white, true);
+                Place(titleArt, Center, Center, new Vector2(0f, 6f), new Vector2(660f, 90f));
+                titleArt.SetAsLastSibling();
             }
 
             Place(Find(page, "Reward Label"), Center, Center, new Vector2(0f, top - frameH * 0.45f), new Vector2(360f, 130f));
             StyleText(Find(page, "Reward Amount Text"), BrownText, 40f, 90f);
 
-            // The page's own continue button (wired by UIComplete) becomes NEXT.
+            // The page's own continue button (wired by UIComplete) becomes NEXT. It had
+            // been switched off in the scene, so UIComplete's fade-in showed nothing.
             Transform next = Find(page, "No Thanks Button");
             if (next != null)
             {
+                next.gameObject.SetActive(true);
                 Place(next, Center, Center, new Vector2(0f, top - frameH * 0.66f), new Vector2(500f, 157f));
                 SetSprite(next, LoadSprite("Popups/continue_button.png"), true);
                 SetActive(Find(next, "No Thanks Text"), false);
             }
 
-            Place(Find(page, "Multiply Reward Button"), Center, Center, new Vector2(0f, top - frameH * 0.81f), new Vector2(440f, 150f));
+            // Original width keeps the video icon clear of the "GET X3" label.
+            Place(Find(page, "Multiply Reward Button"), Center, Center, new Vector2(0f, top - frameH * 0.81f), new Vector2(560f, 180f));
 
             // A NEXT button added in the scene had no click action; the one above replaces it.
             Transform brokenNext = page.Find("next");
