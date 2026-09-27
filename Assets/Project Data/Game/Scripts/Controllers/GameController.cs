@@ -151,7 +151,6 @@ namespace Watermelon
 
             SkinStoreController.Init();
             levelController.Initialise();
-            UIController.ShowPage<UIMainMenu>();
 
             // IMPORTANT: Re-get the save object after all initializations
             levelSave = SaveController.GetSaveObject<LevelSave>("level");
@@ -354,6 +353,13 @@ namespace Watermelon
 
             // On Level is loaded
             isGameActive = true;
+
+            // The redesigned gameplay HUD lives entirely on UIGame. Keep the
+            // legacy UIMainMenu page available for its old flow/popups, but do
+            // not render its old gameplay HUD on top of the new page.
+            UIMainMenu legacyMainMenu = UIController.GetPage<UIMainMenu>();
+            if (legacyMainMenu != null && legacyMainMenu.IsPageDisplayed)
+                UIController.HidePage<UIMainMenu>();
 
             UIController.ShowPage<UIGame>();
 
