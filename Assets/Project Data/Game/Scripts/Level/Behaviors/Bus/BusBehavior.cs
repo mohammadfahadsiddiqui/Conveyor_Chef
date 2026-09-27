@@ -311,12 +311,17 @@ namespace Watermelon
             // Notify UIGame to update order progress UI
             UIGame gameUI = UIController.GetPage<UIGame>();
             UIMainMenu mainMenu = UIController.GetPage<UIMainMenu>();
+            if (gameUI != null)
+            {
+                gameUI.OnBusCompleted(Type);
+            }
+
             if (mainMenu != null)
             {
-                //gameUI.OnBusCompleted(Type);
                 mainMenu.OnBusCompleted(Type);
-                Debug.Log($"[BusBehavior] Bus {Type} completed with {passengers.Count} passengers!");
             }
+
+            Debug.Log($"[BusBehavior] Bus {Type} completed with {passengers.Count} passengers!");
             
             // Notify LevelController's order tracker
             if (LevelController.OrderTracker != null)

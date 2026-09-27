@@ -165,9 +165,9 @@ namespace Watermelon
         [SerializeField] TextMeshProUGUI levelText;
         private UIScaleAnimation levelTextScaleAnimation;
 
-        // [Space(5f)]
-        // [Header("Order Tracking")]
-        // [SerializeField] UIOrderPanel orderPanel;
+        [Space(5f)]
+        [Header("Order Tracking")]
+        [SerializeField] UIOrderPanel orderPanel;
 
         [Space(5f)]
         [SerializeField] GameObject devOverlay;
@@ -215,25 +215,21 @@ namespace Watermelon
         /// </summary>
         public void InitializeOrders(LevelElement.Type[] busSpawnQueue)
         {
-            // if (orderPanel != null)
-            // {
-            //     orderPanel.Initialize(busSpawnQueue);
-            // }
-            // else
-            // {
-            //     Debug.LogWarning("[UIGame] Order panel is not assigned!");
-            // }
+            if (orderPanel != null && busSpawnQueue != null && busSpawnQueue.Length > 0)
+            {
+                orderPanel.Initialize(busSpawnQueue);
+            }
         }
 
-        // <summary>
-        // Called when a bus completes and exits
-        // </summary>
+        /// <summary>
+        /// Called when a bus completes and exits.
+        /// </summary>
         public void OnBusCompleted(LevelElement.Type busType)
         {
-            // if (orderPanel != null)
-            // {
-            //     orderPanel.OnBusCompleted(busType);
-            // }
+            if (orderPanel != null)
+            {
+                orderPanel.OnBusCompleted(busType);
+            }
         }
 
         #endregion
