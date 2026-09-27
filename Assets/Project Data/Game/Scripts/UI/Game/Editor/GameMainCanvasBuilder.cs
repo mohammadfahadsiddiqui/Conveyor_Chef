@@ -73,7 +73,7 @@ namespace Watermelon.EditorTools
         // Bump when the generated layout changes: an older canvas is rebuilt once
         // automatically. Auto-build runs once per version and project copy, so deleting
         // the canvas later is respected.
-        private const int LayoutVersion = 7;
+        private const int LayoutVersion = 8;
         private static readonly string AutoBuiltKey =
             "ConveyorChef.GameMainCanvas.AutoBuilt.v" + LayoutVersion + "." + Application.dataPath.GetHashCode();
 
@@ -1154,6 +1154,15 @@ namespace Watermelon.EditorTools
             Button brokenButton = brokenNext != null ? brokenNext.GetComponent<Button>() : null;
             if (brokenButton != null && brokenButton.onClick.GetPersistentEventCount() == 0)
                 brokenNext.gameObject.SetActive(false);
+
+            // Home on the banner's bottom edge (blue band at 91%). The prefab's "Go Home"
+            // sits before the frame in the hierarchy and would be hidden behind it, so a
+            // new button is added last and wired to the same UIComplete.HomeButton.
+            UIComplete complete = page.GetComponent<UIComplete>();
+            if (complete != null)
+                AddHomeButton(page, complete.HomeButton, new Vector2(0f, top - frameH * 0.906f));
+
+            RaisePopupSorting(page);
         }
 
         private static void RestyleLevelFailed(Transform page)
@@ -1191,13 +1200,60 @@ namespace Watermelon.EditorTools
                     child.gameObject.SetActive(false);
             }
 
+            // Home on the frame's bottom edge (blue band at 90%). It is already wired to
+            // GameController.HomeButton; its child images (one drew a dark box under
+            // RESTART) and label are switched off so only the home art shows.
             Transform home = page.Find("home (2)");
             if (home != null)
             {
-                Place(home, Center, Center, new Vector2(0f, top - frameH * 0.83f), new Vector2(120f, 120f));
-                foreach (TMP_Text label in home.GetComponentsInChildren<TMP_Text>(true))
-                    label.gameObject.SetActive(false);
+                home.gameObject.SetActive(true);
+                Place(home, Center, Center, new Vector2(0f, top - frameH * 0.899f), new Vector2(116f, 116f));
+                SetSprite(home, LoadSprite("Toolbar/home_button.png"), true);
+                Image homeImage = home.GetComponent<Image>();
+                if (homeImage != null)
+                {
+                    homeImage.enabled = true;
+                    homeImage.raycastTarget = true;
+                }
+                foreach (Transform child in home)
+                    child.gameObject.SetActive(false);
             }
+
+            RaisePopupSorting(page);
+        }
+
+        private const string HomeButtonName = "Home Button (Popup)";
+        private const int PopupSortingOrder = 20;
+
+        private static void AddHomeButton(Transform page, UnityEngine.Events.UnityAction onClick, Vector2 position)
+        {
+            Transform previous = page.Find(HomeButtonName);
+            if (previous != null)
+                Object.DestroyImmediate(previous.gameObject);
+
+            RectTransform home = CreateImage(HomeButtonName, page, LoadSprite("Toolbar/home_button.png"), Color.white, true);
+            Place(home, Center, Center, position, new Vector2(116f, 116f));
+            home.SetAsLastSibling();
+
+            Image image = home.GetComponent<Image>();
+            image.raycastTarget = true;
+
+            Button button = home.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            UnityEditor.Events.UnityEventTools.AddPersistentListener(button.onClick, onClick);
+        }
+
+        // The result pages overrode their sorting to 5, below UI Main Canvas (10), so
+        // anything drawn at 10 could sit over them and take their taps. 20 keeps them
+        // above every page and the HUD, and below the fade overlay (999).
+        private static void RaisePopupSorting(Transform page)
+        {
+            Canvas canvas = page.GetComponent<Canvas>();
+            if (canvas == null)
+                return;
+
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = PopupSortingOrder;
         }
 
         private static void DimBackground(Transform background, Color color)
