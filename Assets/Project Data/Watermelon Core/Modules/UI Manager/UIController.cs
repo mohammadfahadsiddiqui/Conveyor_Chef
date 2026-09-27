@@ -46,6 +46,11 @@ namespace Watermelon
 
             CanvasScaler.matchWidthOrHeight = isTablet ? 1 : 0;
 
+            // A separate root Game UI canvas replaces the UIGame pages inside this canvas.
+            GameMainCanvas gameMainCanvas = FindFirstObjectByType<GameMainCanvas>();
+            if (gameMainCanvas != null && gameMainCanvas.GamePage == null)
+                gameMainCanvas = null;
+
             pages = new List<UIPage>();
             pagesLink = new Dictionary<Type, UIPage>();
             for (int i = 0; i < transform.childCount; i++)
@@ -53,12 +58,20 @@ namespace Watermelon
                 UIPage uiPage = transform.GetChild(i).GetComponent<UIPage>();
                 if(uiPage != null)
                 {
-                    uiPage.CacheComponents();
+                    if (gameMainCanvas != null && uiPage is UIGame)
+                    {
+                        uiPage.gameObject.SetActive(false);
+                        continue;
+                    }
 
-                    pagesLink.Add(uiPage.GetType(), uiPage);
-
-                    pages.Add(uiPage);
+                    RegisterPage(uiPage);
                 }
+            }
+
+            if (gameMainCanvas != null)
+            {
+                gameMainCanvas.AttachTo(mainCanvas, isTablet);
+                RegisterPage(gameMainCanvas.GamePage);
             }
 
             // Cache game page
@@ -66,6 +79,15 @@ namespace Watermelon
 
             // Initialise global overlay
             Overlay.Initialise(this);
+        }
+
+        private static void RegisterPage(UIPage uiPage)
+        {
+            uiPage.CacheComponents();
+
+            pagesLink.Add(uiPage.GetType(), uiPage);
+
+            pages.Add(uiPage);
         }
 
         public void InitialisePages()
@@ -197,11 +219,11 @@ namespace Watermelon
 
 // Changelog
 // v 1.2.1
-// • Added Editor script that automatically configure CanvasScaler
+// ï¿½ Added Editor script that automatically configure CanvasScaler
 // v 1.2
-// • Added global overlay
+// ï¿½ Added global overlay
 // v 1.1
-// • Added popup callbacks and methods to handle when a custom window is opened
-// • RectTransform can be added to NotchSaveArea using NotchSaveArea.RegisterRectTransform method
+// ï¿½ Added popup callbacks and methods to handle when a custom window is opened
+// ï¿½ RectTransform can be added to NotchSaveArea using NotchSaveArea.RegisterRectTransform method
 // v 1.0
-// • Basic logic
+// ï¿½ Basic logic
