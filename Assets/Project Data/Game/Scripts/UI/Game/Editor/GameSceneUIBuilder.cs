@@ -20,10 +20,13 @@ namespace Watermelon.EditorTools
         private const string ArtFolder = "Assets/Project Data/Game/Images/GameUI";
         private const string AssetPackFileName = "ConveyorChef_GameUI_ArtPack.zip";
 
-        private const string OldPageName = "OLD UI Game [OFF]";
-        private const string NewPageName = "NEW UI Game [ACTIVE]";
+        private const string OldContainerName = "OLD GAME SCENE [OFF]";
+        private const string OldPageName = "UI Game (Original - OFF)";
+        private const string NewPageName = "NEW GAME SCENE [ACTIVE]";
+        private const string PreviousOldPageName = "OLD UI Game [OFF]";
+        private const string PreviousNewPageName = "NEW UI Game [ACTIVE]";
         private const string DesignRootName = "NEW GAME UI DESIGN";
-        private const int LayoutVersion = 4;
+        private const int LayoutVersion = 5;
 
         private const string LivesIndicatorPrefab =
             "Assets/Project Data/Watermelon Core/Extra Components/Lives System/Prefabs/Lives Indicator.prefab";
@@ -128,7 +131,7 @@ namespace Watermelon.EditorTools
                 return;
 
             if (canvas.transform.Find(NewPageName) != null &&
-                canvas.transform.Find(OldPageName) != null)
+                canvas.transform.Find(OldContainerName) != null)
                 return;
 
             EnsureFolders();
@@ -184,11 +187,11 @@ namespace Watermelon.EditorTools
                 return;
             }
 
-            EditorUtility.DisplayDialog(
-                "Game UI Art Ready",
-                "All Game UI sprites are imported.\n\nNow run:\n" +
-                "Conveyor Chef > Game Scene > BUILD NEW WORKING GAME UI NOW",
-                "OK");
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+                return;
+
+            Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+            BuildInternal(scene, showDialog: true);
         }
 
         [MenuItem("Conveyor Chef/Game Scene/1. Restore Original UI Only", priority = 1)]
@@ -206,14 +209,40 @@ namespace Watermelon.EditorTools
             if (newPage != null)
                 UnityEngine.Object.DestroyImmediate(newPage.gameObject);
 
-            Transform oldPage = canvas.transform.Find(OldPageName);
-            if (oldPage != null)
+            Transform previousNew = canvas.transform.Find(PreviousNewPageName);
+            if (previousNew != null)
+                UnityEngine.Object.DestroyImmediate(previousNew.gameObject);
+
+            GameObject original = null;
+
+            Transform oldContainer = canvas.transform.Find(OldContainerName);
+            if (oldContainer != null)
             {
-                oldPage.name = "UI Game";
-                oldPage.gameObject.SetActive(true);
+                UIGame nestedOld = oldContainer.GetComponentInChildren<UIGame>(true);
+                if (nestedOld != null)
+                {
+                    nestedOld.transform.SetParent(canvas.transform, false);
+                    nestedOld.name = "UI Game";
+                    nestedOld.gameObject.SetActive(true);
+                    original = nestedOld.gameObject;
+                }
+
+                UnityEngine.Object.DestroyImmediate(oldContainer.gameObject);
             }
 
-            GameObject original = FindDirectPage<UIGame>(canvas.transform, includeInactive: true);
+            // Recover an earlier v4 build where the old UIGame was left as a
+            // direct inactive sibling.
+            Transform previousOld = canvas.transform.Find(PreviousOldPageName);
+            if (previousOld != null)
+            {
+                previousOld.name = "UI Game";
+                previousOld.gameObject.SetActive(true);
+                original = previousOld.gameObject;
+            }
+
+            if (original == null)
+                original = FindDirectPage<UIGame>(canvas.transform, includeInactive: true);
+
             if (original != null)
             {
                 original.name = "UI Game";
@@ -228,7 +257,7 @@ namespace Watermelon.EditorTools
             EditorSceneManager.SaveScene(scene);
 
             Selection.activeGameObject = original;
-            Debug.Log("[GameUI] Original UI Game restored. No NEW UI page is active.");
+            Debug.Log("[GameUI] Original UI Game restored. NEW/OLD redesign hierarchy removed.");
         }
 
         [MenuItem("Conveyor Chef/Game Scene/BUILD NEW WORKING GAME UI NOW", priority = 2)]
@@ -275,30 +304,44 @@ namespace Watermelon.EditorTools
                 return;
             }
 
-            Transform oldPage = canvas.transform.Find(OldPageName);
+            Transform oldContainer = canvas.transform.Find(OldContainerName);
             Transform newPage = canvas.transform.Find(NewPageName);
 
+            UIGame oldGame =
+                oldContainer != null
+                    ? oldContainer.GetComponentInChildren<UIGame>(true)
+                    : null;
+
             bool oldOk =
-                oldPage != null &&
-                !oldPage.gameObject.activeSelf &&
-                oldPage.GetComponent<UIGame>() != null;
+                oldContainer != null &&
+                !oldContainer.gameObject.activeSelf &&
+                oldGame != null &&
+                oldGame.transform.parent == oldContainer;
 
             bool newOk =
                 newPage != null &&
                 newPage.gameObject.activeSelf &&
+                newPage.parent == canvas.transform &&
                 newPage.GetComponent<UIGame>() != null &&
                 FindDescendant(newPage, DesignRootName) != null;
 
-            if (oldOk && newOk)
+            int directGamePages = 0;
+            for (int i = 0; i < canvas.transform.childCount; i++)
+            {
+                if (canvas.transform.GetChild(i).GetComponent<UIGame>() != null)
+                    directGamePages++;
+            }
+
+            if (oldOk && newOk && directGamePages == 1)
             {
                 Debug.Log(
-                    "[GameUI] VALID: OLD UI Game [OFF] is disabled and preserved; " +
-                    "NEW UI Game [ACTIVE] is the working direct UIGame page.");
+                    "[GameUI] VALID: OLD GAME SCENE [OFF] contains the disabled original UIGame, " +
+                    "and NEW GAME SCENE [ACTIVE] is the ONLY direct active UIGame page.");
             }
             else
             {
                 Debug.LogError(
-                    "[GameUI] INVALID: expected OLD UI Game [OFF] + NEW UI Game [ACTIVE]. " +
+                    "[GameUI] INVALID hierarchy. Expected one direct UIGame page only. " +
                     "Run BUILD NEW WORKING GAME UI NOW again.");
             }
         }
@@ -312,43 +355,71 @@ namespace Watermelon.EditorTools
                 return;
             }
 
-            // Restore from an earlier v4 build before rebuilding.
+            // Normalize any previous v4/v5 build back to one direct original page.
             Transform existingNew = canvas.transform.Find(NewPageName);
             if (existingNew != null)
                 UnityEngine.Object.DestroyImmediate(existingNew.gameObject);
 
-            Transform existingOld = canvas.transform.Find(OldPageName);
-            if (existingOld != null)
+            Transform previousNew = canvas.transform.Find(PreviousNewPageName);
+            if (previousNew != null)
+                UnityEngine.Object.DestroyImmediate(previousNew.gameObject);
+
+            Transform oldContainer = canvas.transform.Find(OldContainerName);
+            if (oldContainer != null)
             {
-                existingOld.name = "UI Game";
-                existingOld.gameObject.SetActive(true);
+                UIGame nestedOld = oldContainer.GetComponentInChildren<UIGame>(true);
+                if (nestedOld != null)
+                {
+                    nestedOld.transform.SetParent(canvas.transform, false);
+                    nestedOld.name = "UI Game";
+                    nestedOld.gameObject.SetActive(true);
+                }
+
+                UnityEngine.Object.DestroyImmediate(oldContainer.gameObject);
+            }
+
+            Transform previousOld = canvas.transform.Find(PreviousOldPageName);
+            if (previousOld != null)
+            {
+                previousOld.name = "UI Game";
+                previousOld.gameObject.SetActive(true);
             }
 
             GameObject original = FindDirectPage<UIGame>(canvas.transform, includeInactive: true);
             if (original == null)
             {
-                Debug.LogError("[GameUI] Could not find original UI Game.");
+                Debug.LogError("[GameUI] Could not find the original UI Game page.");
                 return;
             }
 
             original.name = "UI Game";
             original.SetActive(true);
 
-            // Remove only the earlier experimental overlay, not functional children.
             Transform experimental = FindDescendant(original.transform, "NEW Game UI");
             if (experimental != null)
                 UnityEngine.Object.DestroyImmediate(experimental.gameObject);
 
-            // IMPORTANT: clone the complete original working page first.
-            GameObject newPage = UnityEngine.Object.Instantiate(original, canvas.transform, false);
+            // Duplicate the COMPLETE working UIGame before touching the original.
+            // Unity remaps all child/component references inside this clone.
+            GameObject newPage =
+                UnityEngine.Object.Instantiate(original, canvas.transform, false);
+
             newPage.name = NewPageName;
             newPage.SetActive(true);
             newPage.transform.SetAsLastSibling();
 
-            // Keep the original as a visible sibling in Hierarchy but OFF.
+            // The old UIGame must NOT remain a direct child of UI Main Canvas.
+            // UIController scans direct children and keys them by UIPage type.
+            // Nesting the original avoids duplicate UIGame registration while
+            // keeping the entire old page visible in Hierarchy as a disabled backup.
+            RectTransform backupContainer = CreateRect(OldContainerName, canvas.transform);
+            Stretch(backupContainer);
+            backupContainer.SetAsFirstSibling();
+
+            original.transform.SetParent(backupContainer, false);
             original.name = OldPageName;
-            original.SetActive(false);
-            original.transform.SetAsFirstSibling();
+            original.SetActive(true);
+            backupContainer.gameObject.SetActive(false);
 
             // New clone keeps every original UIGame serialized reference.
             UIGame newGame = newPage.GetComponent<UIGame>();
@@ -443,18 +514,19 @@ namespace Watermelon.EditorTools
                 SceneView.lastActiveSceneView.FrameSelected();
 
             Debug.Log(
-                "[GameUI] SUCCESS. OLD UI Game [OFF] preserved and disabled. " +
-                "NEW UI Game [ACTIVE] created from a full duplicate of the original working page.");
+                "[GameUI] SUCCESS. OLD GAME SCENE [OFF] now contains the preserved original UIGame. " +
+                "NEW GAME SCENE [ACTIVE] is the only direct working UIGame page.");
 
             if (showDialog)
             {
                 EditorUtility.DisplayDialog(
                     "NEW Working Game UI Created",
                     "Hierarchy now contains:\n\n" +
-                    "OLD UI Game [OFF]\n" +
-                    "NEW UI Game [ACTIVE]\n\n" +
-                    "The NEW page is a full functional duplicate of the old UIGame, " +
-                    "with the redesigned UI layered on it.",
+                    "OLD GAME SCENE [OFF]\n" +
+                    "  └─ UI Game (Original - OFF)\n" +
+                    "NEW GAME SCENE [ACTIVE]\n\n" +
+                    "The original page is preserved under an inactive backup container. " +
+                    "The NEW page is the only direct functional UIGame page.",
                     "OK");
             }
         }

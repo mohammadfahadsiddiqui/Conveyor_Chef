@@ -55,12 +55,19 @@ namespace Watermelon
 
         private void Update()
         {
-            foreach(var uiBehavior in uiBehaviors)
+            // A UI page can exist for a few frames before PUController.Initialise()
+            // assigns uiBehaviors. The old implementation dereferenced the null
+            // array every frame, flooding the Console.
+            if (uiBehaviors == null)
+                return;
+
+            foreach (var uiBehavior in uiBehaviors)
             {
+                if (uiBehavior == null || uiBehavior.Behavior == null)
+                    continue;
+
                 if (uiBehavior.Behavior.IsDirty)
-                {
                     uiBehavior.Redraw();
-                }
             }
         }
 
@@ -106,9 +113,13 @@ namespace Watermelon
 
         public void RedrawPanels()
         {
+            if (uiBehaviors == null)
+                return;
+
             for (int i = 0; i < uiBehaviors.Length; i++)
             {
-                uiBehaviors[i].Redraw();
+                if (uiBehaviors[i] != null)
+                    uiBehaviors[i].Redraw();
             }
         }
 
