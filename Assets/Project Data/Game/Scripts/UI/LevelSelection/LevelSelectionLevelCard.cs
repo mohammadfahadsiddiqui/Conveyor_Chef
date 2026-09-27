@@ -39,8 +39,21 @@ namespace Watermelon.BusStop
         [SerializeField] private Sprite playButtonSprite;
         [SerializeField] private Sprite lockedButtonSprite;
 
+        [Header("Selection Glow")]
+        [SerializeField] private Color selectionGlowColor = new Color(1f, 0.9f, 0.35f, 1f);
+        [Tooltip("How far the glow reaches outside the card, in canvas units.")]
+        [SerializeField] private float selectionGlowWidth = 56f;
+        [Tooltip("How far the glow starts inside the card edge (covers transparent margins of the frame art).")]
+        [SerializeField] private float selectionGlowInset = 6f;
+        [SerializeField] private float selectionGlowFadeSpeed = 8f;
+
         private LevelSelectionController owner;
         private bool unlocked;
+
+        private Image selectionGlow;
+        private bool glowTarget;
+        private float glowVisibility;
+        private static Sprite glowSprite;
 
         // The Level Selection scene is designer-authored. Cache every RectTransform
         // under this card when Play Mode starts and restore it after runtime UI
@@ -63,6 +76,7 @@ namespace Watermelon.BusStop
 
         private void Awake()
         {
+            EnsureSelectionGlow();
             EnsureVisualLayering();
             CaptureAuthoredGeometry();
         }
@@ -70,6 +84,7 @@ namespace Watermelon.BusStop
         private void LateUpdate()
         {
             RestoreAuthoredGeometry();
+            AnimateSelectionGlow();
         }
 
         public void Bind(LevelSelectionController controller)
@@ -104,6 +119,11 @@ namespace Watermelon.BusStop
             int starsEarned)
         {
             unlocked = isUnlocked;
+
+            // The glow fades out on the previous card and in on this one, so it appears
+            // to move when the side arrows change the selected mission.
+            EnsureSelectionGlow();
+            glowTarget = isSelected;
 
             if (numberText != null)
                 numberText.text = (slotIndex + 1).ToString();
@@ -188,10 +208,18 @@ namespace Watermelon.BusStop
             if (thumbnailViewport == null || thumbnailViewport.parent != transform)
                 return;
 
-            if (thumbnailViewport.GetSiblingIndex() != 0)
-                thumbnailViewport.SetSiblingIndex(0);
+            // The selection glow is the back-most child; the card art sits above it.
+            int firstIndex = 0;
+            if (selectionGlow != null && selectionGlow.transform.parent == transform)
+            {
+                selectionGlow.transform.SetSiblingIndex(0);
+                firstIndex = 1;
+            }
 
-            int desiredFrameIndex = Mathf.Min(1, transform.childCount - 1);
+            if (thumbnailViewport.GetSiblingIndex() != firstIndex)
+                thumbnailViewport.SetSiblingIndex(firstIndex);
+
+            int desiredFrameIndex = Mathf.Min(firstIndex + 1, transform.childCount - 1);
             if (cardFrame.transform.parent == transform &&
                 cardFrame.transform.GetSiblingIndex() != desiredFrameIndex)
             {
@@ -207,6 +235,10 @@ namespace Watermelon.BusStop
             for (int i = 0; i < rects.Length; i++)
             {
                 RectTransform rect = rects[i];
+
+                // The runtime glow animates its own scale; it is not authored UI.
+                if (selectionGlow != null && rect == selectionGlow.rectTransform)
+                    continue;
                 authoredGeometry[i] = new RectTransformState
                 {
                     rect = rect,
@@ -241,6 +273,113 @@ namespace Watermelon.BusStop
                 state.rect.localRotation = state.localRotation;
             }
         }
+
+        #region Selection Glow
+
+        private void EnsureSelectionGlow()
+        {
+            if (selectionGlow != null || !Application.isPlaying)
+                return;
+
+            GameObject go = new GameObject("Selection Glow", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            go.layer = gameObject.layer;
+
+            RectTransform rect = (RectTransform)go.transform;
+            rect.SetParent(transform, false);
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            float outset = selectionGlowWidth - selectionGlowInset;
+            rect.offsetMin = new Vector2(-outset, -outset);
+            rect.offsetMax = new Vector2(outset, outset);
+            rect.SetAsFirstSibling();
+
+            selectionGlow = go.GetComponent<Image>();
+            selectionGlow.sprite = GetGlowSprite();
+            selectionGlow.type = Image.Type.Sliced;
+            selectionGlow.fillCenter = true;
+            selectionGlow.pixelsPerUnitMultiplier = GlowTextureWidth / Mathf.Max(1f, selectionGlowWidth);
+            selectionGlow.raycastTarget = false;
+            selectionGlow.color = new Color(selectionGlowColor.r, selectionGlowColor.g, selectionGlowColor.b, 0f);
+        }
+
+        private void AnimateSelectionGlow()
+        {
+            if (selectionGlow == null)
+                return;
+
+            glowVisibility = Mathf.MoveTowards(glowVisibility, glowTarget ? 1f : 0f, selectionGlowFadeSpeed * Time.unscaledDeltaTime);
+
+            float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 3.2f);
+            Color color = selectionGlowColor;
+            color.a = glowVisibility * Mathf.Lerp(0.75f, 1f, pulse);
+            selectionGlow.color = color;
+
+            float scale = 1f + 0.025f * pulse * glowVisibility;
+            selectionGlow.rectTransform.localScale = new Vector3(scale, scale, 1f);
+        }
+
+        // Glow width in texture pixels and the corner radius of the card shape.
+        private const int GlowTextureWidth = 44;
+        private const int GlowCornerRadius = 26;
+
+        // A soft rounded-rectangle outline generated once: transparent inside the card
+        // shape, brightest at its edge and fading outwards. Used as a 9-sliced sprite so
+        // the glow keeps an even width on any card size.
+        private static Sprite GetGlowSprite()
+        {
+            if (glowSprite != null)
+                return glowSprite;
+
+            int border = GlowTextureWidth + GlowCornerRadius;
+            int size = border * 2 + 2;
+            Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "Level Card Selection Glow",
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+                hideFlags = HideFlags.DontSave
+            };
+
+            float innerMin = GlowTextureWidth;
+            float innerMax = size - GlowTextureWidth;
+            Color32[] pixels = new Color32[size * size];
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float px = x + 0.5f, py = y + 0.5f;
+                    float cx = Mathf.Clamp(px, innerMin + GlowCornerRadius, innerMax - GlowCornerRadius);
+                    float cy = Mathf.Clamp(py, innerMin + GlowCornerRadius, innerMax - GlowCornerRadius);
+                    float distance = Vector2.Distance(new Vector2(px, py), new Vector2(cx, cy)) - GlowCornerRadius;
+
+                    float alpha;
+                    if (distance <= 0f)
+                        alpha = Mathf.Clamp01(1f + distance / 6f); // short fade just inside the edge
+                    else
+                        alpha = Mathf.Pow(1f - Mathf.Clamp01(distance / GlowTextureWidth), 1.3f);
+
+                    pixels[y * size + x] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(alpha * 255f));
+                }
+            }
+
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+
+            glowSprite = Sprite.Create(
+                texture,
+                new Rect(0, 0, size, size),
+                new Vector2(0.5f, 0.5f),
+                100f,
+                0,
+                SpriteMeshType.FullRect,
+                new Vector4(border, border, border, border));
+            glowSprite.name = texture.name;
+            return glowSprite;
+        }
+
+        #endregion
 
         private void HandleSelected()
         {
