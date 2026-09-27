@@ -276,6 +276,7 @@ namespace Watermelon
         private readonly string CONTINUE_TEXT = "CONTINUE";
 
         private int currentReward;
+        private bool rewardGranted;
 
         public override void Initialise()
         {
@@ -358,7 +359,11 @@ namespace Watermelon
     coinsPanelScalable.Show();
 
     currentReward = LevelController.CurrentReward;
+    rewardGranted = false;
     Debug.Log($"[UIComplete] Current reward: {currentReward}");
+
+    // Buttons appear with the banner; the coin animation below no longer holds them back.
+    ShowButtons();
 
     ShowRewardLabel(currentReward, false, 0.3f, delegate
     {
@@ -377,17 +382,17 @@ namespace Watermelon
                 callbackCalled = true;
                 
                 Debug.Log("[UIComplete] Currency spawned callback");
-                ShowButtons();
+                GrantReward();
             });
-            
-            // Fallback: Show buttons after 2 seconds if callback doesn't fire
+
+            // Fallback: grant the reward after 2 seconds if callback doesn't fire
             Tween.DelayedCall(2f, delegate
             {
                 if (!callbackCalled)
                 {
-                    Debug.LogWarning("[UIComplete] FloatingCloud callback didn't fire, showing buttons anyway");
+                    Debug.LogWarning("[UIComplete] FloatingCloud callback didn't fire, granting reward anyway");
                     callbackCalled = true;
-                    ShowButtons();
+                    GrantReward();
                 }
             });
         });
@@ -397,20 +402,24 @@ namespace Watermelon
         // Helper method to show buttons
         private void ShowButtons()
         {
-            CurrenciesController.Add(CurrencyType.Coins, currentReward);
-
-            multiplyRewardButtonFade.Show();
+            multiplyRewardButtonFade.Show(duration: 0.3f);
             multiplyRewardButton.interactable = true;
 
-            Debug.Log("[UIComplete] Multiply button shown");
+            noThanksButtonFade.Show(duration: 0.3f);
+            noThanksButton.interactable = true;
 
-            noThanksAppearTween = Tween.DelayedCall(0.5f, delegate
-            {
-                Debug.Log("[UIComplete] Showing No Thanks button");
+            Debug.Log("[UIComplete] Buttons shown with the banner");
+        }
 
-                noThanksButtonFade.Show();
-                noThanksButton.interactable = true;
-            });
+        // Adds the level reward once, whether the coin animation finishes first or the
+        // player taps CONTINUE / GET X3 before it does.
+        private void GrantReward()
+        {
+            if (rewardGranted)
+                return;
+
+            rewardGranted = true;
+            CurrenciesController.Add(CurrencyType.Coins, currentReward);
         }
 
         // public override void PlayHideAnimation()
@@ -550,6 +559,8 @@ namespace Watermelon
         {
             AudioController.PlaySound(AudioController.Sounds.buttonSound);
 
+            GrantReward();
+
             if (noThanksAppearTween != null && noThanksAppearTween.IsActive)
             {
                 noThanksAppearTween.Kill();
@@ -593,6 +604,8 @@ namespace Watermelon
         public void NoThanksButton()
         {
             AudioController.PlaySound(AudioController.Sounds.buttonSound);
+
+            GrantReward();
 
             UIController.HidePage<UIComplete>();
 
