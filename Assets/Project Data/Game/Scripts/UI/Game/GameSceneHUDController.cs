@@ -5,20 +5,24 @@ using Watermelon.IAPStore;
 namespace Watermelon
 {
     /// <summary>
-    /// Runtime bridge for the NEW editable Game UI.
-    /// The layout itself is fully serialized by GameSceneUIBuilder.
-    /// This script only connects existing game systems to the new authored controls.
+    /// Small runtime bridge for NEW GAME SCENE [ACTIVE].
+    /// Existing UIGame, LivesIndicator, CurrencyUIPanelSimple, UIOrderPanel and
+    /// PUUIController remain the actual gameplay/UI logic.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class GameSceneHUDController : MonoBehaviour
     {
-        [Header("HUD Buttons")]
-        [SerializeField] private Button coinPlusButton;
-        [SerializeField] private Button diamondPlusButton;
+        [Header("Currency Logic")]
+        [SerializeField] private CurrencyUIPanelSimple coinPanel;
+        [SerializeField] private CurrencyUIPanelSimple diamondPanel;
+        [SerializeField] private Image coinIconImage;
+        [SerializeField] private Image diamondIconImage;
+
+        [Header("Extra Buttons")]
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button homeButton;
 
-        [Header("Existing Popup Logic")]
+        [Header("Existing Pause Logic")]
         [SerializeField] private UILevelQuitPopUp pausePopup;
 
         [Header("Power-up Artwork")]
@@ -27,20 +31,21 @@ namespace Watermelon
         [SerializeField] private Sprite shuffleButtonSprite;
         [SerializeField] private Sprite countBadgeSprite;
 
+        [Header("Currency Artwork")]
+        [SerializeField] private Sprite coinIconSprite;
+        [SerializeField] private Sprite diamondIconSprite;
+
         private PUUIController lastPowerUpsController;
         private int lastPowerUpCount = -1;
 
         private void Awake()
         {
-            if (coinPlusButton != null)
-                coinPlusButton.onClick.AddListener(OpenCurrencyStore);
+            if (coinPanel != null && coinPanel.AddButton != null)
+                coinPanel.AddButton.onClick.AddListener(OpenCurrencyStore);
 
-            if (diamondPlusButton != null)
-                diamondPlusButton.onClick.AddListener(OpenCurrencyStore);
+            if (diamondPanel != null && diamondPanel.AddButton != null)
+                diamondPanel.AddButton.onClick.AddListener(OpenCurrencyStore);
 
-            // The game did not previously have a dedicated settings popup in UIGame.
-            // Reuse the existing safe pause/restart popup so this button is functional
-            // without introducing a second SettingsPanel singleton.
             if (settingsButton != null)
                 settingsButton.onClick.AddListener(OpenPauseOptions);
 
@@ -50,6 +55,8 @@ namespace Watermelon
 
         private void Start()
         {
+            // CurrencyUIPanelSimple keeps the original live update logic.
+            CurrenciesController.InvokeOrSubcrtibe(InitialiseCurrencyPanels);
             TrySkinPowerUps(true);
         }
 
@@ -58,22 +65,43 @@ namespace Watermelon
             TrySkinPowerUps(false);
         }
 
+        private void InitialiseCurrencyPanels()
+        {
+            if (coinPanel != null)
+                coinPanel.Initialise();
+
+            if (diamondPanel != null)
+                diamondPanel.Initialise();
+
+            // CurrencyUIPanelSimple assigns the database icons while initialising.
+            // Re-apply the generated art after that so logic stays original while
+            // the visible icon follows the redesigned Game UI.
+            if (coinIconImage != null && coinIconSprite != null)
+            {
+                coinIconImage.sprite = coinIconSprite;
+                coinIconImage.preserveAspect = true;
+            }
+
+            if (diamondIconImage != null && diamondIconSprite != null)
+            {
+                diamondIconImage.sprite = diamondIconSprite;
+                diamondIconImage.preserveAspect = true;
+            }
+        }
+
         private static void OpenCurrencyStore()
         {
-            if (UIController.GetPage<UIIAPStore>() != null)
-            {
-                AudioController.PlaySound(AudioController.Sounds.buttonSound);
-                UIController.ShowPage<UIIAPStore>();
-            }
+            AudioController.PlaySound(AudioController.Sounds.buttonSound);
+            UIController.ShowPage<UIIAPStore>();
         }
 
         private void OpenPauseOptions()
         {
-            if (pausePopup != null)
-            {
-                AudioController.PlaySound(AudioController.Sounds.buttonSound);
-                pausePopup.Show();
-            }
+            if (pausePopup == null)
+                return;
+
+            AudioController.PlaySound(AudioController.Sounds.buttonSound);
+            pausePopup.Show();
         }
 
         private static void ReturnToLevelSelection()
@@ -84,7 +112,9 @@ namespace Watermelon
 
         private void TrySkinPowerUps(bool force)
         {
-            PUUIController controller = Object.FindFirstObjectByType<PUUIController>(FindObjectsInactive.Include);
+            UIGame game = GetComponent<UIGame>();
+            PUUIController controller = game != null ? game.PowerUpsUIController : null;
+
             if (controller == null || controller.UIBehaviors == null)
                 return;
 
@@ -101,6 +131,7 @@ namespace Watermelon
                     continue;
 
                 Sprite fullButtonSprite = null;
+
                 if (item.Settings is PUUndoSettings)
                     fullButtonSprite = undoButtonSprite;
                 else if (item.Settings is PUHintSettings)
@@ -121,7 +152,6 @@ namespace Watermelon
                     }
                 }
 
-                // Generated power-up artwork already contains the symbol.
                 Transform icon = item.transform.Find("Icon");
                 if (icon != null && fullButtonSprite != null)
                     icon.gameObject.SetActive(false);
@@ -143,18 +173,24 @@ namespace Watermelon
 
 #if UNITY_EDITOR
         public void EditorConfigure(
-            Button coinPlus,
-            Button diamondPlus,
+            CurrencyUIPanelSimple coins,
+            CurrencyUIPanelSimple diamonds,
+            Image coinIcon,
+            Image diamondIcon,
             Button settings,
             Button home,
             UILevelQuitPopUp popup,
             Sprite undo,
             Sprite hint,
             Sprite shuffle,
-            Sprite badge)
+            Sprite badge,
+            Sprite coinSprite,
+            Sprite diamondSprite)
         {
-            coinPlusButton = coinPlus;
-            diamondPlusButton = diamondPlus;
+            coinPanel = coins;
+            diamondPanel = diamonds;
+            coinIconImage = coinIcon;
+            diamondIconImage = diamondIcon;
             settingsButton = settings;
             homeButton = home;
             pausePopup = popup;
@@ -162,6 +198,8 @@ namespace Watermelon
             hintButtonSprite = hint;
             shuffleButtonSprite = shuffle;
             countBadgeSprite = badge;
+            coinIconSprite = coinSprite;
+            diamondIconSprite = diamondSprite;
         }
 #endif
     }
