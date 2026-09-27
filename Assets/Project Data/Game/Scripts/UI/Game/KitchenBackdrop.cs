@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using Watermelon.BusStop;
 
 namespace Watermelon
@@ -8,10 +9,13 @@ namespace Watermelon
     /// Painted kitchen behind the 3D level (GAME BACKGROUND CANVAS [NEW UI]).
     ///
     /// The canvas is a Screen Space - Camera canvas placed near the camera's far plane,
-    /// so the 3D conveyor, trays, waiting slots, donuts and floor always draw in front
-    /// of it. In Play mode the renderers of the 3D kitchen room and props are switched
-    /// off (colliders and GameObjects stay as they are), and the painting is scaled so
-    /// its countertop edge meets the top of the 3D conveyor on any screen shape.
+    /// so the 3D conveyor, trays, waiting slots, board and donuts always draw in front of
+    /// it. In Play mode the renderers of the 3D kitchen room, props and floor are switched
+    /// off (colliders and GameObjects stay as they are), so the painting shows instead.
+    ///
+    /// The painting is drawn in two parts from one texture: the kitchen wall keeps its
+    /// shape and is scaled so its countertop meets the top of the 3D conveyor; the floor
+    /// and front counter below it stretch down to the bottom of any screen.
     /// </summary>
     [DisallowMultipleComponent]
     [ExecuteAlways]
@@ -19,10 +23,17 @@ namespace Watermelon
     public sealed class KitchenBackdrop : MonoBehaviour
     {
         [SerializeField] RectTransform artwork;
+        [SerializeField] RawImage kitchenPart;
+        [SerializeField] RawImage floorPart;
+        [SerializeField] Vector2 artPixelSize = new Vector2(941f, 1672f);
+
+        [Tooltip("Row where the kitchen part ends and the floor part starts, from the top, as a fraction of the artwork height.")]
+        [SerializeField] float floorStartRow = 640f / 1672f;
         [Tooltip("Row of the countertop front edge in the artwork, from the top, as a fraction of its height.")]
         [SerializeField] float countertopRow = 450f / 1672f;
+
         [Tooltip("Direct children of the level environment whose renderers are hidden (name prefixes).")]
-        [SerializeField] string[] hiddenEnvironmentParts = { "FreeRoom", "_ObjectsWrapper", "Wall", "Kitchen", "Back" };
+        [SerializeField] string[] hiddenEnvironmentParts = { "FreeRoom", "_ObjectsWrapper", "Wall", "Kitchen", "Back", "Plane" };
         [Tooltip("Direct child of the level environment that is the conveyor (name prefix).")]
         [SerializeField] string conveyorName = "Conveyor";
         [SerializeField] float farPlaneFraction = 0.95f;
@@ -88,27 +99,38 @@ namespace Watermelon
             if (width <= 0f || height <= 0f)
                 return;
 
-            Vector2 artSize = GetArtSize();
-            float scale = width / artSize.x; // always cover the full width
+            float scale = width / artPixelSize.x; // always cover the full width
 
             float conveyorTop = GetConveyorTopFromCanvasTop(cam, height);
             if (conveyorTop > 0f)
-                scale = Mathf.Max(scale, conveyorTop / (countertopRow * artSize.y));
+                scale = Mathf.Max(scale, conveyorTop / (countertopRow * artPixelSize.y));
 
-            artwork.anchorMin = new Vector2(0.5f, 1f);
-            artwork.anchorMax = new Vector2(0.5f, 1f);
-            artwork.pivot = new Vector2(0.5f, 1f);
-            artwork.anchoredPosition = Vector2.zero;
-            artwork.sizeDelta = artSize * scale;
+            float artWidth = artPixelSize.x * scale;
+            float kitchenHeight = artPixelSize.y * floorStartRow * scale;
+            float floorHeight = Mathf.Max(artPixelSize.y * (1f - floorStartRow) * scale, height - kitchenHeight);
+
+            SetRect(artwork, 0f, new Vector2(artWidth, kitchenHeight + floorHeight));
+
+            if (kitchenPart != null)
+            {
+                SetRect(kitchenPart.rectTransform, 0f, new Vector2(artWidth, kitchenHeight));
+                kitchenPart.uvRect = new Rect(0f, 1f - floorStartRow, 1f, floorStartRow);
+            }
+
+            if (floorPart != null)
+            {
+                SetRect(floorPart.rectTransform, -kitchenHeight, new Vector2(artWidth, floorHeight));
+                floorPart.uvRect = new Rect(0f, 0f, 1f, 1f - floorStartRow);
+            }
         }
 
-        private Vector2 GetArtSize()
+        private static void SetRect(RectTransform rect, float y, Vector2 size)
         {
-            UnityEngine.UI.Image image = artwork.GetComponent<UnityEngine.UI.Image>();
-            if (image != null && image.sprite != null)
-                return image.sprite.rect.size;
-
-            return new Vector2(941f, 1672f);
+            rect.anchorMin = new Vector2(0.5f, 1f);
+            rect.anchorMax = new Vector2(0.5f, 1f);
+            rect.pivot = new Vector2(0.5f, 1f);
+            rect.anchoredPosition = new Vector2(0f, y);
+            rect.sizeDelta = size;
         }
 
         // Distance from the top of the canvas to the highest point of the 3D conveyor.
@@ -150,9 +172,12 @@ namespace Watermelon
         }
 
 #if UNITY_EDITOR
-        public void EditorConfigure(RectTransform art)
+        public void EditorConfigure(RectTransform art, RawImage kitchen, RawImage floor, Vector2 pixelSize)
         {
             artwork = art;
+            kitchenPart = kitchen;
+            floorPart = floor;
+            artPixelSize = pixelSize;
         }
 #endif
     }

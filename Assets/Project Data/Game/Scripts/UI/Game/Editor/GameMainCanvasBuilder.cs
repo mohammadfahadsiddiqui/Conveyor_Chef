@@ -73,7 +73,7 @@ namespace Watermelon.EditorTools
         // Bump when the generated layout changes: an older canvas is rebuilt once
         // automatically. Auto-build runs once per version and project copy, so deleting
         // the canvas later is respected.
-        private const int LayoutVersion = 3;
+        private const int LayoutVersion = 4;
         private static readonly string AutoBuiltKey =
             "ConveyorChef.GameMainCanvas.AutoBuilt.v" + LayoutVersion + "." + Application.dataPath.GetHashCode();
 
@@ -427,13 +427,20 @@ namespace Watermelon.EditorTools
             scaler.matchWidthOrHeight = 0f;
 
             Sprite sprite = LoadSprite(KitchenArt);
-            RectTransform art = CreateImage("Kitchen Painting", root.transform, sprite, Color.white, false);
+            Texture texture = sprite != null ? sprite.texture : null;
             Vector2 artSize = sprite != null ? sprite.rect.size : new Vector2(941f, 1672f);
+
+            RectTransform art = CreateRect("Kitchen Painting", root.transform);
             Place(art, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero, artSize * (1080f / artSize.x));
+
+            // One texture drawn twice: the kitchen wall keeps its shape, the floor and
+            // front counter stretch to the bottom of tall screens (see KitchenBackdrop).
+            RawImage kitchen = CreateRawImage("Kitchen Wall", art, texture);
+            RawImage floor = CreateRawImage("Kitchen Floor", art, texture);
 
             // No GraphicRaycaster: the painting must never catch taps meant for the level.
             KitchenBackdrop backdrop = root.AddComponent<KitchenBackdrop>();
-            backdrop.EditorConfigure(art);
+            backdrop.EditorConfigure(art, kitchen, floor, artSize);
         }
 
         private static void ConfigureRootCanvas(GameObject root, Canvas mainCanvas)
@@ -1297,6 +1304,18 @@ namespace Watermelon.EditorTools
             image.preserveAspect = preserveAspect;
             image.raycastTarget = false;
             return rect;
+        }
+
+        private static RawImage CreateRawImage(string name, Transform parent, Texture texture)
+        {
+            RectTransform rect = CreateRect(name, parent);
+            rect.gameObject.AddComponent<CanvasRenderer>();
+
+            RawImage image = rect.gameObject.AddComponent<RawImage>();
+            image.texture = texture;
+            image.color = Color.white;
+            image.raycastTarget = false;
+            return image;
         }
 
         private static TextMeshProUGUI CreateText(string name, Transform parent, string value, TMP_FontAsset font, Color color, float minSize, float maxSize)
