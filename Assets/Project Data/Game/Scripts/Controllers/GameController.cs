@@ -163,6 +163,13 @@ namespace Watermelon
             {
                 Debug.Log($"[GameController] Loading from level selection - Level {levelSave.selectedLevelIndex + 1}");
 
+                // Hide the legacy in-scene gameplay HUD before opening UIGame.
+                if (UIController.GetPage<UIMainMenu>() != null &&
+                    UIController.GetPage<UIMainMenu>().IsPageDisplayed)
+                {
+                    UIController.HidePage<UIMainMenu>();
+                }
+
                 // Show game UI directly
                 UIController.ShowPage<UIGame>();
 
@@ -354,6 +361,12 @@ namespace Watermelon
 
             // On Level is loaded
             isGameActive = true;
+
+            UIMainMenu legacyMainMenu = UIController.GetPage<UIMainMenu>();
+            if (legacyMainMenu != null && legacyMainMenu.IsPageDisplayed)
+            {
+                UIController.HidePage<UIMainMenu>();
+            }
 
             UIController.ShowPage<UIGame>();
 

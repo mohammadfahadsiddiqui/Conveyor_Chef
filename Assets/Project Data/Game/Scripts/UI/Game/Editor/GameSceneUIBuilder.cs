@@ -13,39 +13,17 @@ using UnityEngine.UI;
 
 namespace Watermelon.EditorTools
 {
-    /// <summary>
-    /// Creates a SEPARATE gameplay UI page.
-    ///
-    /// The original UIGame object is never redesigned. It is moved unchanged
-    /// under an inactive backup object. A full duplicate of the original page
-    /// becomes the NEW active page, so every existing serialized gameplay
-    /// reference is preserved before the visuals are changed.
-    ///
-    /// Result:
-    /// UI Main Canvas
-    ///   OLD GAME SCENE [OFF]              (inactive)
-    ///      UI Game (Original - OFF)        (untouched original)
-    ///   NEW GAME SCENE [ACTIVE]            (direct UIGame page)
-    ///      Safe Zone
-    ///      Tutorial Canvas
-    ///      Power Up Purchase Panel
-    ///      Quit Pop Up
-    ///      ...all original working systems...
-    ///
-    /// UIController only scans direct children of UI Main Canvas, therefore only
-    /// NEW GAME SCENE [ACTIVE] participates as UIGame at runtime.
-    /// </summary>
+    [InitializeOnLoad]
     public static class GameSceneUIBuilder
     {
         private const string ScenePath = "Assets/Project Data/Game/Scenes/Game.unity";
         private const string ArtFolder = "Assets/Project Data/Game/Images/GameUI";
         private const string AssetPackFileName = "ConveyorChef_GameUI_ArtPack.zip";
 
-        private const string NewPageName = "NEW GAME SCENE [ACTIVE]";
-        private const string OldContainerName = "OLD GAME SCENE [OFF]";
-        private const string OldPageName = "UI Game (Original - OFF)";
+        private const string OldPageName = "OLD UI Game [OFF]";
+        private const string NewPageName = "NEW UI Game [ACTIVE]";
         private const string DesignRootName = "NEW GAME UI DESIGN";
-        private const int LayoutVersion = 3;
+        private const int LayoutVersion = 4;
 
         private const string LivesIndicatorPrefab =
             "Assets/Project Data/Watermelon Core/Extra Components/Lives System/Prefabs/Lives Indicator.prefab";
@@ -53,6 +31,8 @@ namespace Watermelon.EditorTools
             "Assets/Project Data/Watermelon Core/Extra Components/Lives System/Prefabs/Add Lives Panel.prefab";
         private const string CurrencyPanelPrefab =
             "Assets/Project Data/Watermelon Core/Modules/Currencies Module/Prefabs/Currency Panel Simple.prefab";
+
+        private static bool autoQueued;
 
         private static readonly string[] RequiredAssets =
         {
@@ -108,6 +88,75 @@ namespace Watermelon.EditorTools
             "Decor/industrial_board_frame.png",
         };
 
+        static GameSceneUIBuilder()
+        {
+            EditorSceneManager.sceneOpened -= OnSceneOpened;
+            EditorSceneManager.sceneOpened += OnSceneOpened;
+            QueueAutoBuild();
+        }
+
+        private static void OnSceneOpened(Scene scene, OpenSceneMode mode)
+        {
+            if (scene.path == ScenePath)
+                QueueAutoBuild();
+        }
+
+        private static void QueueAutoBuild()
+        {
+            if (autoQueued)
+                return;
+
+            autoQueued = true;
+            EditorApplication.delayCall += TryAutoBuild;
+        }
+
+        private static void TryAutoBuild()
+        {
+            autoQueued = false;
+
+            if (EditorApplication.isPlayingOrWillChangePlaymode ||
+                EditorApplication.isCompiling ||
+                EditorApplication.isUpdating)
+                return;
+
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                return;
+
+            Canvas canvas = FindMainCanvas();
+            if (canvas == null)
+                return;
+
+            if (canvas.transform.Find(NewPageName) != null &&
+                canvas.transform.Find(OldPageName) != null)
+                return;
+
+            EnsureFolders();
+            AssetDatabase.Refresh();
+
+            ImportSprites();
+            List<string> missing = MissingAssets();
+
+            if (missing.Count > 0 && TryImportAssetPackFromKnownLocations())
+            {
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+                ImportSprites();
+                missing = MissingAssets();
+            }
+
+            if (missing.Count > 0)
+            {
+                Debug.LogWarning(
+                    "[GameUI] Original UI is restored. NEW UI was not auto-built because " +
+                    missing.Count + " generated sprites are missing. Put " +
+                    AssetPackFileName + " in Downloads/project root, then use " +
+                    "Conveyor Chef > Game Scene > BUILD NEW WORKING GAME UI NOW.");
+                return;
+            }
+
+            BuildInternal(scene, showDialog: false);
+        }
+
         [MenuItem("Conveyor Chef/Game Scene/0. Import Generated Game UI Art Pack", priority = 0)]
         public static void ImportGeneratedArtPack()
         {
@@ -137,13 +186,13 @@ namespace Watermelon.EditorTools
 
             EditorUtility.DisplayDialog(
                 "Game UI Art Ready",
-                "All generated Game UI sprites are imported.\n\nNext run:\n" +
-                "Conveyor Chef > Game Scene > 2. CREATE Separate NEW Game Scene (Old OFF)",
+                "All Game UI sprites are imported.\n\nNow run:\n" +
+                "Conveyor Chef > Game Scene > BUILD NEW WORKING GAME UI NOW",
                 "OK");
         }
 
-        [MenuItem("Conveyor Chef/Game Scene/1. Restore Original Hierarchy", priority = 1)]
-        public static void RestoreOriginalHierarchy()
+        [MenuItem("Conveyor Chef/Game Scene/1. Restore Original UI Only", priority = 1)]
+        public static void RestoreOriginalUIOnly()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return;
@@ -151,54 +200,39 @@ namespace Watermelon.EditorTools
             Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             Canvas canvas = FindMainCanvas();
             if (canvas == null)
-            {
-                Debug.LogError("[GameUI] UI Main Canvas was not found.");
                 return;
-            }
 
             Transform newPage = canvas.transform.Find(NewPageName);
             if (newPage != null)
                 UnityEngine.Object.DestroyImmediate(newPage.gameObject);
 
-            Transform oldContainer = canvas.transform.Find(OldContainerName);
-            if (oldContainer != null)
+            Transform oldPage = canvas.transform.Find(OldPageName);
+            if (oldPage != null)
             {
-                UIGame oldGame = oldContainer.GetComponentInChildren<UIGame>(true);
-                if (oldGame != null)
-                {
-                    oldGame.transform.SetParent(canvas.transform, false);
-                    oldGame.name = "UI Game";
-                    oldGame.gameObject.SetActive(true);
-                }
-
-                UnityEngine.Object.DestroyImmediate(oldContainer.gameObject);
+                oldPage.name = "UI Game";
+                oldPage.gameObject.SetActive(true);
             }
 
-            // Cleanup only the experimental overlay created by the older builder.
-            GameObject directGame = FindDirectPage<UIGame>(canvas.transform);
-            if (directGame != null)
+            GameObject original = FindDirectPage<UIGame>(canvas.transform, includeInactive: true);
+            if (original != null)
             {
-                Transform oldExperiment = FindDescendant(directGame.transform, "NEW Game UI");
+                original.name = "UI Game";
+                original.SetActive(true);
+
+                Transform oldExperiment = FindDescendant(original.transform, "NEW Game UI");
                 if (oldExperiment != null)
                     UnityEngine.Object.DestroyImmediate(oldExperiment.gameObject);
-
-                directGame.name = "UI Game";
-                directGame.SetActive(true);
             }
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
 
-            if (directGame != null)
-                Selection.activeGameObject = directGame;
-
-            Debug.Log(
-                "[GameUI] Hierarchy restored. If an older bake changed Game.unity before this " +
-                "builder was installed, use Git restore on Game.unity once to recover the exact baseline.");
+            Selection.activeGameObject = original;
+            Debug.Log("[GameUI] Original UI Game restored. No NEW UI page is active.");
         }
 
-        [MenuItem("Conveyor Chef/Game Scene/2. CREATE Separate NEW Game Scene (Old OFF)", priority = 2)]
-        public static void CreateSeparateNewGameScene()
+        [MenuItem("Conveyor Chef/Game Scene/BUILD NEW WORKING GAME UI NOW", priority = 2)]
+        public static void BuildNewWorkingGameUI()
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
                 return;
@@ -221,13 +255,56 @@ namespace Watermelon.EditorTools
             {
                 EditorUtility.DisplayDialog(
                     "Game UI Art Pack Required",
-                    "The separate NEW Game Scene was not created because " + missing.Count +
-                    " generated sprites are missing.\n\nUse:\n" +
-                    "Conveyor Chef > Game Scene > 0. Import Generated Game UI Art Pack",
+                    "The NEW working UI cannot be skinned yet because " + missing.Count +
+                    " sprites are missing.\n\nImport " + AssetPackFileName +
+                    " first with menu item 0.",
                     "OK");
                 return;
             }
 
+            BuildInternal(scene, showDialog: true);
+        }
+
+        [MenuItem("Conveyor Chef/Game Scene/3. Validate Working Game UI", priority = 3)]
+        public static void ValidateWorkingGameUI()
+        {
+            Canvas canvas = FindMainCanvas();
+            if (canvas == null)
+            {
+                Debug.LogError("[GameUI] UI Main Canvas not found.");
+                return;
+            }
+
+            Transform oldPage = canvas.transform.Find(OldPageName);
+            Transform newPage = canvas.transform.Find(NewPageName);
+
+            bool oldOk =
+                oldPage != null &&
+                !oldPage.gameObject.activeSelf &&
+                oldPage.GetComponent<UIGame>() != null;
+
+            bool newOk =
+                newPage != null &&
+                newPage.gameObject.activeSelf &&
+                newPage.GetComponent<UIGame>() != null &&
+                FindDescendant(newPage, DesignRootName) != null;
+
+            if (oldOk && newOk)
+            {
+                Debug.Log(
+                    "[GameUI] VALID: OLD UI Game [OFF] is disabled and preserved; " +
+                    "NEW UI Game [ACTIVE] is the working direct UIGame page.");
+            }
+            else
+            {
+                Debug.LogError(
+                    "[GameUI] INVALID: expected OLD UI Game [OFF] + NEW UI Game [ACTIVE]. " +
+                    "Run BUILD NEW WORKING GAME UI NOW again.");
+            }
+        }
+
+        private static void BuildInternal(Scene scene, bool showDialog)
+        {
             Canvas canvas = FindMainCanvas();
             if (canvas == null)
             {
@@ -235,66 +312,61 @@ namespace Watermelon.EditorTools
                 return;
             }
 
-            // Remove only a previous v3 build if the command is run again.
+            // Restore from an earlier v4 build before rebuilding.
             Transform existingNew = canvas.transform.Find(NewPageName);
-            Transform existingOldContainer = canvas.transform.Find(OldContainerName);
-            if (existingNew != null || existingOldContainer != null)
-            {
-                if (!EditorUtility.DisplayDialog(
-                        "Rebuild Separate Game Scene",
-                        "A separate NEW/OLD Game Scene hierarchy already exists.\n\n" +
-                        "Restore the original hierarchy and rebuild it?",
-                        "Rebuild",
-                        "Cancel"))
-                    return;
+            if (existingNew != null)
+                UnityEngine.Object.DestroyImmediate(existingNew.gameObject);
 
-                RestoreExistingSeparateBuild(canvas);
+            Transform existingOld = canvas.transform.Find(OldPageName);
+            if (existingOld != null)
+            {
+                existingOld.name = "UI Game";
+                existingOld.gameObject.SetActive(true);
             }
 
-            GameObject oldPage = FindDirectPage<UIGame>(canvas.transform);
-            if (oldPage == null)
+            GameObject original = FindDirectPage<UIGame>(canvas.transform, includeInactive: true);
+            if (original == null)
             {
-                Debug.LogError(
-                    "[GameUI] Could not find the original direct UI Game page. " +
-                    "The scene was not changed.");
+                Debug.LogError("[GameUI] Could not find original UI Game.");
                 return;
             }
 
-            // Older experimental builder placed an overlay INSIDE the old UI Game.
-            // Remove that overlay before cloning so the new page starts from the
-            // functional original hierarchy, not the experimental art layer.
-            Transform experimental = FindDescendant(oldPage.transform, "NEW Game UI");
+            original.name = "UI Game";
+            original.SetActive(true);
+
+            // Remove only the earlier experimental overlay, not functional children.
+            Transform experimental = FindDescendant(original.transform, "NEW Game UI");
             if (experimental != null)
                 UnityEngine.Object.DestroyImmediate(experimental.gameObject);
 
-            // STEP 1: duplicate the complete functional page FIRST.
-            // Unity remaps references between components and cloned children.
-            GameObject newPage = UnityEngine.Object.Instantiate(oldPage, canvas.transform, false);
+            // IMPORTANT: clone the complete original working page first.
+            GameObject newPage = UnityEngine.Object.Instantiate(original, canvas.transform, false);
             newPage.name = NewPageName;
             newPage.SetActive(true);
             newPage.transform.SetAsLastSibling();
 
-            // STEP 2: move the untouched original under a clearly visible OFF backup.
-            RectTransform oldContainer = CreateRect(OldContainerName, canvas.transform);
-            Stretch(oldContainer);
-            oldContainer.SetAsFirstSibling();
+            // Keep the original as a visible sibling in Hierarchy but OFF.
+            original.name = OldPageName;
+            original.SetActive(false);
+            original.transform.SetAsFirstSibling();
 
-            oldPage.transform.SetParent(oldContainer, false);
-            oldPage.name = OldPageName;
-            oldContainer.gameObject.SetActive(false);
-
-            // The new page must be a direct child because UIController scans direct
-            // children and builds a dictionary keyed by UIPage type.
+            // New clone keeps every original UIGame serialized reference.
             UIGame newGame = newPage.GetComponent<UIGame>();
             if (newGame == null)
             {
-                Debug.LogError("[GameUI] Cloned page has no UIGame component. Rolling back.");
                 UnityEngine.Object.DestroyImmediate(newPage);
-                oldPage.transform.SetParent(canvas.transform, false);
-                oldPage.name = "UI Game";
-                oldPage.SetActive(true);
-                UnityEngine.Object.DestroyImmediate(oldContainer.gameObject);
+                original.name = "UI Game";
+                original.SetActive(true);
+                Debug.LogError("[GameUI] Clone did not contain UIGame. Rolled back.");
                 return;
+            }
+
+            Canvas newCanvas = newPage.GetComponent<Canvas>();
+            if (newCanvas != null)
+            {
+                newCanvas.overrideSorting = true;
+                newCanvas.sortingOrder = 100;
+                newCanvas.enabled = true;
             }
 
             GameUIResponsiveLayout marker = newPage.GetComponent<GameUIResponsiveLayout>();
@@ -306,19 +378,17 @@ namespace Watermelon.EditorTools
             if (bridge == null)
                 bridge = newPage.AddComponent<GameSceneHUDController>();
 
-            Canvas pageCanvas = newPage.GetComponent<Canvas>();
-            if (pageCanvas != null)
+            Transform safeZone = FindDescendant(newPage.transform, "Safe Zone");
+            if (safeZone == null)
             {
-                pageCanvas.overrideSorting = true;
-                pageCanvas.sortingOrder = 50;
-                pageCanvas.enabled = true;
+                UnityEngine.Object.DestroyImmediate(newPage);
+                original.name = "UI Game";
+                original.SetActive(true);
+                Debug.LogError("[GameUI] Safe Zone was missing from cloned UIGame. Rolled back.");
+                return;
             }
 
-            GraphicRaycaster raycaster = newPage.GetComponent<GraphicRaycaster>();
-            if (raycaster != null)
-                raycaster.enabled = true;
-
-            Transform safeZone = FindDescendant(newPage.transform, "Safe Zone");
+            // Existing functional elements from the cloned original page.
             Transform levelTextTransform = FindDescendant(newPage.transform, "Level Text");
             Transform replayButtonTransform = FindDescendant(newPage.transform, "Replay Button");
             Transform powerUpPanel = FindDescendant(newPage.transform, "Power Up Panel");
@@ -326,25 +396,8 @@ namespace Watermelon.EditorTools
             Transform quitPopup = FindDescendantByPrefix(newPage.transform, "Quit Pop Up");
             Transform tutorialCanvas = FindDescendant(newPage.transform, "Tutorial Canvas");
 
-            if (safeZone == null || levelTextTransform == null || replayButtonTransform == null ||
-                powerUpPanel == null || orderPanel == null || quitPopup == null)
-            {
-                Debug.LogError(
-                    "[GameUI] The cloned original page is missing one or more required functional objects. " +
-                    "Rolling back without touching the old page.");
-
-                UnityEngine.Object.DestroyImmediate(newPage);
-                oldPage.transform.SetParent(canvas.transform, false);
-                oldPage.name = "UI Game";
-                oldPage.SetActive(true);
-                UnityEngine.Object.DestroyImmediate(oldContainer.gameObject);
-                return;
-            }
-
-            RectTransform safeRect = safeZone as RectTransform;
-
-            BuildNewDesign(
-                safeRect,
+            BuildDesign(
+                safeZone as RectTransform,
                 levelTextTransform,
                 replayButtonTransform,
                 powerUpPanel,
@@ -357,11 +410,11 @@ namespace Watermelon.EditorTools
                 out Image coinIcon,
                 out Image diamondIcon);
 
-            // Rewire TutorialController to the NEW clone. It is external to UIGame,
-            // so Unity cannot automatically remap this reference during duplication.
             RewireTutorialController(tutorialCanvas);
 
-            UILevelQuitPopUp quitLogic = quitPopup.GetComponent<UILevelQuitPopUp>();
+            UILevelQuitPopUp quitLogic =
+                quitPopup != null ? quitPopup.GetComponent<UILevelQuitPopUp>() : null;
+
             bridge.EditorConfigure(
                 coinPanel,
                 diamondPanel,
@@ -377,14 +430,11 @@ namespace Watermelon.EditorTools
                 LoadSprite("TopHUD/coin_icon.png"),
                 LoadSprite("TopHUD/diamond_icon.png"));
 
-            ApplyResultPageArtwork();
             ApplyOrderItemPrefabArtwork();
+            ApplyResultPageArtwork();
 
-            // Keep the original visually and functionally untouched inside OFF backup.
-            oldContainer.gameObject.SetActive(false);
-
+            EditorUtility.SetDirty(original);
             EditorUtility.SetDirty(newPage);
-            EditorUtility.SetDirty(oldContainer.gameObject);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
 
@@ -392,76 +442,24 @@ namespace Watermelon.EditorTools
             if (SceneView.lastActiveSceneView != null)
                 SceneView.lastActiveSceneView.FrameSelected();
 
-            EditorUtility.DisplayDialog(
-                "Separate Game Scene Created",
-                "Done.\n\nHierarchy now contains:\n\n" +
-                "OLD GAME SCENE [OFF]  (inactive original)\n" +
-                "NEW GAME SCENE [ACTIVE]  (new working UI)\n\n" +
-                "The original gameplay systems are connected through the duplicated UIGame page.",
-                "OK");
-
             Debug.Log(
-                "[GameUI] SUCCESS: OLD GAME SCENE [OFF] preserved and disabled; " +
-                "NEW GAME SCENE [ACTIVE] created as the direct working UIGame page.");
-        }
+                "[GameUI] SUCCESS. OLD UI Game [OFF] preserved and disabled. " +
+                "NEW UI Game [ACTIVE] created from a full duplicate of the original working page.");
 
-        [MenuItem("Conveyor Chef/Game Scene/3. Focus NEW Game Scene", priority = 3)]
-        public static void FocusNewGameScene()
-        {
-            Canvas canvas = FindMainCanvas();
-            if (canvas == null)
-                return;
-
-            Transform newPage = canvas.transform.Find(NewPageName);
-            if (newPage == null)
+            if (showDialog)
             {
-                Debug.LogWarning("[GameUI] NEW GAME SCENE [ACTIVE] has not been created yet.");
-                return;
-            }
-
-            Selection.activeGameObject = newPage.gameObject;
-            if (SceneView.lastActiveSceneView != null)
-                SceneView.lastActiveSceneView.FrameSelected();
-        }
-
-        [MenuItem("Conveyor Chef/Game Scene/4. Validate NEW/OLD Hierarchy", priority = 4)]
-        public static void ValidateHierarchy()
-        {
-            Canvas canvas = FindMainCanvas();
-            if (canvas == null)
-            {
-                Debug.LogError("[GameUI] Validation failed: UI Main Canvas not found.");
-                return;
-            }
-
-            Transform oldContainer = canvas.transform.Find(OldContainerName);
-            Transform newPage = canvas.transform.Find(NewPageName);
-
-            bool oldOk =
-                oldContainer != null &&
-                !oldContainer.gameObject.activeSelf &&
-                oldContainer.GetComponentInChildren<UIGame>(true) != null;
-
-            bool newOk =
-                newPage != null &&
-                newPage.gameObject.activeSelf &&
-                newPage.GetComponent<UIGame>() != null &&
-                newPage.parent == canvas.transform;
-
-            if (oldOk && newOk)
-            {
-                Debug.Log(
-                    "[GameUI] VALID: original UIGame is nested under OLD GAME SCENE [OFF], " +
-                    "and NEW GAME SCENE [ACTIVE] is the direct active UIGame page.");
-            }
-            else
-            {
-                Debug.LogError(
-                    "[GameUI] INVALID hierarchy. Run '2. CREATE Separate NEW Game Scene (Old OFF)' again.");
+                EditorUtility.DisplayDialog(
+                    "NEW Working Game UI Created",
+                    "Hierarchy now contains:\n\n" +
+                    "OLD UI Game [OFF]\n" +
+                    "NEW UI Game [ACTIVE]\n\n" +
+                    "The NEW page is a full functional duplicate of the old UIGame, " +
+                    "with the redesigned UI layered on it.",
+                    "OK");
             }
         }
 
-        private static void BuildNewDesign(
+        private static void BuildDesign(
             RectTransform safeZone,
             Transform levelTextTransform,
             Transform replayButtonTransform,
@@ -475,35 +473,36 @@ namespace Watermelon.EditorTools
             out Image coinIcon,
             out Image diamondIcon)
         {
-            Transform previousDesign = FindDescendant(safeZone, DesignRootName);
-            if (previousDesign != null)
-                UnityEngine.Object.DestroyImmediate(previousDesign.gameObject);
+            Transform previous = FindDescendant(safeZone, DesignRootName);
+            if (previous != null)
+                UnityEngine.Object.DestroyImmediate(previous.gameObject);
 
             RectTransform design = CreateRect(DesignRootName, safeZone);
             Stretch(design);
             design.SetAsFirstSibling();
 
-            // Opaque top strip deliberately covers the old UIMainMenu HUD that may
-            // still exist behind UIGame in the legacy flow.
+            // Strong backplate makes NEW UI clearly visible even while other legacy
+            // editor pages are still visible behind it.
             RectTransform topBack = CreateSolidImage(
                 "Top HUD Backplate",
                 design,
-                new Color32(38, 49, 69, 255),
+                new Color32(39, 51, 70, 255),
                 new Vector2(0f, 1f),
                 new Vector2(1f, 1f),
                 Vector2.zero,
-                new Vector2(0f, 225f));
+                new Vector2(0f, 235f));
             topBack.pivot = new Vector2(0.5f, 1f);
             topBack.anchoredPosition = Vector2.zero;
 
+            // LEVEL panel.
             RectTransform levelPanel = CreateImage(
                 "Level Panel",
                 design,
                 LoadSprite("TopHUD/level_title_panel.png"),
                 new Vector2(0.5f, 1f),
                 new Vector2(0.5f, 1f),
-                new Vector2(-42f, -86f),
-                new Vector2(315f, 105f),
+                new Vector2(-45f, -88f),
+                new Vector2(315f, 108f),
                 false);
 
             CreateImage(
@@ -512,46 +511,53 @@ namespace Watermelon.EditorTools
                 LoadSprite("TopHUD/chef_hat_icon.png"),
                 Center,
                 Center,
-                new Vector2(0f, 49f),
+                new Vector2(0f, 50f),
                 new Vector2(68f, 68f),
                 true);
 
-            RectTransform levelRect = levelTextTransform as RectTransform;
-            levelTextTransform.SetParent(safeZone, false);
-            levelRect.anchorMin = new Vector2(0.5f, 1f);
-            levelRect.anchorMax = new Vector2(0.5f, 1f);
-            levelRect.pivot = Center;
-            levelRect.anchoredPosition = new Vector2(-42f, -91f);
-            levelRect.sizeDelta = new Vector2(245f, 62f);
-            levelRect.localScale = Vector3.one;
-            levelTextTransform.SetAsLastSibling();
-
-            TextMeshProUGUI levelText = levelTextTransform.GetComponent<TextMeshProUGUI>();
-            if (levelText != null)
+            if (levelTextTransform != null)
             {
-                levelText.fontSize = 40f;
-                levelText.fontStyle = FontStyles.Bold;
-                levelText.alignment = TextAlignmentOptions.Center;
-                levelText.color = Color.white;
-                levelText.enableAutoSizing = true;
-                levelText.fontSizeMin = 24f;
-                levelText.fontSizeMax = 40f;
-                levelText.textWrappingMode = TextWrappingModes.NoWrap;
+                RectTransform rect = levelTextTransform as RectTransform;
+                levelTextTransform.SetParent(safeZone, false);
+                rect.anchorMin = new Vector2(0.5f, 1f);
+                rect.anchorMax = new Vector2(0.5f, 1f);
+                rect.pivot = Center;
+                rect.anchoredPosition = new Vector2(-45f, -92f);
+                rect.sizeDelta = new Vector2(245f, 62f);
+                rect.localScale = Vector3.one;
+                levelTextTransform.SetAsLastSibling();
+
+                TextMeshProUGUI level = levelTextTransform.GetComponent<TextMeshProUGUI>();
+                if (level != null)
+                {
+                    level.fontSize = 40f;
+                    level.fontStyle = FontStyles.Bold;
+                    level.alignment = TextAlignmentOptions.Center;
+                    level.color = Color.white;
+                    level.enableAutoSizing = true;
+                    level.fontSizeMin = 22f;
+                    level.fontSizeMax = 40f;
+                    level.textWrappingMode = TextWrappingModes.NoWrap;
+                }
             }
 
-            // Existing replay button remains the exact old functional button.
-            replayButtonTransform.name = "Pause Button";
-            RectTransform replayRect = replayButtonTransform as RectTransform;
-            replayRect.SetParent(safeZone, false);
-            replayRect.anchorMin = new Vector2(1f, 1f);
-            replayRect.anchorMax = new Vector2(1f, 1f);
-            replayRect.pivot = Center;
-            replayRect.anchoredPosition = new Vector2(-78f, -70f);
-            replayRect.sizeDelta = new Vector2(88f, 88f);
-            replayRect.localScale = Vector3.one;
-            replayButtonTransform.SetAsLastSibling();
-            SetImageSprite(replayButtonTransform, LoadSprite("TopHUD/pause_button.png"), true);
-            HideTMPChildren(replayButtonTransform);
+            // Existing Replay Button becomes the pause button while keeping its old
+            // onClick logic to UILevelQuitPopUp.
+            if (replayButtonTransform != null)
+            {
+                replayButtonTransform.name = "Pause Button";
+                RectTransform rect = replayButtonTransform as RectTransform;
+                replayButtonTransform.SetParent(safeZone, false);
+                rect.anchorMin = new Vector2(1f, 1f);
+                rect.anchorMax = new Vector2(1f, 1f);
+                rect.pivot = Center;
+                rect.anchoredPosition = new Vector2(-74f, -70f);
+                rect.sizeDelta = new Vector2(88f, 88f);
+                rect.localScale = Vector3.one;
+                SetImageSprite(replayButtonTransform, LoadSprite("TopHUD/pause_button.png"), true);
+                HideTMPChildren(replayButtonTransform);
+                replayButtonTransform.SetAsLastSibling();
+            }
 
             settingsButton = CreateButton(
                 "Settings Button",
@@ -559,11 +565,10 @@ namespace Watermelon.EditorTools
                 LoadSprite("TopHUD/settings_button.png"),
                 new Vector2(1f, 1f),
                 new Vector2(1f, 1f),
-                new Vector2(-78f, -166f),
+                new Vector2(-74f, -165f),
                 new Vector2(82f, 82f));
-            settingsButton.transform.SetAsLastSibling();
 
-            // Original logic, new visual instances.
+            // New visual HUD pieces use the game's existing manager components.
             BuildLivesHUD(safeZone);
 
             BuildCurrencyHUD(
@@ -571,7 +576,7 @@ namespace Watermelon.EditorTools
                 CurrencyType.Coins,
                 "Coin Counter",
                 "TopHUD/coin_counter_panel.png",
-                new Vector2(-303f, -42f),
+                new Vector2(-304f, -42f),
                 out coinPanel,
                 out coinIcon);
 
@@ -580,32 +585,20 @@ namespace Watermelon.EditorTools
                 CurrencyType.Diamonds,
                 "Diamond Counter",
                 "TopHUD/diamond_counter_panel.png",
-                new Vector2(-303f, -126f),
+                new Vector2(-304f, -127f),
                 out diamondPanel,
                 out diamondIcon);
 
-            // Kitchen/conveyor visual treatment.
-            RectTransform kitchenStrip = CreateImage(
+            // Kitchen strip.
+            CreateImage(
                 "Kitchen Counter Strip",
                 design,
                 LoadSprite("Kitchen/kitchen_counter_strip.png"),
                 new Vector2(0.5f, 1f),
                 new Vector2(0.5f, 1f),
-                new Vector2(0f, -340f),
+                new Vector2(0f, -345f),
                 new Vector2(1030f, 280f),
                 false);
-            kitchenStrip.GetComponent<Image>().raycastTarget = false;
-
-            // Small decorations from generated set.
-            CreateImage(
-                "Hanging Lamp Left",
-                design,
-                LoadSprite("Decor/hanging_pendant_lamp.png"),
-                new Vector2(0f, 1f),
-                new Vector2(0f, 1f),
-                new Vector2(82f, -305f),
-                new Vector2(120f, 175f),
-                true);
 
             CreateImage(
                 "Kitchen Shelf",
@@ -613,16 +606,27 @@ namespace Watermelon.EditorTools
                 LoadSprite("Decor/stocked_kitchen_shelf.png"),
                 new Vector2(0f, 1f),
                 new Vector2(0f, 1f),
-                new Vector2(235f, -345f),
-                new Vector2(245f, 150f),
+                new Vector2(205f, -340f),
+                new Vector2(235f, 145f),
                 true);
 
+            CreateImage(
+                "Hanging Lamp",
+                design,
+                LoadSprite("Decor/hanging_pendant_lamp.png"),
+                new Vector2(0f, 1f),
+                new Vector2(0f, 1f),
+                new Vector2(70f, -300f),
+                new Vector2(110f, 165f),
+                true);
+
+            // Conveyor.
             RectTransform conveyor = CreateRect("Conveyor UI", design);
             conveyor.anchorMin = new Vector2(0.5f, 1f);
             conveyor.anchorMax = new Vector2(0.5f, 1f);
             conveyor.pivot = new Vector2(0.5f, 1f);
-            conveyor.anchoredPosition = new Vector2(-35f, -465f);
-            conveyor.sizeDelta = new Vector2(875f, 215f);
+            conveyor.anchoredPosition = new Vector2(-35f, -470f);
+            conveyor.sizeDelta = new Vector2(870f, 215f);
 
             CreateImage(
                 "Conveyor Belt",
@@ -650,18 +654,19 @@ namespace Watermelon.EditorTools
                 LoadSprite("Kitchen/purple_serving_tray.png"),
                 Center,
                 Center,
-                new Vector2(-30f, -3f),
+                new Vector2(-25f, -3f),
                 new Vector2(245f, 105f),
                 true);
 
+            // Serving slots.
             RectTransform serving = CreateImage(
                 "Serving Slots Panel",
                 design,
                 LoadSprite("Board/serving_slots_panel.png"),
                 new Vector2(0.5f, 1f),
                 new Vector2(0.5f, 1f),
-                new Vector2(-82f, -697f),
-                new Vector2(760f, 125f),
+                new Vector2(-78f, -700f),
+                new Vector2(760f, 126f),
                 false);
 
             float startX = -294f;
@@ -679,12 +684,12 @@ namespace Watermelon.EditorTools
                     true);
             }
 
-            // Orders artwork behind the cloned functional UIOrderPanel.
+            // Orders background, then preserve real UIOrderPanel above it.
             RectTransform objective = CreateRect("Objective Panel Artwork", design);
             objective.anchorMin = new Vector2(1f, 1f);
             objective.anchorMax = new Vector2(1f, 1f);
             objective.pivot = new Vector2(1f, 1f);
-            objective.anchoredPosition = new Vector2(-30f, -265f);
+            objective.anchoredPosition = new Vector2(-25f, -260f);
             objective.sizeDelta = new Vector2(300f, 420f);
 
             CreateImage(
@@ -707,7 +712,7 @@ namespace Watermelon.EditorTools
                 new Vector2(-12f, -12f),
                 false);
 
-            TextMeshProUGUI ordersTitle = CreateTMP(
+            TextMeshProUGUI title = CreateTMP(
                 "Orders Title",
                 objective,
                 "ORDERS",
@@ -715,23 +720,36 @@ namespace Watermelon.EditorTools
                 FontStyles.Bold,
                 new Vector2(0f, 160f),
                 new Vector2(235f, 54f));
-            ordersTitle.color = new Color32(83, 45, 22, 255);
+            title.color = new Color32(83, 45, 22, 255);
 
-            ConfigureFunctionalOrderPanel(orderPanel);
-            orderPanel.SetAsLastSibling();
+            if (orderPanel != null)
+            {
+                RectTransform rect = orderPanel as RectTransform;
+                rect.anchorMin = new Vector2(1f, 1f);
+                rect.anchorMax = new Vector2(1f, 1f);
+                rect.pivot = new Vector2(0.5f, 1f);
+                rect.anchoredPosition = new Vector2(-178f, -330f);
+                rect.localScale = Vector3.one;
 
-            // Preserve the real power-up controller and its three behaviours.
-            ConfigureFunctionalPowerUps(powerUpPanel);
-            powerUpPanel.SetAsLastSibling();
+                Image bg = orderPanel.GetComponent<Image>();
+                if (bg != null)
+                {
+                    bg.color = new Color(1f, 1f, 1f, 0f);
+                    bg.raycastTarget = false;
+                }
 
+                orderPanel.SetAsLastSibling();
+            }
+
+            // Bottom toolbar + functional power-up panel.
             RectTransform toolbar = CreateImage(
                 "Bottom Toolbar",
                 design,
                 LoadSprite("Toolbar/bottom_toolbar_panel.png"),
                 new Vector2(0.5f, 0f),
                 new Vector2(0.5f, 0f),
-                new Vector2(0f, 90f),
-                new Vector2(790f, 180f),
+                new Vector2(0f, 92f),
+                new Vector2(790f, 182f),
                 false);
 
             CreateImage(
@@ -753,8 +771,20 @@ namespace Watermelon.EditorTools
                 new Vector2(-292f, 0f),
                 new Vector2(118f, 118f));
 
-            // Gameplay frame is intentionally subtle. The 3D game remains visible.
-            RectTransform frame = CreateImage(
+            if (powerUpPanel != null)
+            {
+                RectTransform rect = powerUpPanel as RectTransform;
+                rect.anchorMin = new Vector2(0.5f, 0f);
+                rect.anchorMax = new Vector2(0.5f, 0f);
+                rect.pivot = new Vector2(0.5f, 0f);
+                rect.anchoredPosition = new Vector2(108f, 42f);
+                rect.sizeDelta = new Vector2(545f, 165f);
+                rect.localScale = Vector3.one;
+                powerUpPanel.SetAsLastSibling();
+            }
+
+            // Subtle frame around active 3D board.
+            RectTransform boardFrame = CreateImage(
                 "Gameplay Board Frame",
                 design,
                 LoadSprite("Decor/industrial_board_frame.png"),
@@ -763,15 +793,28 @@ namespace Watermelon.EditorTools
                 new Vector2(0f, 475f),
                 new Vector2(835f, 820f),
                 false);
-            Image frameImage = frame.GetComponent<Image>();
-            frameImage.color = new Color(1f, 1f, 1f, 0.14f);
-            frameImage.raycastTarget = false;
-            frame.SetAsFirstSibling();
 
-            ConfigureQuitPopup(quitPopup);
+            Image boardFrameImage = boardFrame.GetComponent<Image>();
+            boardFrameImage.color = new Color(1f, 1f, 1f, 0.14f);
+            boardFrameImage.raycastTarget = false;
+            boardFrame.SetAsFirstSibling();
 
-            // Every generated asset remains in the editable hierarchy. Assets that
-            // would cover the 3D board are kept in an inactive designer library.
+            if (quitPopup != null)
+            {
+                SetImageSprite(
+                    FindDescendant(quitPopup, "Panel Back"),
+                    LoadSprite("Popups/pause_popup_panel.png"),
+                    false);
+
+                Transform quit = FindDescendant(quitPopup, "Quit Button");
+                Transform close = FindDescendant(quitPopup, "Close Button");
+
+                SetImageSprite(quit, LoadSprite("Popups/restart_button.png"), true);
+                SetImageSprite(close, LoadSprite("Popups/continue_button.png"), true);
+                HideTMPChildren(quit);
+                HideTMPChildren(close);
+            }
+
             BuildExtraAssetLibrary(design);
         }
 
@@ -784,6 +827,7 @@ namespace Watermelon.EditorTools
 
             GameObject addPanel = (GameObject)PrefabUtility.InstantiatePrefab(addLivesPrefab, safeZone);
             addPanel.name = "NEW Add Lives Panel";
+
             RectTransform addRect = addPanel.transform as RectTransform;
             if (addRect != null)
                 Stretch(addRect);
@@ -795,7 +839,7 @@ namespace Watermelon.EditorTools
             rect.anchorMin = new Vector2(0f, 1f);
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = new Vector2(30f, -38f);
+            rect.anchoredPosition = new Vector2(28f, -38f);
             rect.sizeDelta = new Vector2(292f, 88f);
             rect.localScale = Vector3.one;
 
@@ -807,8 +851,15 @@ namespace Watermelon.EditorTools
                 bg.type = Image.Type.Simple;
             }
 
-            SetImageSprite(FindDescendant(indicator.transform, "Heart Image"), LoadSprite("TopHUD/heart_icon.png"), true);
-            SetImageSprite(FindDescendant(indicator.transform, "Add Button"), LoadSprite("TopHUD/green_plus_button.png"), true);
+            SetImageSprite(
+                FindDescendant(indicator.transform, "Heart Image"),
+                LoadSprite("TopHUD/heart_icon.png"),
+                true);
+
+            SetImageSprite(
+                FindDescendant(indicator.transform, "Add Button"),
+                LoadSprite("TopHUD/green_plus_button.png"),
+                true);
 
             LivesIndicator logic = indicator.GetComponent<LivesIndicator>();
             AddLivesPanel panelLogic = addPanel.GetComponent<AddLivesPanel>();
@@ -830,13 +881,13 @@ namespace Watermelon.EditorTools
         private static void BuildCurrencyHUD(
             RectTransform safeZone,
             CurrencyType type,
-            string objectName,
+            string name,
             string backgroundAsset,
-            Vector2 position,
-            out CurrencyUIPanelSimple panelLogic,
+            Vector2 anchoredPosition,
+            out CurrencyUIPanelSimple logic,
             out Image iconImage)
         {
-            panelLogic = null;
+            logic = null;
             iconImage = null;
 
             GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CurrencyPanelPrefab);
@@ -844,13 +895,13 @@ namespace Watermelon.EditorTools
                 return;
 
             GameObject panel = (GameObject)PrefabUtility.InstantiatePrefab(prefab, safeZone);
-            panel.name = objectName;
+            panel.name = name;
 
             RectTransform rect = panel.transform as RectTransform;
             rect.anchorMin = new Vector2(1f, 1f);
             rect.anchorMax = new Vector2(1f, 1f);
             rect.pivot = new Vector2(1f, 1f);
-            rect.anchoredPosition = position;
+            rect.anchoredPosition = anchoredPosition;
             rect.sizeDelta = new Vector2(250f, 74f);
             rect.localScale = Vector3.one;
 
@@ -862,10 +913,10 @@ namespace Watermelon.EditorTools
                 bg.type = Image.Type.Simple;
             }
 
-            panelLogic = panel.GetComponent<CurrencyUIPanelSimple>();
-            if (panelLogic != null)
+            logic = panel.GetComponent<CurrencyUIPanelSimple>();
+            if (logic != null)
             {
-                SerializedObject so = new SerializedObject(panelLogic);
+                SerializedObject so = new SerializedObject(logic);
                 SerializedProperty currencyType = so.FindProperty("currencyType");
                 if (currencyType != null)
                     currencyType.enumValueIndex = (int)type;
@@ -873,7 +924,10 @@ namespace Watermelon.EditorTools
             }
 
             Transform plus = FindDescendant(panel.transform, "Add Button");
-            SetImageSprite(plus, LoadSprite("TopHUD/green_plus_button.png"), true);
+            SetImageSprite(
+                plus,
+                LoadSprite("TopHUD/green_plus_button.png"),
+                true);
 
             Transform icon = FindDescendant(panel.transform, "Currency Icon");
             if (icon != null)
@@ -885,6 +939,7 @@ namespace Watermelon.EditorTools
                         type == CurrencyType.Coins
                             ? "TopHUD/coin_icon.png"
                             : "TopHUD/diamond_icon.png");
+
                     iconImage.preserveAspect = true;
                 }
             }
@@ -892,91 +947,26 @@ namespace Watermelon.EditorTools
             panel.transform.SetAsLastSibling();
         }
 
-        private static void ConfigureFunctionalOrderPanel(Transform orderPanel)
-        {
-            RectTransform rect = orderPanel as RectTransform;
-            if (rect != null)
-            {
-                rect.anchorMin = new Vector2(1f, 1f);
-                rect.anchorMax = new Vector2(1f, 1f);
-                rect.pivot = new Vector2(0.5f, 1f);
-                rect.anchoredPosition = new Vector2(-180f, -330f);
-                rect.localScale = Vector3.one;
-            }
-
-            Image image = orderPanel.GetComponent<Image>();
-            if (image != null)
-            {
-                image.color = new Color(1f, 1f, 1f, 0f);
-                image.raycastTarget = false;
-            }
-
-            VerticalLayoutGroup layout = orderPanel.GetComponent<VerticalLayoutGroup>();
-            if (layout != null)
-            {
-                layout.spacing = 8f;
-                layout.padding = new RectOffset(0, 0, 0, 0);
-                layout.childAlignment = TextAnchor.UpperCenter;
-            }
-        }
-
-        private static void ConfigureFunctionalPowerUps(Transform powerUpPanel)
-        {
-            RectTransform rect = powerUpPanel as RectTransform;
-            if (rect != null)
-            {
-                rect.anchorMin = new Vector2(0.5f, 0f);
-                rect.anchorMax = new Vector2(0.5f, 0f);
-                rect.pivot = new Vector2(0.5f, 0f);
-                rect.anchoredPosition = new Vector2(105f, 42f);
-                rect.sizeDelta = new Vector2(545f, 165f);
-                rect.localScale = Vector3.one;
-            }
-
-            Transform container = FindDescendant(powerUpPanel, "Container");
-            if (container != null)
-            {
-                HorizontalLayoutGroup layout = container.GetComponent<HorizontalLayoutGroup>();
-                if (layout != null)
-                {
-                    layout.spacing = 18f;
-                    layout.childAlignment = TextAnchor.MiddleCenter;
-                    layout.childForceExpandWidth = false;
-                    layout.childForceExpandHeight = false;
-                }
-            }
-        }
-
-        private static void ConfigureQuitPopup(Transform popup)
-        {
-            SetImageSprite(FindDescendant(popup, "Panel Back"), LoadSprite("Popups/pause_popup_panel.png"), false);
-
-            Transform quitButton = FindDescendant(popup, "Quit Button");
-            Transform closeButton = FindDescendant(popup, "Close Button");
-
-            SetImageSprite(quitButton, LoadSprite("Popups/restart_button.png"), true);
-            SetImageSprite(closeButton, LoadSprite("Popups/continue_button.png"), true);
-            HideTMPChildren(quitButton);
-            HideTMPChildren(closeButton);
-        }
-
         private static void RewireTutorialController(Transform tutorialCanvas)
         {
             if (tutorialCanvas == null)
                 return;
 
-            TutorialCanvasController newCanvas = tutorialCanvas.GetComponent<TutorialCanvasController>();
+            TutorialCanvasController newCanvas =
+                tutorialCanvas.GetComponent<TutorialCanvasController>();
+
             TutorialController controller =
-                UnityEngine.Object.FindFirstObjectByType<TutorialController>(FindObjectsInactive.Include);
+                UnityEngine.Object.FindFirstObjectByType<TutorialController>(
+                    FindObjectsInactive.Include);
 
             if (newCanvas == null || controller == null)
                 return;
 
             SerializedObject so = new SerializedObject(controller);
-            SerializedProperty property = so.FindProperty("tutorialCanvasController");
-            if (property != null)
+            SerializedProperty p = so.FindProperty("tutorialCanvasController");
+            if (p != null)
             {
-                property.objectReferenceValue = newCanvas;
+                p.objectReferenceValue = newCanvas;
                 so.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(controller);
             }
@@ -992,8 +982,14 @@ namespace Watermelon.EditorTools
                     LoadSprite("Popups/level_complete_popup.png"),
                     true);
 
-                Transform continueButton = FindDescendant(complete.transform, "No Thanks Button");
-                SetImageSprite(continueButton, LoadSprite("Popups/continue_button.png"), true);
+                Transform continueButton =
+                    FindDescendant(complete.transform, "No Thanks Button");
+
+                SetImageSprite(
+                    continueButton,
+                    LoadSprite("Popups/continue_button.png"),
+                    true);
+
                 HideTMPChildren(continueButton);
 
                 SetImageSprite(
@@ -1010,8 +1006,14 @@ namespace Watermelon.EditorTools
                     LoadSprite("Popups/level_failed_popup.png"),
                     true);
 
-                Transform replay = FindDescendant(failed.transform, "Replay Button");
-                SetImageSprite(replay, LoadSprite("Popups/restart_button.png"), true);
+                Transform replay =
+                    FindDescendant(failed.transform, "Replay Button");
+
+                SetImageSprite(
+                    replay,
+                    LoadSprite("Popups/restart_button.png"),
+                    true);
+
                 HideTMPChildren(replay);
 
                 SetImageSprite(
@@ -1023,7 +1025,9 @@ namespace Watermelon.EditorTools
 
         private static void ApplyOrderItemPrefabArtwork()
         {
-            const string prefabPath = "Assets/Project Data/Game/Prefabs/OrderItem.prefab";
+            const string prefabPath =
+                "Assets/Project Data/Game/Prefabs/OrderItem.prefab";
+
             GameObject root = PrefabUtility.LoadPrefabContents(prefabPath);
             if (root == null)
                 return;
@@ -1053,7 +1057,9 @@ namespace Watermelon.EditorTools
 
         private static void BuildExtraAssetLibrary(RectTransform design)
         {
-            RectTransform library = CreateRect("ALL EXTRA GENERATED ASSETS [OFF]", design);
+            RectTransform library =
+                CreateRect("ALL EXTRA GENERATED ASSETS [OFF]", design);
+
             Stretch(library);
             library.gameObject.SetActive(false);
 
@@ -1087,11 +1093,15 @@ namespace Watermelon.EditorTools
                 int row = i / columns;
                 int col = i % columns;
 
-                RectTransform holder = CreateRect(Path.GetFileNameWithoutExtension(assets[i]), library);
+                RectTransform holder =
+                    CreateRect(Path.GetFileNameWithoutExtension(assets[i]), library);
+
                 holder.anchorMin = Center;
                 holder.anchorMax = Center;
                 holder.pivot = Center;
-                holder.anchoredPosition = new Vector2(startX + col * cellW, startY - row * cellH);
+                holder.anchoredPosition =
+                    new Vector2(startX + col * cellW, startY - row * cellH);
+
                 holder.sizeDelta = new Vector2(210f, 170f);
 
                 CreateImage(
@@ -1106,34 +1116,17 @@ namespace Watermelon.EditorTools
             }
         }
 
-        private static void RestoreExistingSeparateBuild(Canvas canvas)
-        {
-            Transform newPage = canvas.transform.Find(NewPageName);
-            if (newPage != null)
-                UnityEngine.Object.DestroyImmediate(newPage.gameObject);
-
-            Transform oldContainer = canvas.transform.Find(OldContainerName);
-            if (oldContainer == null)
-                return;
-
-            UIGame oldGame = oldContainer.GetComponentInChildren<UIGame>(true);
-            if (oldGame != null)
-            {
-                oldGame.transform.SetParent(canvas.transform, false);
-                oldGame.name = "UI Game";
-                oldGame.gameObject.SetActive(true);
-            }
-
-            UnityEngine.Object.DestroyImmediate(oldContainer.gameObject);
-        }
-
         private static Canvas FindMainCanvas()
         {
-            GameObject root = FindObjectByExactNameInScene("UI Main Canvas");
+            GameObject root =
+                FindObjectByExactNameInScene("UI Main Canvas");
+
             return root != null ? root.GetComponent<Canvas>() : null;
         }
 
-        private static GameObject FindDirectPage<T>(Transform canvas) where T : Component
+        private static GameObject FindDirectPage<T>(
+            Transform canvas,
+            bool includeInactive) where T : Component
         {
             if (canvas == null)
                 return null;
@@ -1141,6 +1134,10 @@ namespace Watermelon.EditorTools
             for (int i = 0; i < canvas.childCount; i++)
             {
                 Transform child = canvas.GetChild(i);
+
+                if (!includeInactive && !child.gameObject.activeSelf)
+                    continue;
+
                 if (child.GetComponent<T>() != null)
                     return child.gameObject;
             }
@@ -1150,12 +1147,15 @@ namespace Watermelon.EditorTools
 
         private static RectTransform CreateRect(string name, Transform parent)
         {
-            GameObject go = new GameObject(name, typeof(RectTransform));
+            GameObject go =
+                new GameObject(name, typeof(RectTransform));
+
             go.layer = parent.gameObject.layer;
 
             RectTransform rect = go.GetComponent<RectTransform>();
             rect.SetParent(parent, false);
             rect.localScale = Vector3.one;
+
             return rect;
         }
 
@@ -1168,7 +1168,12 @@ namespace Watermelon.EditorTools
             Vector2 anchoredPosition,
             Vector2 sizeDelta)
         {
-            GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            GameObject go = new GameObject(
+                name,
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image));
+
             go.layer = parent.gameObject.layer;
 
             RectTransform rect = go.GetComponent<RectTransform>();
@@ -1181,9 +1186,9 @@ namespace Watermelon.EditorTools
             rect.localScale = Vector3.one;
 
             Image image = go.GetComponent<Image>();
-            image.sprite = null;
             image.color = color;
             image.raycastTarget = false;
+
             return rect;
         }
 
@@ -1197,7 +1202,12 @@ namespace Watermelon.EditorTools
             Vector2 sizeDelta,
             bool preserveAspect)
         {
-            GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            GameObject go = new GameObject(
+                name,
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image));
+
             go.layer = parent.gameObject.layer;
 
             RectTransform rect = go.GetComponent<RectTransform>();
@@ -1229,13 +1239,21 @@ namespace Watermelon.EditorTools
             Vector2 sizeDelta)
         {
             RectTransform rect = CreateImage(
-                name, parent, sprite, anchorMin, anchorMax, anchoredPosition, sizeDelta, true);
+                name,
+                parent,
+                sprite,
+                anchorMin,
+                anchorMax,
+                anchoredPosition,
+                sizeDelta,
+                true);
 
             Image image = rect.GetComponent<Image>();
             image.raycastTarget = true;
 
             Button button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
+
             return button;
         }
 
@@ -1275,6 +1293,7 @@ namespace Watermelon.EditorTools
             text.fontSizeMax = fontSize;
             text.textWrappingMode = TextWrappingModes.NoWrap;
             text.raycastTarget = false;
+
             return text;
         }
 
@@ -1287,7 +1306,10 @@ namespace Watermelon.EditorTools
                 text.gameObject.SetActive(false);
         }
 
-        private static void SetImageSprite(Transform target, Sprite sprite, bool preserveAspect)
+        private static void SetImageSprite(
+            Transform target,
+            Sprite sprite,
+            bool preserveAspect)
         {
             if (target == null || sprite == null)
                 return;
@@ -1300,6 +1322,7 @@ namespace Watermelon.EditorTools
             image.color = Color.white;
             image.type = Image.Type.Simple;
             image.preserveAspect = preserveAspect;
+
             EditorUtility.SetDirty(image);
         }
 
@@ -1321,7 +1344,9 @@ namespace Watermelon.EditorTools
 
             foreach (GameObject root in scene.GetRootGameObjects())
             {
-                Transform match = FindSelfOrDescendant(root.transform, name);
+                Transform match =
+                    FindSelfOrDescendant(root.transform, name);
+
                 if (match != null)
                     return match.gameObject;
             }
@@ -1329,14 +1354,18 @@ namespace Watermelon.EditorTools
             return null;
         }
 
-        private static Transform FindSelfOrDescendant(Transform root, string name)
+        private static Transform FindSelfOrDescendant(
+            Transform root,
+            string name)
         {
             if (root.name == name)
                 return root;
 
             foreach (Transform child in root)
             {
-                Transform match = FindSelfOrDescendant(child, name);
+                Transform match =
+                    FindSelfOrDescendant(child, name);
+
                 if (match != null)
                     return match;
             }
@@ -1344,7 +1373,9 @@ namespace Watermelon.EditorTools
             return null;
         }
 
-        private static Transform FindDescendant(Transform root, string name)
+        private static Transform FindDescendant(
+            Transform root,
+            string name)
         {
             if (root == null)
                 return null;
@@ -1354,7 +1385,9 @@ namespace Watermelon.EditorTools
                 if (child.name == name)
                     return child;
 
-                Transform match = FindDescendant(child, name);
+                Transform match =
+                    FindDescendant(child, name);
+
                 if (match != null)
                     return match;
             }
@@ -1362,7 +1395,9 @@ namespace Watermelon.EditorTools
             return null;
         }
 
-        private static Transform FindDescendantByPrefix(Transform root, string prefix)
+        private static Transform FindDescendantByPrefix(
+            Transform root,
+            string prefix)
         {
             if (root == null)
                 return null;
@@ -1372,7 +1407,9 @@ namespace Watermelon.EditorTools
                 if (child.name.StartsWith(prefix, StringComparison.Ordinal))
                     return child;
 
-                Transform match = FindDescendantByPrefix(child, prefix);
+                Transform match =
+                    FindDescendantByPrefix(child, prefix);
+
                 if (match != null)
                     return match;
             }
@@ -1382,12 +1419,15 @@ namespace Watermelon.EditorTools
 
         private static Sprite LoadSprite(string relativePath)
         {
-            return AssetDatabase.LoadAssetAtPath<Sprite>(ArtFolder + "/" + relativePath);
+            return AssetDatabase.LoadAssetAtPath<Sprite>(
+                ArtFolder + "/" + relativePath);
         }
 
         private static List<string> MissingAssets()
         {
-            return RequiredAssets.Where(path => LoadSprite(path) == null).ToList();
+            return RequiredAssets
+                .Where(path => LoadSprite(path) == null)
+                .ToList();
         }
 
         private static void EnsureFolders()
@@ -1404,8 +1444,10 @@ namespace Watermelon.EditorTools
             for (int i = 1; i < parts.Length; i++)
             {
                 string next = current + "/" + parts[i];
+
                 if (!AssetDatabase.IsValidFolder(next))
                     AssetDatabase.CreateFolder(current, parts[i]);
+
                 current = next;
             }
         }
@@ -1415,11 +1457,17 @@ namespace Watermelon.EditorTools
             foreach (string relativePath in RequiredAssets)
             {
                 string path = ArtFolder + "/" + relativePath;
+
                 if (!File.Exists(path))
                     continue;
 
-                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
-                TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                AssetDatabase.ImportAsset(
+                    path,
+                    ImportAssetOptions.ForceUpdate);
+
+                TextureImporter importer =
+                    AssetImporter.GetAtPath(path) as TextureImporter;
+
                 if (importer == null)
                     continue;
 
@@ -1436,19 +1484,38 @@ namespace Watermelon.EditorTools
 
         private static bool TryImportAssetPackFromKnownLocations()
         {
-            string projectRoot = Directory.GetParent(Application.dataPath)?.FullName;
-            string userHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            string projectRoot =
+                Directory.GetParent(Application.dataPath)?.FullName;
+
+            string userHome =
+                Environment.GetFolderPath(
+                    Environment.SpecialFolder.UserProfile);
 
             string[] candidates =
             {
-                string.IsNullOrEmpty(projectRoot) ? null : Path.Combine(projectRoot, AssetPackFileName),
-                string.IsNullOrEmpty(userHome) ? null : Path.Combine(userHome, "Downloads", AssetPackFileName),
-                string.IsNullOrEmpty(userHome) ? null : Path.Combine(userHome, "Desktop", AssetPackFileName),
+                string.IsNullOrEmpty(projectRoot)
+                    ? null
+                    : Path.Combine(projectRoot, AssetPackFileName),
+
+                string.IsNullOrEmpty(userHome)
+                    ? null
+                    : Path.Combine(
+                        userHome,
+                        "Downloads",
+                        AssetPackFileName),
+
+                string.IsNullOrEmpty(userHome)
+                    ? null
+                    : Path.Combine(
+                        userHome,
+                        "Desktop",
+                        AssetPackFileName),
             };
 
             foreach (string candidate in candidates)
             {
-                if (!string.IsNullOrEmpty(candidate) && File.Exists(candidate))
+                if (!string.IsNullOrEmpty(candidate) &&
+                    File.Exists(candidate))
                     return ExtractAssetPack(candidate);
             }
 
@@ -1461,48 +1528,77 @@ namespace Watermelon.EditorTools
             {
                 EnsureFolders();
 
-                string fullTarget = Path.GetFullPath(ArtFolder) + Path.DirectorySeparatorChar;
+                string fullTarget =
+                    Path.GetFullPath(ArtFolder) +
+                    Path.DirectorySeparatorChar;
 
                 using (FileStream stream = File.OpenRead(zipPath))
-                using (ZipArchive archive = new ZipArchive(stream, ZipArchiveMode.Read))
+                using (ZipArchive archive =
+                    new ZipArchive(stream, ZipArchiveMode.Read))
                 {
                     foreach (ZipArchiveEntry entry in archive.Entries)
                     {
                         if (string.IsNullOrEmpty(entry.Name))
                             continue;
 
-                        string relative = entry.FullName.Replace('\\', '/');
-                        if (relative.StartsWith("/", StringComparison.Ordinal) || relative.Contains("../"))
+                        string relative =
+                            entry.FullName.Replace('\\', '/');
+
+                        if (relative.StartsWith("/", StringComparison.Ordinal) ||
+                            relative.Contains("../"))
                             continue;
 
-                        string destination = Path.GetFullPath(Path.Combine(ArtFolder, relative));
-                        if (!destination.StartsWith(fullTarget, StringComparison.OrdinalIgnoreCase))
+                        string destination =
+                            Path.GetFullPath(
+                                Path.Combine(ArtFolder, relative));
+
+                        if (!destination.StartsWith(
+                                fullTarget,
+                                StringComparison.OrdinalIgnoreCase))
                             continue;
 
-                        string directory = Path.GetDirectoryName(destination);
+                        string directory =
+                            Path.GetDirectoryName(destination);
+
                         if (!string.IsNullOrEmpty(directory))
                             Directory.CreateDirectory(directory);
 
                         using (Stream input = entry.Open())
-                        using (FileStream output = File.Create(destination))
+                        using (FileStream output =
+                            File.Create(destination))
+                        {
                             input.CopyTo(output);
+                        }
                     }
                 }
 
-                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
-                Debug.Log("[GameUI] Imported generated Game UI art pack from: " + zipPath);
+                AssetDatabase.Refresh(
+                    ImportAssetOptions.ForceSynchronousImport);
+
+                Debug.Log(
+                    "[GameUI] Imported generated Game UI art pack from: " +
+                    zipPath);
+
                 return true;
             }
             catch (Exception exception)
             {
-                Debug.LogError("[GameUI] Could not import Game UI art pack: " + exception);
+                Debug.LogError(
+                    "[GameUI] Could not import Game UI art pack: " +
+                    exception);
+
                 return false;
             }
         }
 
-        private static readonly Vector2 Center = new Vector2(0.5f, 0.5f);
-        private static readonly Vector2 StretchMin = Vector2.zero;
-        private static readonly Vector2 StretchMax = Vector2.one;
+        private static readonly Vector2 Center =
+            new Vector2(0.5f, 0.5f);
+
+        private static readonly Vector2 StretchMin =
+            Vector2.zero;
+
+        private static readonly Vector2 StretchMax =
+            Vector2.one;
     }
 }
 #endif
