@@ -46,6 +46,8 @@ namespace Watermelon.BusStop
         [Tooltip("How far the glow starts inside the card edge (covers transparent margins of the frame art).")]
         [SerializeField] private float selectionGlowInset = 6f;
         [SerializeField] private float selectionGlowFadeSpeed = 8f;
+        [Tooltip("Transparent margins of the card frame art around its blue body, as fractions of the frame: left, right, top (below the number badge), bottom.")]
+        [SerializeField] private Vector4 frameBodyInsets = new Vector4(0.103f, 0.0755f, 0.083f, 0.016f);
 
         private LevelSelectionController owner;
         private bool unlocked;
@@ -286,12 +288,9 @@ namespace Watermelon.BusStop
 
             RectTransform rect = (RectTransform)go.transform;
             rect.SetParent(transform, false);
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            float outset = selectionGlowWidth - selectionGlowInset;
-            rect.offsetMin = new Vector2(-outset, -outset);
-            rect.offsetMax = new Vector2(outset, outset);
             rect.SetAsFirstSibling();
 
             selectionGlow = go.GetComponent<Image>();
@@ -301,12 +300,46 @@ namespace Watermelon.BusStop
             selectionGlow.pixelsPerUnitMultiplier = GlowTextureWidth / Mathf.Max(1f, selectionGlowWidth);
             selectionGlow.raycastTarget = false;
             selectionGlow.color = new Color(selectionGlowColor.r, selectionGlowColor.g, selectionGlowColor.b, 0f);
+
+            LayoutSelectionGlow();
+        }
+
+        // Fits the glow to the visible blue body of the Card Frame art. The card root
+        // is stretched by percentage anchors and is larger than the art on tall screens,
+        // so it cannot be used for the glow's shape.
+        private void LayoutSelectionGlow()
+        {
+            RectTransform glowRect = selectionGlow.rectTransform;
+            RectTransform frame = cardFrame != null ? cardFrame.rectTransform : null;
+            float outset = selectionGlowWidth - selectionGlowInset;
+
+            if (frame == null || frame.parent != transform)
+            {
+                RectTransform root = (RectTransform)transform;
+                glowRect.localPosition = (Vector3)root.rect.center;
+                glowRect.sizeDelta = root.rect.size + Vector2.one * (2f * outset);
+                return;
+            }
+
+            Vector2 size = frame.rect.size;
+            float left = size.x * frameBodyInsets.x;
+            float right = size.x * frameBodyInsets.y;
+            float top = size.y * frameBodyInsets.z;
+            float bottom = size.y * frameBodyInsets.w;
+
+            Vector2 bodySize = new Vector2(size.x - left - right, size.y - top - bottom);
+            Vector2 bodyCenter = frame.rect.center + new Vector2((left - right) * 0.5f, (bottom - top) * 0.5f);
+
+            glowRect.localPosition = frame.localPosition + (Vector3)bodyCenter;
+            glowRect.sizeDelta = bodySize + Vector2.one * (2f * outset);
         }
 
         private void AnimateSelectionGlow()
         {
             if (selectionGlow == null)
                 return;
+
+            LayoutSelectionGlow();
 
             glowVisibility = Mathf.MoveTowards(glowVisibility, glowTarget ? 1f : 0f, selectionGlowFadeSpeed * Time.unscaledDeltaTime);
 
@@ -321,7 +354,7 @@ namespace Watermelon.BusStop
 
         // Glow width in texture pixels and the corner radius of the card shape.
         private const int GlowTextureWidth = 44;
-        private const int GlowCornerRadius = 26;
+        private const int GlowCornerRadius = 16;
 
         // A soft rounded-rectangle outline generated once: transparent inside the card
         // shape, brightest at its edge and fading outwards. Used as a 9-sliced sprite so
