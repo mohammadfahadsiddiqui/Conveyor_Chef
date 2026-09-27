@@ -73,7 +73,7 @@ namespace Watermelon.EditorTools
         // Bump when the generated layout changes: an older canvas is rebuilt once
         // automatically. Auto-build runs once per version and project copy, so deleting
         // the canvas later is respected.
-        private const int LayoutVersion = 4;
+        private const int LayoutVersion = 5;
         private static readonly string AutoBuiltKey =
             "ConveyorChef.GameMainCanvas.AutoBuilt.v" + LayoutVersion + "." + Application.dataPath.GetHashCode();
 
@@ -236,6 +236,7 @@ namespace Watermelon.EditorTools
 
             ConfigureRootCanvas(root, mainCanvas);
             BuildBackgroundCanvas(mainCanvas);
+            RestyleResultPages(mainCanvas.transform);
 
             Transform t = root.transform;
             RectTransform safeZone = Find(t, "Safe Zone") as RectTransform;
@@ -374,6 +375,12 @@ namespace Watermelon.EditorTools
             marker.EditorConfigure(game, safeZone, backplate, TopBarHeight, LayoutVersion);
 
             RewireTutorial(root);
+
+            // Edits to prefab instances (sample buttons/orders, result pages) are only
+            // kept on save when recorded as instance overrides.
+            RecordPrefabInstanceEdits(root.transform);
+            RecordPrefabInstanceEdits(mainCanvas.transform.Find("UI Complete"));
+            RecordPrefabInstanceEdits(mainCanvas.transform.Find("UI Game Over"));
 
             EditorUtility.SetDirty(root);
             return root;
@@ -1068,6 +1075,162 @@ namespace Watermelon.EditorTools
 
             RectTransform condiments = CreateImage("Condiment Tray", layer, LoadSprite("Decor/condiment_tray.png"), Color.white, true);
             Place(condiments, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(10f, 95f), new Vector2(140f, 160f));
+        }
+
+        #endregion
+
+        #region Result pages
+
+        private const string PopupFrameName = "Popup Frame";
+
+        // UI Complete / UI Game Over live in UI Main Canvas. Their full-screen backgrounds
+        // had been given the popup art and stretched; here the background becomes a dim
+        // overlay and the popup art is shown as a centred frame with the content on it.
+        // Only properties and added children change, so the prefab link is kept.
+        private static void RestyleResultPages(Transform mainCanvas)
+        {
+            RestyleLevelComplete(mainCanvas.Find("UI Complete"));
+            RestyleLevelFailed(mainCanvas.Find("UI Game Over"));
+        }
+
+        private static void RestyleLevelComplete(Transform page)
+        {
+            if (page == null)
+                return;
+
+            DimBackground(Find(page, "Background Image"), new Color(0.04f, 0.07f, 0.12f, 0.75f));
+
+            // Frame 900x1200 centred at (0, 30); ribbon at 25% and cream area 33-89% of its height.
+            const float frameY = 30f, frameH = 1200f;
+            float top = frameY + frameH * 0.5f;
+
+            Transform holder = Find(page, "Level Complered Holder");
+            if (holder != null)
+            {
+                float ribbonY = top - frameH * 0.25f;
+                Place(holder, Center, Center, new Vector2(0f, ribbonY), new Vector2(620f, 96f));
+                AddPopupFrame(holder, "Popups/level_complete_popup.png", new Vector2(0f, frameY - ribbonY), new Vector2(900f, frameH));
+
+                SetActive(Find(holder, "LevelText"), false);
+                Transform title = Find(holder, "Completed Text");
+                if (title != null)
+                {
+                    Fill(title, Vector2.zero, Vector2.zero);
+                    StyleText(title, Color.white, 30f, 62f);
+                    title.GetComponent<TextMeshProUGUI>().text = "LEVEL COMPLETED";
+                }
+            }
+
+            Place(Find(page, "Reward Label"), Center, Center, new Vector2(0f, top - frameH * 0.45f), new Vector2(360f, 130f));
+            StyleText(Find(page, "Reward Amount Text"), BrownText, 40f, 90f);
+
+            // The page's own continue button (wired by UIComplete) becomes NEXT.
+            Transform next = Find(page, "No Thanks Button");
+            if (next != null)
+            {
+                Place(next, Center, Center, new Vector2(0f, top - frameH * 0.66f), new Vector2(500f, 157f));
+                SetSprite(next, LoadSprite("Popups/continue_button.png"), true);
+                SetActive(Find(next, "No Thanks Text"), false);
+            }
+
+            Place(Find(page, "Multiply Reward Button"), Center, Center, new Vector2(0f, top - frameH * 0.81f), new Vector2(440f, 150f));
+
+            // A NEXT button added in the scene had no click action; the one above replaces it.
+            Transform brokenNext = page.Find("next");
+            Button brokenButton = brokenNext != null ? brokenNext.GetComponent<Button>() : null;
+            if (brokenButton != null && brokenButton.onClick.GetPersistentEventCount() == 0)
+                brokenNext.gameObject.SetActive(false);
+        }
+
+        private static void RestyleLevelFailed(Transform page)
+        {
+            if (page == null)
+                return;
+
+            DimBackground(Find(page, "Background Image"), new Color(0.12f, 0.03f, 0.05f, 0.78f));
+
+            // Frame 880x1100 centred at (0, 30); "LEVEL FAILED" header at 29%, cream 38-85%.
+            const float frameY = 30f, frameH = 1100f;
+            float top = frameY + frameH * 0.5f;
+
+            Transform header = Find(page, "Level Failed Text");
+            if (header != null)
+            {
+                float headerY = top - frameH * 0.29f;
+                Place(header, Center, Center, new Vector2(0f, headerY), new Vector2(600f, 110f));
+                AddPopupFrame(header, "Popups/level_failed_popup.png", new Vector2(0f, frameY - headerY), new Vector2(880f, frameH));
+
+                // The title is part of the art; the object stays for its pop-in animation.
+                TextMeshProUGUI text = header.GetComponent<TextMeshProUGUI>();
+                if (text != null)
+                    text.enabled = false;
+            }
+
+            Place(Find(page, "Hearth Image"), Center, Center, new Vector2(0f, top - frameH * 0.52f), new Vector2(240f, 240f));
+
+            Transform replay = Find(page, "Replay Button");
+            if (replay != null)
+            {
+                Place(replay, Center, Center, new Vector2(0f, top - frameH * 0.68f), new Vector2(480f, 158f));
+                SetSprite(replay, LoadSprite("Popups/restart_button.png"), true);
+                foreach (Transform child in replay)
+                    child.gameObject.SetActive(false);
+            }
+
+            Transform home = page.Find("home (2)");
+            if (home != null)
+            {
+                Place(home, Center, Center, new Vector2(0f, top - frameH * 0.83f), new Vector2(120f, 120f));
+                foreach (TMP_Text label in home.GetComponentsInChildren<TMP_Text>(true))
+                    label.gameObject.SetActive(false);
+            }
+        }
+
+        private static void DimBackground(Transform background, Color color)
+        {
+            if (background == null)
+                return;
+
+            Fill(background, Vector2.zero, Vector2.zero);
+            Image image = background.GetComponent<Image>();
+            if (image != null)
+            {
+                image.sprite = null;
+                image.color = color;
+                image.type = Image.Type.Simple;
+                image.preserveAspect = false;
+                image.raycastTarget = true;
+            }
+        }
+
+        private static void AddPopupFrame(Transform parent, string sprite, Vector2 position, Vector2 size)
+        {
+            Transform previous = parent.Find(PopupFrameName);
+            if (previous != null)
+                Object.DestroyImmediate(previous.gameObject);
+
+            RectTransform frame = CreateImage(PopupFrameName, parent, LoadSprite(sprite), Color.white, true);
+            Place(frame, Center, Center, position, size);
+            frame.SetAsFirstSibling();
+        }
+
+        private static void RecordPrefabInstanceEdits(Transform root)
+        {
+            if (root == null)
+                return;
+
+            foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+            {
+                if (!PrefabUtility.IsPartOfPrefabInstance(t))
+                    continue;
+
+                PrefabUtility.RecordPrefabInstancePropertyModifications(t.gameObject);
+                foreach (Component component in t.GetComponents<Component>())
+                {
+                    if (component != null)
+                        PrefabUtility.RecordPrefabInstancePropertyModifications(component);
+                }
+            }
         }
 
         #endregion

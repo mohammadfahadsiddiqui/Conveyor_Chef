@@ -71,13 +71,28 @@ namespace Watermelon
                 canvas.worldCamera = mainCanvas.worldCamera != null ? mainCanvas.worldCamera : Camera.main;
                 canvas.planeDistance = mainCanvas.planeDistance;
                 canvas.sortingLayerID = mainCanvas.sortingLayerID;
-                canvas.sortingOrder = mainCanvas.sortingOrder - 1;
+                canvas.sortingOrder = GetOrderBelowAllPages(mainCanvas);
             }
 
             if (canvasScaler != null)
                 canvasScaler.matchWidthOrHeight = isTablet ? 1f : 0f;
 
             ApplySafeArea();
+        }
+
+        // Pages such as UI Complete / UI Game Over override their sorting (order 5), so
+        // "just below UI Main Canvas" is not enough: go below the lowest page, but stay
+        // above 0 so 3D transparent effects never draw over the HUD.
+        private static int GetOrderBelowAllPages(Canvas mainCanvas)
+        {
+            int lowest = mainCanvas.sortingOrder;
+            foreach (Canvas page in mainCanvas.GetComponentsInChildren<Canvas>(true))
+            {
+                if (page != mainCanvas && page.overrideSorting && page.sortingLayerID == mainCanvas.sortingLayerID)
+                    lowest = Mathf.Min(lowest, page.sortingOrder);
+            }
+
+            return Mathf.Max(1, lowest - 1);
         }
 
         private void CacheComponents()
