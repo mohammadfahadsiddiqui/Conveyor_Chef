@@ -28,6 +28,8 @@ namespace Watermelon.EditorTools
         private const string MainCanvasName = "UI Main Canvas";
         private const string SourcePageName = "NEW GAME SCENE [ACTIVE]";
         private const string CanvasName = "GAME MAIN CANVAS [NEW UI]";
+        private const string BackgroundCanvasName = "GAME BACKGROUND CANVAS [NEW UI]";
+        private const string KitchenArt = "Kitchen/kitchen_gameplay_background.png";
         private const string SourceDesignRootName = "NEW GAME UI DESIGN";
         private const string OrderItemSourcePrefab = "Assets/Project Data/Game/Prefabs/OrderItem.prefab";
         private const string OrderItemPrefab = "Assets/Project Data/Game/Prefabs/OrderItem (Game Main Canvas).prefab";
@@ -71,7 +73,7 @@ namespace Watermelon.EditorTools
         // Bump when the generated layout changes: an older canvas is rebuilt once
         // automatically. Auto-build runs once per version and project copy, so deleting
         // the canvas later is respected.
-        private const int LayoutVersion = 2;
+        private const int LayoutVersion = 3;
         private static readonly string AutoBuiltKey =
             "ConveyorChef.GameMainCanvas.AutoBuilt.v" + LayoutVersion + "." + Application.dataPath.GetHashCode();
 
@@ -233,6 +235,7 @@ namespace Watermelon.EditorTools
             root.transform.SetSiblingIndex(mainCanvasObject.transform.GetSiblingIndex() + 1);
 
             ConfigureRootCanvas(root, mainCanvas);
+            BuildBackgroundCanvas(mainCanvas);
 
             Transform t = root.transform;
             RectTransform safeZone = Find(t, "Safe Zone") as RectTransform;
@@ -395,6 +398,42 @@ namespace Watermelon.EditorTools
             }
 
             return fallback;
+        }
+
+        // Painted kitchen behind the 3D level; see KitchenBackdrop for how it is placed.
+        private static void BuildBackgroundCanvas(Canvas mainCanvas)
+        {
+            foreach (GameObject previous in FindRoots(BackgroundCanvasName))
+                Object.DestroyImmediate(previous);
+
+            GameObject mainCanvasObject = mainCanvas.gameObject;
+            GameObject root = new GameObject(BackgroundCanvasName, typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+            root.layer = mainCanvasObject.layer;
+            SceneManager.MoveGameObjectToScene(root, mainCanvasObject.scene);
+            root.transform.SetSiblingIndex(mainCanvasObject.transform.GetSiblingIndex());
+
+            Canvas canvas = root.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = mainCanvas.worldCamera;
+            Camera cam = canvas.worldCamera != null ? canvas.worldCamera : Camera.main;
+            canvas.planeDistance = cam != null ? cam.farClipPlane * 0.95f : 100f;
+            canvas.sortingLayerID = mainCanvas.sortingLayerID;
+            canvas.sortingOrder = -100;
+
+            CanvasScaler scaler = root.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080f, 1920f);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0f;
+
+            Sprite sprite = LoadSprite(KitchenArt);
+            RectTransform art = CreateImage("Kitchen Painting", root.transform, sprite, Color.white, false);
+            Vector2 artSize = sprite != null ? sprite.rect.size : new Vector2(941f, 1672f);
+            Place(art, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero, artSize * (1080f / artSize.x));
+
+            // No GraphicRaycaster: the painting must never catch taps meant for the level.
+            KitchenBackdrop backdrop = root.AddComponent<KitchenBackdrop>();
+            backdrop.EditorConfigure(art);
         }
 
         private static void ConfigureRootCanvas(GameObject root, Canvas mainCanvas)
@@ -1039,6 +1078,12 @@ namespace Watermelon.EditorTools
                 problems.Add("GameMainCanvas is missing on the root.");
             if (root.transform.parent != null)
                 problems.Add("The canvas must be a root object.");
+            GameObject background = FindRoot(BackgroundCanvasName);
+            if (background == null || background.GetComponent<KitchenBackdrop>() == null)
+                problems.Add("'" + BackgroundCanvasName + "' with KitchenBackdrop is missing.");
+            else if (background.GetComponent<GraphicRaycaster>() != null)
+                problems.Add("'" + BackgroundCanvasName + "' must not have a GraphicRaycaster.");
+
             if (FindRoots(CanvasName).Count != 1)
                 problems.Add("There must be exactly one '" + CanvasName + "'.");
 
