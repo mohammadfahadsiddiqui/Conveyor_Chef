@@ -73,12 +73,17 @@ namespace Watermelon
 
         public void OnLevelStarted(int levelIndex)
         {
+            if (uiBehaviors == null)
+                return;
+
             for (int i = 0; i < uiBehaviors.Length; i++)
             {
-                if(uiBehaviors[i].Settings.RequiredLevel <= levelIndex)
-                {
-                    uiBehaviors[i].Activate();
-                }
+                PUUIBehavior uiBehavior = uiBehaviors[i];
+                if (uiBehavior == null || uiBehavior.Settings == null)
+                    continue;
+
+                if (uiBehavior.Settings.RequiredLevel <= levelIndex)
+                    uiBehavior.Activate();
             }
         }
 
@@ -125,20 +130,29 @@ namespace Watermelon
 
         public void HidePanels()
         {
+            if (uiBehaviors == null)
+                return;
+
             foreach (var uiBehavior in uiBehaviors)
             {
-                uiBehavior.gameObject.SetActive(false);
+                if (uiBehavior != null)
+                    uiBehavior.gameObject.SetActive(false);
             }
         }
 
         public void HidePanel(PUType puType)
         {
+            if (uiBehaviors == null)
+                return;
+
             foreach (var uiBehavior in uiBehaviors)
             {
+                if (uiBehavior == null || uiBehavior.Settings == null)
+                    continue;
+
                 if (uiBehavior.Settings.Type == puType)
                 {
                     uiBehavior.gameObject.SetActive(false);
-
                     break;
                 }
             }
@@ -146,20 +160,29 @@ namespace Watermelon
 
         public void ShowPanels()
         {
+            if (uiBehaviors == null)
+                return;
+
             foreach (var uiBehavior in uiBehaviors)
             {
-                uiBehavior.gameObject.SetActive(true);
+                if (uiBehavior != null)
+                    uiBehavior.gameObject.SetActive(true);
             }
         }
 
         public void ShowPanel(PUType puType)
         {
+            if (uiBehaviors == null)
+                return;
+
             foreach (var uiBehavior in uiBehaviors)
             {
+                if (uiBehavior == null || uiBehavior.Settings == null)
+                    continue;
+
                 if (uiBehavior.Settings.Type == puType)
                 {
                     uiBehavior.gameObject.SetActive(true);
-
                     break;
                 }
             }
@@ -167,12 +190,16 @@ namespace Watermelon
 
         public PUUIBehavior GetPanel(PUType puType)
         {
+            if (uiBehaviors == null)
+                return null;
+
             foreach (var uiBehavior in uiBehaviors)
             {
+                if (uiBehavior == null || uiBehavior.Settings == null)
+                    continue;
+
                 if (uiBehavior.Settings.Type == puType)
-                {
                     return uiBehavior;
-                }
             }
 
             return null;
