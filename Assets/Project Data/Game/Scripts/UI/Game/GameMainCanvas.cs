@@ -20,12 +20,14 @@ namespace Watermelon
         [SerializeField] RectTransform safeArea;
         [SerializeField] RectTransform topBackplate;
         [SerializeField] float topBackplateHeight = 150f;
+        [SerializeField] int layoutVersion;
 
         private Canvas canvas;
         private CanvasScaler canvasScaler;
         private Rect appliedSafeArea;
 
         public UIGame GamePage => gamePage;
+        public int LayoutVersion => layoutVersion;
 
         private void Awake()
         {
@@ -144,8 +146,9 @@ namespace Watermelon
         }
 
 #if UNITY_EDITOR
-        public void EditorConfigure(UIGame page, RectTransform safeAreaRoot, RectTransform backplate, float backplateHeight)
+        public void EditorConfigure(UIGame page, RectTransform safeAreaRoot, RectTransform backplate, float backplateHeight, int version)
         {
+            layoutVersion = version;
             gamePage = page;
             safeArea = safeAreaRoot;
             topBackplate = backplate;

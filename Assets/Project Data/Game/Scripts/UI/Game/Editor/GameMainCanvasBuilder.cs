@@ -33,7 +33,7 @@ namespace Watermelon.EditorTools
         private const string OrderItemPrefab = "Assets/Project Data/Game/Prefabs/OrderItem (Game Main Canvas).prefab";
         private const string OrdersFrameSprite = "Orders/orders_panel_frame.png";
         private const string OrderCardSprite = "Orders/order_item_slot.png";
-        private const string PreviewOrderPrefix = OrderPanelAdaptiveGrid.PreviewItemPrefix;
+        private const string PreviewOrderPrefix = "Preview Order";
 
         private const string LivesIndicatorPrefab =
             "Assets/Project Data/Watermelon Core/Extra Components/Lives System/Prefabs/Lives Indicator.prefab";
@@ -44,11 +44,15 @@ namespace Watermelon.EditorTools
 
         // Layout at the 1080x1920 reference resolution, measured from Game UI Reference.png.
         private const float TopBarHeight = 150f;
-        private const float TopRowY = -80f;
-        private const float ToolbarWidth = 940f;
-        private const float ToolbarHeight = 313f;
-        private const float ToolbarButtonSize = 160f;
+        private const float TopRowY = -86f;
+        private const float ToolbarWidth = 1070f;
+        private const float ToolbarHeight = 357f;
+        private const float ToolbarBottom = -38f;
+        private const float ToolbarButtonSize = 172f;
         private const float PowerUpPrefabSize = 175f;
+
+        private static readonly Vector2 OrderCell = new Vector2(232f, 96f);
+        private static readonly Vector2 OrderSpacing = new Vector2(8f, 12f);
 
         // Slot centres of bottom_toolbar_panel.png as a fraction of its width, and the
         // slot centre height above the image bottom as a fraction of its height.
@@ -59,13 +63,17 @@ namespace Watermelon.EditorTools
         private static readonly Color32 TopBarColor = new Color32(34, 58, 72, 255);
         private static readonly Color32 TopBarEdgeColor = new Color32(18, 32, 42, 255);
         private static readonly Color32 BrownText = new Color32(92, 52, 24, 255);
+        private static readonly Color32 NavyText = new Color32(35, 48, 70, 255);
         private static readonly Color32 OrdersTitleColor = new Color32(110, 54, 14, 255);
 
         private static readonly Vector2 Center = new Vector2(0.5f, 0.5f);
 
-        // Auto-build runs once per project copy, so deleting the canvas later is respected.
+        // Bump when the generated layout changes: an older canvas is rebuilt once
+        // automatically. Auto-build runs once per version and project copy, so deleting
+        // the canvas later is respected.
+        private const int LayoutVersion = 2;
         private static readonly string AutoBuiltKey =
-            "ConveyorChef.GameMainCanvas.AutoBuilt." + Application.dataPath.GetHashCode();
+            "ConveyorChef.GameMainCanvas.AutoBuilt.v" + LayoutVersion + "." + Application.dataPath.GetHashCode();
 
         private static bool autoQueued;
 
@@ -116,7 +124,9 @@ namespace Watermelon.EditorTools
             if (!scene.IsValid() || scene.path != ScenePath)
                 return;
 
-            if (FindRoot(CanvasName) != null)
+            GameObject existing = FindRoot(CanvasName);
+            GameMainCanvas existingMarker = existing != null ? existing.GetComponent<GameMainCanvas>() : null;
+            if (existingMarker != null && existingMarker.LayoutVersion >= LayoutVersion)
             {
                 EditorPrefs.SetBool(AutoBuiltKey, true);
                 return;
@@ -251,12 +261,13 @@ namespace Watermelon.EditorTools
 
             RectTransform backplate = BuildTopBackplate(t);
 
+            RectTransform toolbar = BuildToolbar(safeZone, out Button homeButton);
+            PUUIController powerUps = LayoutPowerUps(t, toolbar);
+
+            // In front of the toolbar ends, like the plant and utensils in the reference.
             RectTransform decorLayer = CreateRect("Bottom Decor", safeZone);
             Stretch(decorLayer);
             BuildDecor(decorLayer);
-
-            RectTransform toolbar = BuildToolbar(safeZone, out Button homeButton);
-            PUUIController powerUps = LayoutPowerUps(t, toolbar);
 
             UIOrderPanel orderPanel = BuildOrders(t, safeZone, orderItemPrefab, font);
 
@@ -266,12 +277,12 @@ namespace Watermelon.EditorTools
 
             CurrencyUIPanelSimple coins = LayoutCurrency(
                 t, safeZone, "Coin Counter", CurrencyType.Coins, "TopHUD/coin_counter_panel.png",
-                new Vector2(-312f, TopRowY), new Vector2(178f, 64f), iconBakedIntoPanel: true,
+                new Vector2(-295f, TopRowY), new Vector2(206f, 70f), iconBakedIntoPanel: true,
                 out Image coinIcon);
 
             CurrencyUIPanelSimple diamonds = LayoutCurrency(
                 t, safeZone, "Diamond Counter", CurrencyType.Diamonds, "TopHUD/diamond_counter_panel.png",
-                new Vector2(-122f, TopRowY), new Vector2(164f, 60f), iconBakedIntoPanel: false,
+                new Vector2(-128f, TopRowY), new Vector2(166f, 62f), iconBakedIntoPanel: false,
                 out Image diamondIcon);
 
             Button pauseButton = LayoutPauseButton(t, safeZone);
@@ -280,9 +291,10 @@ namespace Watermelon.EditorTools
             if (settingsButton != null)
                 settingsButton.gameObject.SetActive(false);
 
+            // UIGame switches this on at runtime only when the dev panel is enabled.
             Transform devOverlay = Find(t, "Dev Overlay");
             if (devOverlay != null)
-                devOverlay.SetAsLastSibling();
+                devOverlay.gameObject.SetActive(false);
 
             Transform addLivesPanel = Find(t, "NEW Add Lives Panel");
             if (addLivesPanel != null)
@@ -301,8 +313,8 @@ namespace Watermelon.EditorTools
             // Draw order inside Safe Zone, back to front.
             Transform[] order =
             {
-                decorLayer,
                 toolbar,
+                decorLayer,
                 orderPanel != null ? orderPanel.transform.parent : null,
                 lives != null ? lives.transform : null,
                 levelPanel,
@@ -356,7 +368,7 @@ namespace Watermelon.EditorTools
             GameMainCanvas marker = root.GetComponent<GameMainCanvas>();
             if (marker == null)
                 marker = root.AddComponent<GameMainCanvas>();
-            marker.EditorConfigure(game, safeZone, backplate, TopBarHeight);
+            marker.EditorConfigure(game, safeZone, backplate, TopBarHeight, LayoutVersion);
 
             RewireTutorial(root);
 
@@ -500,27 +512,30 @@ namespace Watermelon.EditorTools
             Transform t = lives.transform;
             t.SetParent(safeZone, false);
             lives.gameObject.SetActive(true);
-            Place(t, new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(60f, TopRowY), new Vector2(232f, 70f));
+            Place(t, new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(78f, TopRowY), new Vector2(204f, 62f));
             SetSprite(lives.GetComponent<Image>(), LoadSprite("TopHUD/life_counter_panel.png"), false);
 
+            // Heart overlaps the left end of the pill, as in the reference.
             Transform heart = Find(t, "Heart Image");
-            Place(heart, new Vector2(0f, 0.5f), Center, new Vector2(8f, 2f), new Vector2(104f, 104f));
+            Place(heart, new Vector2(0f, 0.5f), Center, new Vector2(-6f, 2f), new Vector2(96f, 88f));
             SetSprite(heart, LoadSprite("TopHUD/heart_icon.png"), true);
+            if (heart != null)
+                heart.SetAsLastSibling();
 
             // The lives number sits on the heart; in the prefab it may be a child of the
             // heart or of the panel.
             Transform amount = Find(t, "Lives Amount");
-            PlaceOnHeart(amount, heart, new Vector2(64f, 56f));
-            StyleText(amount, Color.white, 26f, 50f);
+            PlaceOnHeart(amount, heart, new Vector2(60f, 52f));
+            StyleText(amount, Color.white, 24f, 46f);
 
-            PlaceOnHeart(Find(t, "Infinity"), heart, new Vector2(46f, 46f));
+            PlaceOnHeart(Find(t, "Infinity"), heart, new Vector2(44f, 44f));
 
             Transform time = Find(t, "Time Text");
-            Fill(time, new Vector2(62f, 4f), new Vector2(-50f, -4f));
-            StyleText(time, BrownText, 22f, 40f);
+            Fill(time, new Vector2(40f, 4f), new Vector2(-46f, -4f));
+            StyleText(time, NavyText, 20f, 36f);
 
             Transform add = Find(t, "Add Button");
-            Place(add, new Vector2(1f, 0.5f), Center, new Vector2(-24f, 0f), new Vector2(52f, 52f));
+            Place(add, new Vector2(1f, 0.5f), Center, new Vector2(-22f, 0f), new Vector2(46f, 46f));
             SetSprite(add, LoadSprite("TopHUD/green_plus_button.png"), true);
 
             return lives;
@@ -532,27 +547,32 @@ namespace Watermelon.EditorTools
                 return;
 
             if (heart != null && target.parent == heart)
+            {
                 Place(target, Center, Center, new Vector2(0f, 4f), size);
+            }
             else
-                Place(target, new Vector2(0f, 0.5f), Center, new Vector2(8f, 6f), size);
+            {
+                Place(target, new Vector2(0f, 0.5f), Center, new Vector2(-6f, 6f), size);
+                target.SetAsLastSibling();
+            }
         }
 
         private static RectTransform BuildLevelPanel(RectTransform safeZone, TextMeshProUGUI levelText)
         {
             RectTransform panel = CreateImage("Level Panel", safeZone, LoadSprite("TopHUD/level_title_panel.png"), Color.white, false);
-            Place(panel, new Vector2(0.5f, 1f), Center, new Vector2(-100f, TopRowY - 4f), new Vector2(288f, 96f));
+            Place(panel, new Vector2(0.5f, 1f), Center, new Vector2(-103f, TopRowY - 10f), new Vector2(276f, 92f));
 
             if (levelText != null)
             {
                 levelText.transform.SetParent(panel, false);
                 levelText.gameObject.SetActive(true);
-                Fill(levelText.transform, new Vector2(26f, 10f), new Vector2(-26f, -12f));
+                Fill(levelText.transform, new Vector2(24f, 10f), new Vector2(-24f, -12f));
                 StyleText(levelText.transform, Color.white, 26f, 52f);
                 levelText.text = "LEVEL 1";
             }
 
             RectTransform hat = CreateImage("Chef Hat", panel, LoadSprite("TopHUD/chef_hat_icon.png"), Color.white, true);
-            Place(hat, Center, Center, new Vector2(0f, 56f), new Vector2(86f, 75f));
+            Place(hat, Center, Center, new Vector2(-6f, 64f), new Vector2(80f, 70f));
 
             return panel;
         }
@@ -600,25 +620,29 @@ namespace Watermelon.EditorTools
                 }
                 else
                 {
-                    Place(icon, new Vector2(0f, 0.5f), Center, new Vector2(6f, 2f), new Vector2(66f, 66f));
+                    Place(icon, new Vector2(0f, 0.5f), Center, new Vector2(30f, 2f), new Vector2(74f, 74f));
                     SetSprite(image, LoadSprite("TopHUD/diamond_icon.png"), true);
                     image.enabled = true;
                     iconImage = image;
                 }
             }
 
-            float textLeft = iconBakedIntoPanel ? size.y * 0.88f : 42f;
+            float textLeft = iconBakedIntoPanel ? 70f : 60f;
             Transform amount = Find(t, "Amount Text");
-            Fill(amount, new Vector2(textLeft, 4f), new Vector2(-42f, -4f));
-            StyleText(amount, BrownText, 22f, 40f);
+            Fill(amount, new Vector2(textLeft, 4f), new Vector2(-43f, -4f));
+            StyleText(amount, NavyText, 20f, 36f);
 
             Transform add = Find(t, "Add Button");
             if (add != null)
             {
                 add.gameObject.SetActive(true);
-                Place(add, new Vector2(1f, 0.5f), Center, new Vector2(-19f, 0f), new Vector2(45f, 45f));
+                Place(add, new Vector2(1f, 0.5f), Center, new Vector2(-20f, 0f), new Vector2(44f, 44f));
                 SetSprite(add, LoadSprite("TopHUD/green_plus_button.png"), true);
+                add.SetAsLastSibling();
             }
+
+            if (icon != null)
+                icon.SetAsLastSibling();
 
             return panel;
         }
@@ -639,8 +663,17 @@ namespace Watermelon.EditorTools
 
             pause.SetParent(safeZone, false);
             pause.gameObject.SetActive(true);
-            Place(pause, new Vector2(1f, 1f), Center, new Vector2(-62f, TopRowY), new Vector2(100f, 100f));
+            Place(pause, new Vector2(1f, 1f), Center, new Vector2(-64f, TopRowY), new Vector2(104f, 104f));
             SetSprite(pause, LoadSprite("TopHUD/pause_button.png"), true);
+
+            // The old replay button kept its art on a child, so its own Image was off.
+            Image pauseImage = pause.GetComponent<Image>();
+            if (pauseImage != null)
+            {
+                pauseImage.enabled = true;
+                pauseImage.raycastTarget = true;
+                button.targetGraphic = pauseImage;
+            }
 
             // The replay button art had an icon and heart overlay; the pause sprite is complete.
             foreach (Transform child in pause)
@@ -671,11 +704,11 @@ namespace Watermelon.EditorTools
             frame.anchorMin = new Vector2(1f, 1f);
             frame.anchorMax = new Vector2(1f, 1f);
             frame.pivot = new Vector2(1f, 1f);
-            frame.anchoredPosition = new Vector2(10f, -(TopBarHeight + 8f));
+            frame.anchoredPosition = new Vector2(8f, -(TopBarHeight + 18f));
             frame.sizeDelta = new Vector2(316f, 390f);
 
             VerticalLayoutGroup frameLayout = frame.gameObject.AddComponent<VerticalLayoutGroup>();
-            frameLayout.padding = new RectOffset(36, 36, 96, 26);
+            frameLayout.padding = new RectOffset(46, 46, 90, 24);
             frameLayout.spacing = 0f;
             frameLayout.childAlignment = TextAnchor.UpperCenter;
             frameLayout.childControlWidth = true;
@@ -712,8 +745,8 @@ namespace Watermelon.EditorTools
                 Object.DestroyImmediate(fitter);
 
             GridLayoutGroup grid = panel.gameObject.AddComponent<GridLayoutGroup>();
-            grid.cellSize = new Vector2(244f, 84f);
-            grid.spacing = new Vector2(8f, 8f);
+            grid.cellSize = OrderCell;
+            grid.spacing = OrderSpacing;
             grid.startCorner = GridLayoutGroup.Corner.UpperLeft;
             grid.startAxis = GridLayoutGroup.Axis.Horizontal;
             grid.childAlignment = TextAnchor.UpperCenter;
@@ -760,6 +793,7 @@ namespace Watermelon.EditorTools
             {
                 GameObject item = (GameObject)PrefabUtility.InstantiatePrefab(orderItemPrefab, orderPanel.transform);
                 item.name = PreviewOrderPrefix + " " + (i + 1);
+                item.AddComponent<EditorPreviewOnly>();
 
                 UIOrderItem logic = item.GetComponent<UIOrderItem>();
                 SerializedObject itemSo = new SerializedObject(logic);
@@ -794,7 +828,7 @@ namespace Watermelon.EditorTools
             try
             {
                 RectTransform rect = (RectTransform)contents.transform;
-                rect.sizeDelta = new Vector2(244f, 84f);
+                rect.sizeDelta = OrderCell;
 
                 Image card = contents.GetComponent<Image>();
                 if (card != null)
@@ -812,17 +846,16 @@ namespace Watermelon.EditorTools
                 Image icon = so.FindProperty("busIcon").objectReferenceValue as Image;
                 if (icon != null)
                 {
-                    Place(icon.transform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(8f, 0f), new Vector2(62f, 62f));
                     icon.preserveAspect = true;
                     icon.raycastTarget = false;
                 }
 
                 TextMeshProUGUI text = so.FindProperty("orderText").objectReferenceValue as TextMeshProUGUI;
                 if (text != null)
-                {
-                    Fill(text.transform, new Vector2(74f, 4f), new Vector2(-8f, -4f));
                     StyleText(text.transform, BrownText, 20f, 40f);
-                }
+
+                // Same layout OrderPanelAdaptiveGrid applies at runtime for large cards.
+                OrderPanelAdaptiveGrid.ApplyItemLayout(contents.transform, compact: false);
 
                 // The dim checkmark squares do not fit the compact cards.
                 SerializedProperty checkmarks = so.FindProperty("checkmarks");
@@ -871,7 +904,7 @@ namespace Watermelon.EditorTools
         {
             RectTransform toolbar = CreateImage("Bottom Toolbar", safeZone, LoadSprite("Toolbar/bottom_toolbar_panel.png"), Color.white, false);
             toolbar.GetComponent<Image>().raycastTarget = true;
-            Place(toolbar, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, -6f), new Vector2(ToolbarWidth, ToolbarHeight));
+            Place(toolbar, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, ToolbarBottom), new Vector2(ToolbarWidth, ToolbarHeight));
 
             RectTransform home = CreateImage("Home Button", toolbar, LoadSprite("Toolbar/menu_button.png"), Color.white, true);
             Image homeImage = home.GetComponent<Image>();
@@ -934,9 +967,47 @@ namespace Watermelon.EditorTools
                 // grid/settings button here, which pushed the power-ups out of place.
                 for (int i = container.childCount - 1; i >= 0; i--)
                     Object.DestroyImmediate(container.GetChild(i).gameObject);
+
+                AddPreviewPowerUps(container, so.FindProperty("itemPrefab").objectReferenceValue as GameObject);
             }
 
             return powerUps;
+        }
+
+        // Sample undo / hint / shuffle buttons so the toolbar is complete in the Scene
+        // view. PUUIController spawns the real ones in the same row at runtime.
+        private static void AddPreviewPowerUps(Transform container, GameObject itemPrefab)
+        {
+            if (itemPrefab == null)
+                return;
+
+            string[] art = { "Toolbar/undo_button.png", "Toolbar/hint_button.png", "Toolbar/shuffle_button.png" };
+            foreach (string sprite in art)
+            {
+                GameObject item = (GameObject)PrefabUtility.InstantiatePrefab(itemPrefab, container);
+                item.name = "Preview Power Up (" + System.IO.Path.GetFileNameWithoutExtension(sprite) + ")";
+                item.AddComponent<EditorPreviewOnly>();
+
+                Transform t = item.transform;
+                SetSprite(Find(t, "Icon"), LoadSprite(sprite), true);
+                SetActive(Find(t, "Icon"), true);
+                SetActive(Find(t, "Timer"), false);
+                SetActive(Find(t, "Purchase Icon"), false);
+
+                Transform badge = Find(t, "Amount Background");
+                SetActive(badge, true);
+                SetSprite(badge, LoadSprite("Toolbar/powerup_count_badge.png"), true);
+
+                TextMeshProUGUI amount = FindComponent<TextMeshProUGUI>(t, "Amount Text");
+                if (amount != null)
+                    amount.text = "3";
+            }
+        }
+
+        private static void SetActive(Transform t, bool state)
+        {
+            if (t != null)
+                t.gameObject.SetActive(state);
         }
 
         private static Vector2 ToolbarSlot(float fraction)
@@ -947,10 +1018,10 @@ namespace Watermelon.EditorTools
         private static void BuildDecor(RectTransform layer)
         {
             RectTransform plant = CreateImage("Potted Plant", layer, LoadSprite("Decor/potted_kitchen_plant.png"), Color.white, true);
-            Place(plant, Vector2.zero, Vector2.zero, new Vector2(-6f, 170f), new Vector2(130f, 155f));
+            Place(plant, Vector2.zero, Vector2.zero, new Vector2(-10f, 95f), new Vector2(140f, 170f));
 
             RectTransform condiments = CreateImage("Condiment Tray", layer, LoadSprite("Decor/condiment_tray.png"), Color.white, true);
-            Place(condiments, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(6f, 175f), new Vector2(125f, 135f));
+            Place(condiments, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(10f, 95f), new Vector2(140f, 160f));
         }
 
         #endregion

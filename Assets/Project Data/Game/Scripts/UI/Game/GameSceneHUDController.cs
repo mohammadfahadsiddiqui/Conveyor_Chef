@@ -139,22 +139,21 @@ namespace Watermelon
                 else if (item.Settings is PUShuffleSettings)
                     fullButtonSprite = shuffleButtonSprite;
 
-                Transform background = item.transform.Find("Background");
-                if (background != null && fullButtonSprite != null)
+                // In PU Behavior UI the visible art is "Icon" (full size); "Background" is
+                // a disabled 10px image. The full-button sprite therefore goes on Icon.
+                Transform icon = item.transform.Find("Icon");
+                if (icon != null && fullButtonSprite != null)
                 {
-                    Image image = background.GetComponent<Image>();
+                    Image image = icon.GetComponent<Image>();
                     if (image != null)
                     {
                         image.sprite = fullButtonSprite;
-                        image.color = Color.white;
                         image.type = Image.Type.Simple;
                         image.preserveAspect = true;
                     }
-                }
 
-                Transform icon = item.transform.Find("Icon");
-                if (icon != null && fullButtonSprite != null)
-                    icon.gameObject.SetActive(false);
+                    icon.gameObject.SetActive(true);
+                }
 
                 Transform amountBackground = item.transform.Find("Amount Background");
                 if (amountBackground != null && countBadgeSprite != null)
