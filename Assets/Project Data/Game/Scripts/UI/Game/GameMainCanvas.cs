@@ -30,8 +30,22 @@ namespace Watermelon
         private void Awake()
         {
             CacheComponents();
+            EnsureMainCanvasActive();
             HideOtherGamePages();
             ApplySafeArea();
+        }
+
+        // UI Main Canvas holds UIController, result/store popups and the settings panel.
+        // It may be switched off while editing to preview this canvas; the game cannot
+        // start without it, so it is switched back on before anything else initialises.
+        private void EnsureMainCanvasActive()
+        {
+            UIController uiController = FindFirstObjectByType<UIController>(FindObjectsInactive.Include);
+            if (uiController == null || uiController.gameObject.activeSelf)
+                return;
+
+            Debug.LogWarning("[GameMainCanvas] '" + uiController.name + "' was switched off in the scene. Switching it on for Play mode.");
+            uiController.gameObject.SetActive(true);
         }
 
         private void Update()

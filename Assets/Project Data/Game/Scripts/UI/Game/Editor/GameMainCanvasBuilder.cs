@@ -507,11 +507,13 @@ namespace Watermelon.EditorTools
             Place(heart, new Vector2(0f, 0.5f), Center, new Vector2(8f, 2f), new Vector2(104f, 104f));
             SetSprite(heart, LoadSprite("TopHUD/heart_icon.png"), true);
 
+            // The lives number sits on the heart; in the prefab it may be a child of the
+            // heart or of the panel.
             Transform amount = Find(t, "Lives Amount");
-            Place(amount, new Vector2(0f, 0.5f), Center, new Vector2(8f, 6f), new Vector2(64f, 56f));
+            PlaceOnHeart(amount, heart, new Vector2(64f, 56f));
             StyleText(amount, Color.white, 26f, 50f);
 
-            Place(Find(t, "Infinity"), new Vector2(0f, 0.5f), Center, new Vector2(8f, 6f), new Vector2(46f, 46f));
+            PlaceOnHeart(Find(t, "Infinity"), heart, new Vector2(46f, 46f));
 
             Transform time = Find(t, "Time Text");
             Fill(time, new Vector2(62f, 4f), new Vector2(-50f, -4f));
@@ -522,6 +524,17 @@ namespace Watermelon.EditorTools
             SetSprite(add, LoadSprite("TopHUD/green_plus_button.png"), true);
 
             return lives;
+        }
+
+        private static void PlaceOnHeart(Transform target, Transform heart, Vector2 size)
+        {
+            if (target == null)
+                return;
+
+            if (heart != null && target.parent == heart)
+                Place(target, Center, Center, new Vector2(0f, 4f), size);
+            else
+                Place(target, new Vector2(0f, 0.5f), Center, new Vector2(8f, 6f), size);
         }
 
         private static RectTransform BuildLevelPanel(RectTransform safeZone, TextMeshProUGUI levelText)
