@@ -73,7 +73,7 @@ namespace Watermelon.EditorTools
         // Bump when the generated layout changes: an older canvas is rebuilt once
         // automatically. Auto-build runs once per version and project copy, so deleting
         // the canvas later is respected.
-        private const int LayoutVersion = 8;
+        private const int LayoutVersion = 9;
         private static readonly string AutoBuiltKey =
             "ConveyorChef.GameMainCanvas.AutoBuilt.v" + LayoutVersion + "." + Application.dataPath.GetHashCode();
 
@@ -1160,7 +1160,10 @@ namespace Watermelon.EditorTools
             // new button is added last and wired to the same UIComplete.HomeButton.
             UIComplete complete = page.GetComponent<UIComplete>();
             if (complete != null)
+            {
                 AddHomeButton(page, complete.HomeButton, new Vector2(0f, top - frameH * 0.906f));
+                WireCompleteButtons(complete, next, multiply);
+            }
 
             RaisePopupSorting(page);
         }
@@ -1254,6 +1257,38 @@ namespace Watermelon.EditorTools
 
             canvas.overrideSorting = true;
             canvas.sortingOrder = PopupSortingOrder;
+        }
+
+        // In the scene, UIComplete's noThanksButton and its fade had been re-pointed to
+        // the added "next" object, so the visible CONTINUE button had no logic behind it.
+        // Point the script back at the buttons that are actually shown.
+        private static void WireCompleteButtons(UIComplete complete, Transform next, Transform multiply)
+        {
+            SerializedObject so = new SerializedObject(complete);
+
+            if (next != null)
+            {
+                so.FindProperty("noThanksButton").objectReferenceValue = next.GetComponent<Button>();
+                so.FindProperty("noThanksButtonFade.fadeCanvasGroup").objectReferenceValue = next.GetComponent<CanvasGroup>();
+                Transform label = Find(next, "No Thanks Text");
+                if (label != null)
+                    so.FindProperty("noThanksText").objectReferenceValue = label.GetComponent<TMP_Text>();
+            }
+
+            if (multiply != null)
+            {
+                so.FindProperty("multiplyRewardButton").objectReferenceValue = multiply.GetComponent<Button>();
+                so.FindProperty("multiplyRewardButtonFade.fadeCanvasGroup").objectReferenceValue = multiply.GetComponent<CanvasGroup>();
+            }
+
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            Object continueRef = so.FindProperty("noThanksButton").objectReferenceValue;
+            Object multiplyRef = so.FindProperty("multiplyRewardButton").objectReferenceValue;
+            if (next == null || continueRef != next.GetComponent<Button>() || next.GetComponent<CanvasGroup>() == null)
+                Debug.LogError("[GameMainCanvas] UIComplete continue button is not wired to the visible CONTINUE button.");
+            if (multiply == null || multiplyRef != multiply.GetComponent<Button>() || multiply.GetComponent<CanvasGroup>() == null)
+                Debug.LogError("[GameMainCanvas] UIComplete GET X3 button is not wired to the visible button.");
         }
 
         private static void DimBackground(Transform background, Color color)
