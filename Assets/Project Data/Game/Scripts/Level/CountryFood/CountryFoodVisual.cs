@@ -65,8 +65,9 @@ namespace Watermelon.BusStop
             Color shadow = new Color(0f, 0f, 0f, art != null ? art.shadowAlpha : 0.35f);
             shadowRenderer.color = shadow;
 
-            typeColour.a = art != null ? art.ringAlpha : 0.85f;
+            typeColour.a = art != null ? art.ringAlpha : 0f;
             ringRenderer.color = typeColour;
+            ringRenderer.enabled = typeColour.a > 0.001f;
 
             card.gameObject.SetActive(true);
             active = true;

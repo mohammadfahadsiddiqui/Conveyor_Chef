@@ -51,4 +51,4 @@ MonoBehaviour:
   sizeMultiplier: 1.35
   blockedTint: {r: 0.72, g: 0.72, b: 0.72, a: 1}
   shadowAlpha: 0.35
-  ringAlpha: 0.85
+  ringAlpha: 0

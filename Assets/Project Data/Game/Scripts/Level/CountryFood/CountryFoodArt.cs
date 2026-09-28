@@ -22,7 +22,8 @@ namespace Watermelon.BusStop
         [Tooltip("Tint of dishes that cannot be picked yet (the donut outline did this before).")]
         public Color blockedTint = new Color(0.72f, 0.72f, 0.72f, 1f);
         [Range(0f, 1f)] public float shadowAlpha = 0.35f;
-        [Range(0f, 1f)] public float ringAlpha = 0.85f;
+        [Tooltip("Opacity of the ring in the food's colour under each dish; 0 hides it.")]
+        [Range(0f, 1f)] public float ringAlpha = 0f;
 
         public Sprite GetDish(int country, int colourIndex)
         {
