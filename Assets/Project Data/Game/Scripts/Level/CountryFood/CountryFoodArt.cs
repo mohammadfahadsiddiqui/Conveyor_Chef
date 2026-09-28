@@ -36,7 +36,7 @@ namespace Watermelon.BusStop
         [Tooltip("Stand every dish on a solid plate in its tray colour, so players can see which dish goes where.")]
         public bool showColourPlate = true;
         [Tooltip("Plate width relative to the dish card.")]
-        [Range(0.6f, 1.2f)] public float plateWidth = 0.96f;
+        [Range(0.6f, 1.2f)] public float plateWidth = 1f;
         [Tooltip("Width of the food on its plate, relative to the dish card.")]
         [Range(0.5f, 1.1f)] public float foodWidth = 0.8f;
         [Tooltip("Tallest the food may be (tall drinks), relative to the dish card.")]

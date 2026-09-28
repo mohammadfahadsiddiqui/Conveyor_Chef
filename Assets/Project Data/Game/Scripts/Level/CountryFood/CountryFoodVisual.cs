@@ -37,7 +37,7 @@ namespace Watermelon.BusStop
 
         // Glass cloche over dishes that cannot be picked yet: it stands on the plate and lifts
         // off (rises and fades) when the dish becomes pickable.
-        private const float ClocheRadius = 0.45f;           // round dome, card units (plate top is 0.46)
+        private const float ClocheRadius = 0.48f;           // round dome, card units (plate top rim is 0.48)
         private const float ClocheTilt = 0.417f;            // base ellipse height / width, as the plate rim
         private const float ClocheBaseY = -0.254f;          // plate top-surface centre
         private const float ClocheLiftHeight = 0.35f;
@@ -116,7 +116,7 @@ namespace Watermelon.BusStop
         {
             CountryFoodArt art = CountryFood.Art;
             bool showPlate = art == null || art.showColourPlate;
-            float plateWidth = art != null ? art.plateWidth : 0.96f;
+            float plateWidth = art != null ? art.plateWidth : 1f;
 
             plateRenderer.enabled = showPlate;
             if (showPlate)
