@@ -71,7 +71,11 @@ namespace Watermelon
                 canvas.worldCamera = mainCanvas.worldCamera != null ? mainCanvas.worldCamera : Camera.main;
                 canvas.planeDistance = mainCanvas.planeDistance;
                 canvas.sortingLayerID = mainCanvas.sortingLayerID;
-                canvas.sortingOrder = GetOrderBelowAllPages(mainCanvas);
+
+                // HUD just above UI Main Canvas, so nothing left on that canvas itself can
+                // take the HUD's taps; every page (store, results, menus) goes above the HUD.
+                canvas.sortingOrder = mainCanvas.sortingOrder + 1;
+                RaisePagesAboveHud(mainCanvas, canvas.sortingOrder);
             }
 
             if (canvasScaler != null)
@@ -80,19 +84,30 @@ namespace Watermelon
             ApplySafeArea();
         }
 
-        // Pages such as UI Complete / UI Game Over override their sorting (order 5), so
-        // "just below UI Main Canvas" is not enough: go below the lowest page, but stay
-        // above 0 so 3D transparent effects never draw over the HUD.
-        private static int GetOrderBelowAllPages(Canvas mainCanvas)
-        {
-            int lowest = mainCanvas.sortingOrder;
-            foreach (Canvas page in mainCanvas.GetComponentsInChildren<Canvas>(true))
-            {
-                if (page != mainCanvas && page.overrideSorting && page.sortingLayerID == mainCanvas.sortingLayerID)
-                    lowest = Mathf.Min(lowest, page.sortingOrder);
-            }
+        private const int PagesAboveHudBy = 9;
 
-            return Mathf.Max(1, lowest - 1);
+        // Runtime only: page canvases in UI Main Canvas that would draw at or below the
+        // HUD get their own sorting above it (the fade overlay at 999 stays on top).
+        private void RaisePagesAboveHud(Canvas mainCanvas, int hudOrder)
+        {
+            int pageOrder = hudOrder + PagesAboveHudBy;
+
+            foreach (Transform child in mainCanvas.transform)
+            {
+                UIPage page = child.GetComponent<UIPage>();
+                if (page == null || page == gamePage)
+                    continue;
+
+                Canvas pageCanvas = child.GetComponent<Canvas>();
+                if (pageCanvas == null)
+                    continue;
+
+                if (!pageCanvas.overrideSorting || pageCanvas.sortingOrder <= hudOrder)
+                {
+                    pageCanvas.overrideSorting = true;
+                    pageCanvas.sortingOrder = pageOrder;
+                }
+            }
         }
 
         private void CacheComponents()

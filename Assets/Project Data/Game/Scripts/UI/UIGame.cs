@@ -184,6 +184,15 @@ namespace Watermelon
 
             exitPopUp.OnCancelExitEvent += ExitPopCloseButton;
             exitPopUp.OnConfirmExitEvent += ExitPopUpConfirmExitButton;
+
+            // The game page stays open between levels (CONTINUE / replay), so the level
+            // number is also refreshed whenever a new level has loaded.
+            GameController.OnLevelChangedEvent += UpdateLevelNumber;
+        }
+
+        private void OnDestroy()
+        {
+            GameController.OnLevelChangedEvent -= UpdateLevelNumber;
         }
 
         #region Show/Hide

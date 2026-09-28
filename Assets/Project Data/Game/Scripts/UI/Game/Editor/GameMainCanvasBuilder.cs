@@ -73,7 +73,7 @@ namespace Watermelon.EditorTools
         // Bump when the generated layout changes: an older canvas is rebuilt once
         // automatically. Auto-build runs once per version and project copy, so deleting
         // the canvas later is respected.
-        private const int LayoutVersion = 9;
+        private const int LayoutVersion = 10;
         private static readonly string AutoBuiltKey =
             "ConveyorChef.GameMainCanvas.AutoBuilt.v" + LayoutVersion + "." + Application.dataPath.GetHashCode();
 
@@ -281,12 +281,12 @@ namespace Watermelon.EditorTools
 
             CurrencyUIPanelSimple coins = LayoutCurrency(
                 t, safeZone, "Coin Counter", CurrencyType.Coins, "TopHUD/coin_counter_panel.png",
-                new Vector2(-295f, TopRowY), new Vector2(206f, 70f), iconBakedIntoPanel: true,
+                new Vector2(-325f, TopRowY), new Vector2(190f, 64f), iconBakedIntoPanel: true,
                 out Image coinIcon);
 
             CurrencyUIPanelSimple diamonds = LayoutCurrency(
                 t, safeZone, "Diamond Counter", CurrencyType.Diamonds, "TopHUD/diamond_counter_panel.png",
-                new Vector2(-128f, TopRowY), new Vector2(166f, 62f), iconBakedIntoPanel: false,
+                new Vector2(-125f, TopRowY), new Vector2(155f, 60f), iconBakedIntoPanel: false,
                 out Image diamondIcon);
 
             Button pauseButton = LayoutPauseButton(t, safeZone);
@@ -360,7 +360,7 @@ namespace Watermelon.EditorTools
                 coinIcon,
                 diamondIcon,
                 settingsButton,
-                homeButton,
+                null, // the grid button opens the Game Menu instead of leaving the level
                 quitPopup,
                 LoadSprite("Toolbar/undo_button.png"),
                 LoadSprite("Toolbar/hint_button.png"),
@@ -375,6 +375,8 @@ namespace Watermelon.EditorTools
             marker.EditorConfigure(game, safeZone, backplate, TopBarHeight, LayoutVersion);
 
             RewireTutorial(root);
+
+            BuildGameMenu(root, homeButton, pauseButton, font);
 
             // Edits to prefab instances (sample buttons/orders, result pages) are only
             // kept on save when recorded as instance overrides.
@@ -565,12 +567,12 @@ namespace Watermelon.EditorTools
             Transform t = lives.transform;
             t.SetParent(safeZone, false);
             lives.gameObject.SetActive(true);
-            Place(t, new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(78f, TopRowY), new Vector2(204f, 62f));
+            Place(t, new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(74f, TopRowY), new Vector2(196f, 60f));
             SetSprite(lives.GetComponent<Image>(), LoadSprite("TopHUD/life_counter_panel.png"), false);
 
             // Heart overlaps the left end of the pill, as in the reference.
             Transform heart = Find(t, "Heart Image");
-            Place(heart, new Vector2(0f, 0.5f), Center, new Vector2(-6f, 2f), new Vector2(96f, 88f));
+            Place(heart, new Vector2(0f, 0.5f), Center, new Vector2(-4f, 2f), new Vector2(90f, 82f));
             SetSprite(heart, LoadSprite("TopHUD/heart_icon.png"), true);
             if (heart != null)
                 heart.SetAsLastSibling();
@@ -584,11 +586,11 @@ namespace Watermelon.EditorTools
             PlaceOnHeart(Find(t, "Infinity"), heart, new Vector2(44f, 44f));
 
             Transform time = Find(t, "Time Text");
-            Fill(time, new Vector2(40f, 4f), new Vector2(-46f, -4f));
+            Fill(time, new Vector2(42f, 6f), new Vector2(-44f, -6f));
             StyleText(time, NavyText, 20f, 36f);
 
             Transform add = Find(t, "Add Button");
-            Place(add, new Vector2(1f, 0.5f), Center, new Vector2(-22f, 0f), new Vector2(46f, 46f));
+            Place(add, new Vector2(1f, 0.5f), Center, new Vector2(-20f, 0f), new Vector2(42f, 42f));
             SetSprite(add, LoadSprite("TopHUD/green_plus_button.png"), true);
 
             return lives;
@@ -613,19 +615,20 @@ namespace Watermelon.EditorTools
         private static RectTransform BuildLevelPanel(RectTransform safeZone, TextMeshProUGUI levelText)
         {
             RectTransform panel = CreateImage("Level Panel", safeZone, LoadSprite("TopHUD/level_title_panel.png"), Color.white, false);
-            Place(panel, new Vector2(0.5f, 1f), Center, new Vector2(-103f, TopRowY - 10f), new Vector2(276f, 92f));
+            Place(panel, new Vector2(0.5f, 1f), Center, new Vector2(-130f, TopRowY - 6f), new Vector2(240f, 84f));
 
             if (levelText != null)
             {
                 levelText.transform.SetParent(panel, false);
                 levelText.gameObject.SetActive(true);
-                Fill(levelText.transform, new Vector2(24f, 10f), new Vector2(-24f, -12f));
-                StyleText(levelText.transform, Color.white, 26f, 52f);
+                // Inside the blue centre of level_title_panel.png, never over its gold border.
+                Fill(levelText.transform, new Vector2(34f, 20f), new Vector2(-34f, -22f));
+                StyleText(levelText.transform, Color.white, 16f, 40f);
                 levelText.text = "LEVEL 1";
             }
 
             RectTransform hat = CreateImage("Chef Hat", panel, LoadSprite("TopHUD/chef_hat_icon.png"), Color.white, true);
-            Place(hat, Center, Center, new Vector2(-6f, 64f), new Vector2(80f, 70f));
+            Place(hat, Center, Center, new Vector2(-4f, 56f), new Vector2(72f, 62f));
 
             return panel;
         }
@@ -673,23 +676,23 @@ namespace Watermelon.EditorTools
                 }
                 else
                 {
-                    Place(icon, new Vector2(0f, 0.5f), Center, new Vector2(30f, 2f), new Vector2(74f, 74f));
+                    Place(icon, new Vector2(0f, 0.5f), Center, new Vector2(0f, 2f), new Vector2(66f, 66f));
                     SetSprite(image, LoadSprite("TopHUD/diamond_icon.png"), true);
                     image.enabled = true;
                     iconImage = image;
                 }
             }
 
-            float textLeft = iconBakedIntoPanel ? 70f : 60f;
+            float textLeft = iconBakedIntoPanel ? 64f : 38f;
             Transform amount = Find(t, "Amount Text");
-            Fill(amount, new Vector2(textLeft, 4f), new Vector2(-43f, -4f));
-            StyleText(amount, NavyText, 20f, 36f);
+            Fill(amount, new Vector2(textLeft, 6f), new Vector2(-40f, -6f));
+            StyleText(amount, NavyText, 18f, 34f);
 
             Transform add = Find(t, "Add Button");
             if (add != null)
             {
                 add.gameObject.SetActive(true);
-                Place(add, new Vector2(1f, 0.5f), Center, new Vector2(-20f, 0f), new Vector2(44f, 44f));
+                Place(add, new Vector2(1f, 0.5f), Center, new Vector2(-18f, 0f), new Vector2(42f, 42f));
                 SetSprite(add, LoadSprite("TopHUD/green_plus_button.png"), true);
                 add.SetAsLastSibling();
             }
@@ -716,7 +719,7 @@ namespace Watermelon.EditorTools
 
             pause.SetParent(safeZone, false);
             pause.gameObject.SetActive(true);
-            Place(pause, new Vector2(1f, 1f), Center, new Vector2(-64f, TopRowY), new Vector2(104f, 104f));
+            Place(pause, new Vector2(1f, 1f), Center, new Vector2(-62f, TopRowY), new Vector2(96f, 96f));
             SetSprite(pause, LoadSprite("TopHUD/pause_button.png"), true);
 
             // The old replay button kept its art on a child, so its own Image was off.
@@ -959,7 +962,7 @@ namespace Watermelon.EditorTools
             toolbar.GetComponent<Image>().raycastTarget = true;
             Place(toolbar, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, ToolbarBottom), new Vector2(ToolbarWidth, ToolbarHeight));
 
-            RectTransform home = CreateImage("Home Button", toolbar, LoadSprite("Toolbar/menu_button.png"), Color.white, true);
+            RectTransform home = CreateImage("Menu Button", toolbar, LoadSprite("Toolbar/menu_button.png"), Color.white, true);
             Image homeImage = home.GetComponent<Image>();
             homeImage.raycastTarget = true;
             Place(home, Center, Center, ToolbarSlot(-ToolbarOuterSlot), new Vector2(ToolbarButtonSize, ToolbarButtonSize));
@@ -1336,6 +1339,85 @@ namespace Watermelon.EditorTools
                         PrefabUtility.RecordPrefabInstancePropertyModifications(component);
                 }
             }
+        }
+
+        #endregion
+
+        #region Game menu
+
+        // In-game menu opened by the grid button. Art: pause_popup_panel.png (720x960,
+        // blue title band at 11%, cream area 19-88% of its height).
+        private static void BuildGameMenu(GameObject root, Button openButton, Button pauseButton, TMP_FontAsset font)
+        {
+            Transform previous = root.transform.Find("Game Menu");
+            if (previous != null)
+                Object.DestroyImmediate(previous.gameObject);
+
+            RectTransform menu = CreateRect("Game Menu", root.transform);
+            Stretch(menu);
+            menu.SetAsLastSibling();
+
+            RectTransform dim = CreateImage("Dim", menu, null, new Color(0.03f, 0.05f, 0.1f, 0.72f), false);
+            Stretch(dim);
+            dim.GetComponent<Image>().raycastTarget = true;
+            Button background = dim.gameObject.AddComponent<Button>();
+            background.transition = Selectable.Transition.None;
+
+            const float panelY = 20f, panelH = 960f;
+            float top = panelY + panelH * 0.5f;
+
+            RectTransform panel = CreateImage("Panel", menu, LoadSprite("Popups/pause_popup_panel.png"), Color.white, true);
+            Place(panel, Center, Center, new Vector2(0f, panelY), new Vector2(720f, panelH));
+            panel.GetComponent<Image>().raycastTarget = true; // taps on the panel do not close the menu
+
+            TextMeshProUGUI title = CreateText("Title", menu, "MENU", font, Color.white, 30f, 64f);
+            Place(title.transform, Center, Center, new Vector2(0f, top - panelH * 0.11f), new Vector2(420f, 90f));
+
+            Button resume = CreateArtButton("Resume Button", menu, "Popups/continue_button.png", new Vector2(0f, 240f), new Vector2(440f, 130f));
+            Button sound = CreateCardButton("Sound Button", menu, new Vector2(0f, 108f), font, out TMP_Text soundLabel);
+            Button vibration = CreateCardButton("Vibration Button", menu, new Vector2(0f, -12f), font, out TMP_Text vibrationLabel);
+            Button restart = CreateArtButton("Restart Button", menu, "Popups/restart_button.png", new Vector2(0f, -148f), new Vector2(440f, 130f));
+            Button home = CreateArtButton("Home Button", menu, "Toolbar/home_button.png", new Vector2(0f, -278f), new Vector2(116f, 116f));
+
+            GameMenuPopup popup = root.GetComponent<GameMenuPopup>();
+            if (popup == null)
+                popup = root.AddComponent<GameMenuPopup>();
+
+            popup.EditorConfigure(openButton, menu.gameObject, background, resume, sound, soundLabel,
+                vibration, vibrationLabel, restart, home, pauseButton);
+
+            menu.gameObject.SetActive(false);
+        }
+
+        private static Button CreateArtButton(string name, Transform parent, string sprite, Vector2 position, Vector2 size)
+        {
+            RectTransform rect = CreateImage(name, parent, LoadSprite(sprite), Color.white, true);
+            Place(rect, Center, Center, position, size);
+            Image image = rect.GetComponent<Image>();
+            image.raycastTarget = true;
+
+            Button button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            return button;
+        }
+
+        // Cream card (order_item_slot.png, 9-sliced) with a navy label, for toggles.
+        private static Button CreateCardButton(string name, Transform parent, Vector2 position, TMP_FontAsset font, out TMP_Text label)
+        {
+            RectTransform rect = CreateImage(name, parent, LoadSprite(OrderCardSprite), Color.white, false);
+            Place(rect, Center, Center, position, new Vector2(440f, 100f));
+            Image image = rect.GetComponent<Image>();
+            image.type = Image.Type.Sliced;
+            image.pixelsPerUnitMultiplier = 2.6f;
+            image.raycastTarget = true;
+
+            Button button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = image;
+
+            TextMeshProUGUI text = CreateText("Label", rect, name.Replace(" Button", "").ToUpperInvariant(), font, NavyText, 22f, 42f);
+            Fill(text.transform, new Vector2(24f, 8f), new Vector2(-24f, -10f));
+            label = text;
+            return button;
         }
 
         #endregion
