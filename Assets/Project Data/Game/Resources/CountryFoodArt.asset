@@ -85,7 +85,8 @@ MonoBehaviour:
   - {x: 0.0687, y: 0.1260, z: 0.9351, w: 0.8779}
   - {x: 0.2287, y: 0.1160, z: 0.7713, w: 0.8840}
   sizeMultiplier: 1.35
-  blockedTint: {r: 0.86, g: 0.86, b: 0.86, a: 1}
+  showCloche: 1
+  blockedTint: {r: 0.95, g: 0.95, b: 0.95, a: 1}
   shadowAlpha: 0.35
   showColourPlate: 1
   plateWidth: 0.96

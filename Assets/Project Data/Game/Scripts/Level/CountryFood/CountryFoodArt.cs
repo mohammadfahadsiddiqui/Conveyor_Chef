@@ -24,8 +24,10 @@ namespace Watermelon.BusStop
         [Header("Board look")]
         [Tooltip("Dish size relative to the tile footprint (the character tap collider).")]
         public float sizeMultiplier = 1.35f;
-        [Tooltip("Tint of dishes that cannot be picked yet (the donut outline did this before).")]
-        public Color blockedTint = new Color(0.86f, 0.86f, 0.86f, 1f);
+        [Tooltip("Cover dishes that cannot be picked yet with a clear glass cloche that lifts off when they become pickable.")]
+        public bool showCloche = true;
+        [Tooltip("Tint of dishes (and plates) under the cloche.")]
+        public Color blockedTint = new Color(0.95f, 0.95f, 0.95f, 1f);
         [Range(0f, 1f)] public float shadowAlpha = 0.35f;
         [Tooltip("Stand every dish on a solid plate in its tray colour, so players can see which dish goes where.")]
         public bool showColourPlate = true;
