@@ -27,6 +27,10 @@ namespace Watermelon.BusStop
         private const float DishScaleOnPlate = 0.9f;
         private static readonly Vector3 DishOnPlatePosition = new Vector3(0f, 0.02f, 0f);
         private static readonly Vector3 PlatePosition = new Vector3(0f, -0.28f, 0.03f);
+        private static readonly Vector3 PlateShadowPosition = new Vector3(0f, -0.38f, 0.05f);
+        private static readonly Vector3 PlateShadowScale = new Vector3(1.02f, 0.34f, 1f);
+        private static readonly Vector3 DishShadowPosition = new Vector3(0f, -0.42f, 0.02f);
+        private static readonly Vector3 DishShadowScale = new Vector3(0.95f, 0.26f, 1f);
 
         private const int PlateTextureWidth = 256;
         private const int PlateTextureHeight = 128;
@@ -47,6 +51,8 @@ namespace Watermelon.BusStop
         private Vector3 centreInGraphics;
         private float worldSize = 1f;
         private bool active;
+        private bool onTray;
+        private Color plateColour;
 
         public void Apply(BaseCharacterBehavior owner, Transform graphicsRoot, GameObject coverObject, Sprite dish, Color typeColour)
         {
@@ -68,19 +74,10 @@ namespace Watermelon.BusStop
 
             CountryFoodArt art = CountryFood.Art;
 
-            bool showPlate = art == null || art.showColourPlate;
-            float plateWidth = art != null ? art.plateWidth : 0.96f;
-
-            plateRenderer.enabled = showPlate;
-            if (showPlate)
-            {
-                plateRenderer.sprite = GetPlateSprite(typeColour);
-                FitToUnit(plateRenderer, new Vector3(plateWidth, plateWidth, 1f));
-            }
-
+            onTray = false;
+            plateColour = typeColour;
             dishRenderer.sprite = dish;
-            dishRenderer.transform.localPosition = showPlate ? DishOnPlatePosition : Vector3.zero;
-            FitToUnit(dishRenderer, Vector3.one * (showPlate ? DishScaleOnPlate : 1f));
+            ApplyPlateLayout();
 
             Color shadow = new Color(0f, 0f, 0f, art != null ? art.shadowAlpha : 0.35f);
             shadowRenderer.color = shadow;
@@ -88,6 +85,39 @@ namespace Watermelon.BusStop
             card.gameObject.SetActive(true);
             active = true;
             LateUpdate();
+        }
+
+        /// <summary>
+        /// Called when the dish is placed on its tray: the tray already shows the colour, so
+        /// the plate goes away and the dish is shown at full size.
+        /// </summary>
+        public void SetOnTray(bool value)
+        {
+            if (onTray == value || !active)
+                return;
+
+            onTray = value;
+            ApplyPlateLayout();
+        }
+
+        private void ApplyPlateLayout()
+        {
+            CountryFoodArt art = CountryFood.Art;
+            bool showPlate = !onTray && (art == null || art.showColourPlate);
+            float plateWidth = art != null ? art.plateWidth : 0.96f;
+
+            plateRenderer.enabled = showPlate;
+            if (showPlate)
+            {
+                plateRenderer.sprite = GetPlateSprite(plateColour);
+                FitToUnit(plateRenderer, new Vector3(plateWidth, plateWidth, 1f));
+            }
+
+            dishRenderer.transform.localPosition = showPlate ? DishOnPlatePosition : Vector3.zero;
+            FitToUnit(dishRenderer, Vector3.one * (showPlate ? DishScaleOnPlate : 1f));
+
+            shadowRenderer.transform.localPosition = showPlate ? PlateShadowPosition : DishShadowPosition;
+            FitToUnit(shadowRenderer, showPlate ? PlateShadowScale : DishShadowScale);
         }
 
         public void Restore()
@@ -144,7 +174,7 @@ namespace Watermelon.BusStop
             card = new GameObject("Country Dish").transform;
             card.SetParent(transform, false);
 
-            shadowRenderer = CreateLayer("Shadow", GetShadowSprite(), new Vector3(0f, -0.38f, 0.05f), new Vector3(1.02f, 0.34f, 1f));
+            shadowRenderer = CreateLayer("Shadow", GetShadowSprite(), PlateShadowPosition, PlateShadowScale);
             plateRenderer = CreateLayer("Colour Plate", null, PlatePosition, Vector3.one);
             dishRenderer = CreateLayer("Dish", null, Vector3.zero, Vector3.one);
         }

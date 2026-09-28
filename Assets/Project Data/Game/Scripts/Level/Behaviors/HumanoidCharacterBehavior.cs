@@ -139,6 +139,10 @@ namespace Watermelon.BusStop
             ParticlesController.PlayParticle(PARTICLE_POOF).SetPosition(transform.position + new Vector3(0, 1, 0));
 
             graphicsAnimator.Play(ANIMATOR_SITTING_ANIMATION, -1, Random.Range(0.0f, 1.0f));
+
+            // On its tray the colour is obvious, so the dish drops its colour plate.
+            if (TryGetComponent(out CountryFoodVisual visual))
+                visual.SetOnTray(true);
         }
 
         public override void Highlight(bool firstSpawn)
