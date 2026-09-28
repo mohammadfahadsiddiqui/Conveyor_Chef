@@ -131,6 +131,9 @@ namespace Watermelon.BusStop
         [SerializeField] 
         private GameObject customMaterialObject; // New object to show/hide
 
+        /// <summary>Cover shown while the piece is "unknown"; country dishes stay hidden under it.</summary>
+        public GameObject CustomCoverObject => customMaterialObject;
+
         private Material defaultMaterial;
 
         private TweenCase shakeTweenCase;

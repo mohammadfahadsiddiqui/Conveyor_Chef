@@ -62,6 +62,11 @@ namespace Watermelon.BusStop
         
         private Sprite GetBusSprite(LevelElement.Type busType)
         {
+            // Orders show the same country dish as the board.
+            Sprite dish = CountryFood.GetDish(busType);
+            if (dish != null)
+                return dish;
+
             foreach (var busSprite in busTypeSprites)
             {
                 if (busSprite.busType == busType)

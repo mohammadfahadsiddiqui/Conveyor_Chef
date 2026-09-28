@@ -44,6 +44,32 @@ namespace Watermelon.BusStop
             propertyBlock = new MaterialPropertyBlock();
 
             characterRenderer.SetOutlineWidth(propertyBlock, outlineDisableWidth);
+
+            ApplyCountryFood();
+        }
+
+        // Shows the dish of the current level's country for this colour instead of the
+        // donut (see CountryFood). Pooled pieces are re-skinned every time they are placed.
+        private void ApplyCountryFood()
+        {
+            Sprite dish = CountryFood.GetDish(levelElement.ElementType);
+            CountryFoodVisual visual = GetComponent<CountryFoodVisual>();
+
+            if (dish == null)
+            {
+                if (visual != null)
+                    visual.Restore();
+                return;
+            }
+
+            if (visual == null)
+                visual = gameObject.AddComponent<CountryFoodVisual>();
+
+            Transform graphicsRoot = transform.Find("Graphics");
+            if (graphicsRoot == null && graphicsAnimator != null)
+                graphicsRoot = graphicsAnimator.transform;
+
+            visual.Apply(this, graphicsRoot, CustomCoverObject, dish, CountryFood.GetTypeColour(levelElement.ElementType));
         }
 
         public override void MoveTo(Vector3[] path, bool isSlots, SimpleCallback onCompleted)
