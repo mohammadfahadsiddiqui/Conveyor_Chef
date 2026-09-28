@@ -24,7 +24,6 @@ namespace Watermelon.BusStop
         private const float DefaultFootprint = 0.8f;
 
         // Dish and plate layout on the card (the card is one unit wide).
-        private const float DishScaleOnPlate = 0.9f;
         // Where the bottom of the food sits: in the middle of the plate, or (plates switched
         // off in CountryFoodArt) just above the shadow.
         private const float DishBottomOnPlate = -0.326f;
@@ -55,7 +54,7 @@ namespace Watermelon.BusStop
         private float worldSize = 1f;
         private bool active;
         private Color plateColour;
-        private float dishBottom = CountryFoodArt.DefaultDishBottom;
+        private Vector4 dishRect = CountryFoodArt.DefaultDishRect;
 
         public void Apply(BaseCharacterBehavior owner, Transform graphicsRoot, GameObject coverObject, Sprite dish, Color typeColour)
         {
@@ -78,7 +77,7 @@ namespace Watermelon.BusStop
             CountryFoodArt art = CountryFood.Art;
 
             plateColour = typeColour;
-            dishBottom = art != null ? art.GetDishBottom(dish) : CountryFoodArt.DefaultDishBottom;
+            dishRect = art != null ? art.GetDishRect(dish) : CountryFoodArt.DefaultDishRect;
             dishRenderer.sprite = dish;
             ApplyPlateLayout();
 
@@ -103,13 +102,23 @@ namespace Watermelon.BusStop
                 FitToUnit(plateRenderer, new Vector3(plateWidth, plateWidth, 1f));
             }
 
-            // Stand the food itself (not the image's empty margin) in the middle of the plate.
-            float dishScale = showPlate ? DishScaleOnPlate : 1f;
-            FitToUnit(dishRenderer, Vector3.one * dishScale);
+            // Size and place the food itself (not the image's empty margins): every dish gets the
+            // same width, tall drinks are limited in height, and the food stands centred in the
+            // middle of the plate.
+            float foodWidth = art != null ? art.foodWidth : 0.8f;
+            float foodMaxHeight = art != null ? art.foodMaxHeight : 0.82f;
             Vector3 spriteSize = dishRenderer.sprite != null ? dishRenderer.sprite.bounds.size : Vector3.one;
-            float heightInCard = dishScale * spriteSize.y / Mathf.Max(0.0001f, spriteSize.x);
+            float aspect = spriteSize.y / Mathf.Max(0.0001f, spriteSize.x);
+            float rectWidth = Mathf.Max(0.05f, dishRect.z - dishRect.x);
+            float rectHeight = Mathf.Max(0.05f, (dishRect.w - dishRect.y) * aspect);
+
+            float dishScale = Mathf.Min(foodWidth / rectWidth, foodMaxHeight / rectHeight);
+            FitToUnit(dishRenderer, Vector3.one * dishScale);
+
             float bottomTarget = showPlate ? DishBottomOnPlate : DishBottomWithoutPlate;
-            dishRenderer.transform.localPosition = new Vector3(0f, bottomTarget - heightInCard * (dishBottom - 0.5f), 0f);
+            float x = -dishScale * ((dishRect.x + dishRect.z) * 0.5f - 0.5f);
+            float y = bottomTarget - dishScale * aspect * (dishRect.y - 0.5f);
+            dishRenderer.transform.localPosition = new Vector3(x, y, 0f);
 
             shadowRenderer.transform.localPosition = showPlate ? PlateShadowPosition : DishShadowPosition;
             FitToUnit(shadowRenderer, showPlate ? PlateShadowScale : DishShadowScale);

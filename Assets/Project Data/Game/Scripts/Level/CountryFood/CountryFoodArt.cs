@@ -16,9 +16,10 @@ namespace Watermelon.BusStop
 
         public Sprite[] dishes = new Sprite[35];
 
-        [Tooltip("Per dish, same order as Dishes: how far above the image's bottom edge the food starts " +
-                 "(0..1 of the image height). Used to stand every dish in the middle of its plate.")]
-        public float[] dishBottoms = new float[35];
+        [Tooltip("Per dish, same order as Dishes: the area the food covers in its image, as fractions of " +
+                 "the image (x = left, y = bottom, z = right, w = top). Every dish is sized and centred from " +
+                 "this, so the empty margins of the images do not matter.")]
+        public Vector4[] dishRects = new Vector4[35];
 
         [Header("Board look")]
         [Tooltip("Dish size relative to the tile footprint (the character tap collider).")]
@@ -30,21 +31,25 @@ namespace Watermelon.BusStop
         public bool showColourPlate = true;
         [Tooltip("Plate width relative to the dish card.")]
         [Range(0.6f, 1.2f)] public float plateWidth = 0.96f;
+        [Tooltip("Width of the food on its plate, relative to the dish card.")]
+        [Range(0.5f, 1.1f)] public float foodWidth = 0.8f;
+        [Tooltip("Tallest the food may be (tall drinks), relative to the dish card.")]
+        [Range(0.5f, 1.1f)] public float foodMaxHeight = 0.82f;
 
-        /// <summary>Empty space under the food in this dish image, as a fraction of its height.</summary>
-        public float GetDishBottom(Sprite dish)
+        /// <summary>Area the food covers in this dish image (see <see cref="dishRects"/>).</summary>
+        public Vector4 GetDishRect(Sprite dish)
         {
-            if (dish != null && dishes != null && dishBottoms != null)
+            if (dish != null && dishes != null && dishRects != null)
             {
                 int index = System.Array.IndexOf(dishes, dish);
-                if (index >= 0 && index < dishBottoms.Length)
-                    return dishBottoms[index];
+                if (index >= 0 && index < dishRects.Length && dishRects[index].z > dishRects[index].x)
+                    return dishRects[index];
             }
 
-            return DefaultDishBottom;
+            return DefaultDishRect;
         }
 
-        public const float DefaultDishBottom = 0.14f;
+        public static readonly Vector4 DefaultDishRect = new Vector4(0.07f, 0.14f, 0.93f, 0.86f);
 
         public Sprite GetDish(int country, int colourIndex)
         {
