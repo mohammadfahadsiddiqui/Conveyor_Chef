@@ -13,6 +13,7 @@ namespace Watermelon
     public static class ProfessionalMainMenuEmbeddedAssets
     {
         private const string DataRoot = "ProfessionalMainMenuData/";
+        private const string ReplacementFolder = "MainMenu/";
         private const int AtlasWidth = 1024;
         private const int AtlasHeight = 1222;
 
@@ -63,6 +64,14 @@ namespace Watermelon
 
             if (spriteCache.TryGetValue(assetName, out Sprite cached))
                 return cached;
+
+            // High-quality replacement art in Resources/MainMenu/<name> wins over the atlas.
+            Sprite replacement = Resources.Load<Sprite>(ReplacementFolder + assetName);
+            if (replacement != null)
+            {
+                spriteCache[assetName] = replacement;
+                return replacement;
+            }
 
             if (string.Equals(assetName, "background", StringComparison.OrdinalIgnoreCase))
             {
