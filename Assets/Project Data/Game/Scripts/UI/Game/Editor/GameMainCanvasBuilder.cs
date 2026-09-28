@@ -73,7 +73,7 @@ namespace Watermelon.EditorTools
         // Bump when the generated layout changes: an older canvas is rebuilt once
         // automatically. Auto-build runs once per version and project copy, so deleting
         // the canvas later is respected.
-        private const int LayoutVersion = 10;
+        private const int LayoutVersion = 11;
         private static readonly string AutoBuiltKey =
             "ConveyorChef.GameMainCanvas.AutoBuilt.v" + LayoutVersion + "." + Application.dataPath.GetHashCode();
 
@@ -1345,8 +1345,9 @@ namespace Watermelon.EditorTools
 
         #region Game menu
 
-        // In-game menu opened by the grid button. Art: pause_popup_panel.png (720x960,
-        // blue title band at 11%, cream area 19-88% of its height).
+        // In-game menu opened by the grid button. Panel: pause_popup_panel.png (760x1080,
+        // blue title band at 11%, cream area 19-88% of its height). Titles and toggle art
+        // are in Images/GameUI/Menu.
         private static void BuildGameMenu(GameObject root, Button openButton, Button pauseButton, TMP_FontAsset font)
         {
             Transform previous = root.transform.Find("Game Menu");
@@ -1363,28 +1364,34 @@ namespace Watermelon.EditorTools
             Button background = dim.gameObject.AddComponent<Button>();
             background.transition = Selectable.Transition.None;
 
-            const float panelY = 20f, panelH = 960f;
+            const float panelY = 10f, panelH = 1080f;
             float top = panelY + panelH * 0.5f;
 
             RectTransform panel = CreateImage("Panel", menu, LoadSprite("Popups/pause_popup_panel.png"), Color.white, true);
-            Place(panel, Center, Center, new Vector2(0f, panelY), new Vector2(720f, panelH));
+            Place(panel, Center, Center, new Vector2(0f, panelY), new Vector2(760f, panelH));
             panel.GetComponent<Image>().raycastTarget = true; // taps on the panel do not close the menu
 
-            TextMeshProUGUI title = CreateText("Title", menu, "MENU", font, Color.white, 30f, 64f);
-            Place(title.transform, Center, Center, new Vector2(0f, top - panelH * 0.11f), new Vector2(420f, 90f));
+            RectTransform title = CreateImage("Menu Title", menu, LoadSprite("Menu/menu_title.png"), Color.white, true);
+            Place(title, Center, Center, new Vector2(0f, top - panelH * 0.11f), new Vector2(540f, 180f));
 
-            Button resume = CreateArtButton("Resume Button", menu, "Popups/continue_button.png", new Vector2(0f, 240f), new Vector2(440f, 130f));
-            Button sound = CreateCardButton("Sound Button", menu, new Vector2(0f, 108f), font, out TMP_Text soundLabel);
-            Button vibration = CreateCardButton("Vibration Button", menu, new Vector2(0f, -12f), font, out TMP_Text vibrationLabel);
-            Button restart = CreateArtButton("Restart Button", menu, "Popups/restart_button.png", new Vector2(0f, -148f), new Vector2(440f, 130f));
-            Button home = CreateArtButton("Home Button", menu, "Toolbar/home_button.png", new Vector2(0f, -278f), new Vector2(116f, 116f));
+            Button resume = CreateArtButton("Resume Button", menu, "Popups/continue_button.png", new Vector2(0f, 285f), new Vector2(430f, 135f));
+
+            RectTransform settings = CreateImage("Settings Title", menu, LoadSprite("Menu/settings_title.png"), Color.white, true);
+            Place(settings, Center, Center, new Vector2(0f, 160f), new Vector2(390f, 120f));
+
+            Button sound = CreateArtButton("Sound Button", menu, "Menu/sound_on_button.png", new Vector2(0f, 40f), new Vector2(450f, 150f));
+            Button vibration = CreateArtButton("Vibration Button", menu, "Menu/vibration_on_button.png", new Vector2(0f, -100f), new Vector2(450f, 150f));
+            Button restart = CreateArtButton("Restart Button", menu, "Popups/restart_button.png", new Vector2(0f, -238f), new Vector2(430f, 135f));
+            Button home = CreateArtButton("Home Button", menu, "Toolbar/home_button.png", new Vector2(0f, -340f), new Vector2(100f, 100f));
 
             GameMenuPopup popup = root.GetComponent<GameMenuPopup>();
             if (popup == null)
                 popup = root.AddComponent<GameMenuPopup>();
 
-            popup.EditorConfigure(openButton, menu.gameObject, background, resume, sound, soundLabel,
-                vibration, vibrationLabel, restart, home, pauseButton);
+            popup.EditorConfigure(openButton, menu.gameObject, background, resume, sound, null,
+                vibration, null, restart, home, pauseButton,
+                LoadSprite("Menu/sound_on_button.png"), LoadSprite("Menu/sound_off_button.png"),
+                LoadSprite("Menu/vibration_on_button.png"), LoadSprite("Menu/vibration_off_button.png"));
 
             menu.gameObject.SetActive(false);
         }
@@ -1398,25 +1405,6 @@ namespace Watermelon.EditorTools
 
             Button button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
-            return button;
-        }
-
-        // Cream card (order_item_slot.png, 9-sliced) with a navy label, for toggles.
-        private static Button CreateCardButton(string name, Transform parent, Vector2 position, TMP_FontAsset font, out TMP_Text label)
-        {
-            RectTransform rect = CreateImage(name, parent, LoadSprite(OrderCardSprite), Color.white, false);
-            Place(rect, Center, Center, position, new Vector2(440f, 100f));
-            Image image = rect.GetComponent<Image>();
-            image.type = Image.Type.Sliced;
-            image.pixelsPerUnitMultiplier = 2.6f;
-            image.raycastTarget = true;
-
-            Button button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = image;
-
-            TextMeshProUGUI text = CreateText("Label", rect, name.Replace(" Button", "").ToUpperInvariant(), font, NavyText, 22f, 42f);
-            Fill(text.transform, new Vector2(24f, 8f), new Vector2(-24f, -10f));
-            label = text;
             return button;
         }
 

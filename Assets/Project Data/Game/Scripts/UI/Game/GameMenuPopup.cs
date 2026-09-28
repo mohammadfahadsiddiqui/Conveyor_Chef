@@ -30,6 +30,12 @@ namespace Watermelon
         [Tooltip("The HUD pause button; Restart reuses its quit / replay confirmation popup.")]
         [SerializeField] Button pauseButton;
 
+        [Header("Toggle Art")]
+        [SerializeField] Sprite soundOnSprite;
+        [SerializeField] Sprite soundOffSprite;
+        [SerializeField] Sprite vibrationOnSprite;
+        [SerializeField] Sprite vibrationOffSprite;
+
         public bool IsOpen => root != null && root.activeSelf;
 
         private void Awake()
@@ -103,13 +109,29 @@ namespace Watermelon
             GameController.ReturnToLevelSelection();
         }
 
+        // The toggle art shows the current state (SOUND ON / SOUND OFF, ...); plain
+        // labels are only used when no art is assigned.
         private void RefreshLabels()
         {
-            if (soundLabel != null)
-                soundLabel.text = AudioController.GetVolume() > 0.001f ? "SOUND: ON" : "SOUND: OFF";
+            bool soundOn = AudioController.GetVolume() > 0.001f;
+            bool vibrationOn = AudioController.IsVibrationEnabled();
 
-            if (vibrationLabel != null)
-                vibrationLabel.text = AudioController.IsVibrationEnabled() ? "VIBRATION: ON" : "VIBRATION: OFF";
+            SetState(soundButton, soundLabel, soundOn, soundOnSprite, soundOffSprite, "SOUND");
+            SetState(vibrationButton, vibrationLabel, vibrationOn, vibrationOnSprite, vibrationOffSprite, "VIBRATION");
+        }
+
+        private static void SetState(Button button, TMP_Text label, bool on, Sprite onSprite, Sprite offSprite, string name)
+        {
+            Sprite sprite = on ? onSprite : offSprite;
+            Image image = button != null ? button.targetGraphic as Image : null;
+            if (image != null && sprite != null)
+                image.sprite = sprite;
+
+            if (label != null)
+            {
+                label.gameObject.SetActive(sprite == null);
+                label.text = name + (on ? ": ON" : ": OFF");
+            }
         }
 
         private static void Wire(Button button, UnityEngine.Events.UnityAction action)
@@ -130,8 +152,13 @@ namespace Watermelon
         public void EditorConfigure(
             Button open, GameObject menuRoot, Button background, Button resume,
             Button sound, TMP_Text soundText, Button vibration, TMP_Text vibrationText,
-            Button restart, Button home, Button pause)
+            Button restart, Button home, Button pause,
+            Sprite soundOn, Sprite soundOff, Sprite vibrationOn, Sprite vibrationOff)
         {
+            soundOnSprite = soundOn;
+            soundOffSprite = soundOff;
+            vibrationOnSprite = vibrationOn;
+            vibrationOffSprite = vibrationOff;
             openButton = open;
             root = menuRoot;
             backgroundButton = background;
