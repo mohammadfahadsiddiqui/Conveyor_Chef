@@ -236,15 +236,10 @@ namespace Watermelon
                 $"Best Level: {bestLevel}");
         }
 
+        // Every settings button in the game opens the shared Settings panel.
         private void OpenSettings()
         {
-            PlayClick();
-            ShowModal("SETTINGS", "Tune your kitchen experience.");
-
-            if (settingsControls != null)
-                settingsControls.SetActive(true);
-
-            UpdateSettingsLabels();
+            ConveyorSettingsPanel.Show();
         }
 
         private void OpenShop()

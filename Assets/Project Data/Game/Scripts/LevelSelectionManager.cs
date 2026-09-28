@@ -530,12 +530,10 @@ namespace Watermelon.BusStop
                 statusText.text = "DIAMONDS ARE MANAGED FROM THE MAIN MENU SHOP";
         }
 
+        // Every settings button in the game opens the shared Settings panel.
         private void OpenSettings()
         {
-            PlayClick();
-            if (settingsPanel != null)
-                settingsPanel.SetActive(true);
-            RefreshSettingsLabels();
+            ConveyorSettingsPanel.Show();
         }
 
         private void CloseSettings()

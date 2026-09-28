@@ -603,14 +603,10 @@ namespace Watermelon.BusStop
             Watermelon.EnhancedLoadingScreen.LoadViaLoadingScreen("menu");
         }
 
+        // Every settings button in the game opens the shared Settings panel.
         private void OpenSettings()
         {
-            PlayClick();
-
-            if (settingsPanel != null)
-                settingsPanel.SetActive(true);
-
-            RefreshSettingsLabels();
+            ConveyorSettingsPanel.Show();
         }
 
         private void CloseSettings()

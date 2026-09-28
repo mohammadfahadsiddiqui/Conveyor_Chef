@@ -47,7 +47,7 @@ namespace Watermelon
                 diamondPanel.AddButton.onClick.AddListener(OpenCurrencyStore);
 
             if (settingsButton != null)
-                settingsButton.onClick.AddListener(OpenPauseOptions);
+                settingsButton.onClick.AddListener(ConveyorSettingsPanel.Show);
 
             if (homeButton != null)
                 homeButton.onClick.AddListener(ReturnToLevelSelection);

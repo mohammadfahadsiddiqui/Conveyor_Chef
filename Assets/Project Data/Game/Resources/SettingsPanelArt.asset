@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc921c901f3d497e848701c7ddcf2528, type: 3}
+  m_Name: SettingsPanelArt
+  m_EditorClassIdentifier: 
+  panel: {fileID: 21300000, guid: 280c394c996e702408ef9a372094caa3, type: 3}
+  title: {fileID: 21300000, guid: b62304d2a3f84113a9107ad0578df0a8, type: 3}
+  closeButton: {fileID: 21300000, guid: 8eb84762d00580348ad4e5586eef66f2, type: 3}
+  soundOn: {fileID: 21300000, guid: ced6a44bcd034816a56b69cba691bedc, type: 3}
+  soundOff: {fileID: 21300000, guid: d301488c5ca049018cf9cea60100de59, type: 3}
+  vibrationOn: {fileID: 21300000, guid: a85e67605423455eaf554be11931a299, type: 3}
+  vibrationOff: {fileID: 21300000, guid: 334e5e8d7a164cbdb87889dd6992741b, type: 3}
+  font: {fileID: 11400000, guid: 43bda4895b7e2d940ab8ecb8da000216, type: 2}
