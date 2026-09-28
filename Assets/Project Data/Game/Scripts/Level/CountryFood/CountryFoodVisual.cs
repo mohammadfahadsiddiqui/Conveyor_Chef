@@ -7,7 +7,7 @@ namespace Watermelon.BusStop
     /// Shows a country dish image instead of the donut model on one food character.
     ///
     /// The dish is drawn on a card that always faces the camera (so the painted "3D" image
-    /// never looks flat), sits under the character's Graphics so it follows every existing
+    /// never looks flat), follows the character's Graphics every frame so it keeps every existing
     /// animation, and stands on a solid plate in the food's game colour (the colour of the tray it
     /// belongs to), so players can tell which dish goes where.
     /// Added at runtime by <see cref="HumanoidCharacterBehavior"/>; pooled characters are
@@ -134,6 +134,20 @@ namespace Watermelon.BusStop
             active = false;
         }
 
+        // The card is not a child of the character (see Build), so it follows the character's
+        // life: hidden while the character is pooled, destroyed with it.
+        private void OnDisable()
+        {
+            if (card != null)
+                card.gameObject.SetActive(false);
+        }
+
+        private void OnDestroy()
+        {
+            if (card != null)
+                Destroy(card.gameObject);
+        }
+
         private void LateUpdate()
         {
             if (!active || card == null)
@@ -150,12 +164,14 @@ namespace Watermelon.BusStop
                 return;
 
             Vector3 centre = graphics.TransformPoint(centreInGraphics);
-            float scale = worldSize * Mathf.Abs(character.transform.lossyScale.x);
+            // World size of the character's footprint; also right on a rotated, unevenly scaled seat.
+            Transform root = character.transform;
+            float rootScale = 0.5f * (root.TransformVector(Vector3.right).magnitude + root.TransformVector(Vector3.forward).magnitude);
+            float scale = worldSize * rootScale;
 
             card.rotation = cam.transform.rotation;
             card.position = centre - cam.transform.forward * (scale * TowardsCamera);
-            card.localScale = Vector3.one;
-            SetWorldScale(card, scale);
+            card.localScale = new Vector3(scale, scale, scale);
 
             CountryFoodArt art = CountryFood.Art;
             Color blocked = art != null ? art.blockedTint : new Color(0.86f, 0.86f, 0.86f, 1f);
@@ -166,15 +182,20 @@ namespace Watermelon.BusStop
 
         private void Build()
         {
+            // Not parented to the character: on the tray it sits on a rotated seat with uneven
+            // scale, which would shear the card and slide the dish off its plate.
             card = new GameObject("Country Dish").transform;
-            card.SetParent(transform, false);
+            card.gameObject.layer = GetDishLayer();
 
-            shadowRenderer = CreateLayer("Shadow", GetShadowSprite(), PlateShadowPosition, PlateShadowScale);
-            plateRenderer = CreateLayer("Colour Plate", null, PlatePosition, Vector3.one);
-            dishRenderer = CreateLayer("Dish", null, Vector3.zero, Vector3.one);
+            // Sorted as one piece against other dishes; inside it always shadow < plate < dish.
+            card.gameObject.AddComponent<UnityEngine.Rendering.SortingGroup>();
+
+            shadowRenderer = CreateLayer("Shadow", GetShadowSprite(), PlateShadowPosition, PlateShadowScale, 0);
+            plateRenderer = CreateLayer("Colour Plate", null, PlatePosition, Vector3.one, 1);
+            dishRenderer = CreateLayer("Dish", null, Vector3.zero, Vector3.one, 2);
         }
 
-        private SpriteRenderer CreateLayer(string name, Sprite sprite, Vector3 localPosition, Vector3 localScale)
+        private SpriteRenderer CreateLayer(string name, Sprite sprite, Vector3 localPosition, Vector3 localScale, int order)
         {
             GameObject go = new GameObject(name);
             go.layer = GetDishLayer();
@@ -186,6 +207,7 @@ namespace Watermelon.BusStop
             sr.sprite = sprite;
             sr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             sr.receiveShadows = false;
+            sr.sortingOrder = order;
             if (sprite != null)
                 FitToUnit(sr, localScale);
             return sr;
@@ -249,17 +271,6 @@ namespace Watermelon.BusStop
                 m = Matrix4x4.TRS(t.localPosition, t.localRotation, t.localScale) * m;
             return m;
         }
-
-        private static void SetWorldScale(Transform t, float scale)
-        {
-            Vector3 parentScale = t.parent != null ? t.parent.lossyScale : Vector3.one;
-            t.localScale = new Vector3(
-                SafeDivide(scale, parentScale.x),
-                SafeDivide(scale, parentScale.y),
-                SafeDivide(scale, parentScale.z));
-        }
-
-        private static float SafeDivide(float a, float b) => Mathf.Abs(b) < 0.0001f ? 0f : a / Mathf.Abs(b);
 
         // Scale a sprite renderer so its sprite is one unit wide (times extra).
         private static void FitToUnit(SpriteRenderer sr, Vector3? extra = null)
