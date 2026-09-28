@@ -25,9 +25,10 @@ namespace Watermelon.BusStop
 
         // Dish and plate layout on the card (the card is one unit wide).
         private const float DishScaleOnPlate = 0.9f;
-        // Where the bottom of the food sits: in the middle of the plate, or on the tray.
+        // Where the bottom of the food sits: in the middle of the plate, or (plates switched
+        // off in CountryFoodArt) just above the shadow.
         private const float DishBottomOnPlate = -0.326f;
-        private const float DishBottomOnTray = -0.36f;
+        private const float DishBottomWithoutPlate = -0.36f;
         private static readonly Vector3 PlatePosition = new Vector3(0f, -0.28f, 0.03f);
         private static readonly Vector3 PlateShadowPosition = new Vector3(0f, -0.38f, 0.05f);
         private static readonly Vector3 PlateShadowScale = new Vector3(1.02f, 0.34f, 1f);
@@ -53,7 +54,6 @@ namespace Watermelon.BusStop
         private Vector3 centreInGraphics;
         private float worldSize = 1f;
         private bool active;
-        private bool onTray;
         private Color plateColour;
         private float dishBottom = CountryFoodArt.DefaultDishBottom;
 
@@ -77,7 +77,6 @@ namespace Watermelon.BusStop
 
             CountryFoodArt art = CountryFood.Art;
 
-            onTray = false;
             plateColour = typeColour;
             dishBottom = art != null ? art.GetDishBottom(dish) : CountryFoodArt.DefaultDishBottom;
             dishRenderer.sprite = dish;
@@ -91,23 +90,10 @@ namespace Watermelon.BusStop
             LateUpdate();
         }
 
-        /// <summary>
-        /// Called when the dish is placed on its tray: the tray already shows the colour, so
-        /// the plate goes away and the dish is shown at full size.
-        /// </summary>
-        public void SetOnTray(bool value)
-        {
-            if (onTray == value || !active)
-                return;
-
-            onTray = value;
-            ApplyPlateLayout();
-        }
-
         private void ApplyPlateLayout()
         {
             CountryFoodArt art = CountryFood.Art;
-            bool showPlate = !onTray && (art == null || art.showColourPlate);
+            bool showPlate = art == null || art.showColourPlate;
             float plateWidth = art != null ? art.plateWidth : 0.96f;
 
             plateRenderer.enabled = showPlate;
@@ -117,12 +103,12 @@ namespace Watermelon.BusStop
                 FitToUnit(plateRenderer, new Vector3(plateWidth, plateWidth, 1f));
             }
 
-            // Stand the food (not the image's empty margin) on the plate or tray.
+            // Stand the food itself (not the image's empty margin) in the middle of the plate.
             float dishScale = showPlate ? DishScaleOnPlate : 1f;
             FitToUnit(dishRenderer, Vector3.one * dishScale);
             Vector3 spriteSize = dishRenderer.sprite != null ? dishRenderer.sprite.bounds.size : Vector3.one;
             float heightInCard = dishScale * spriteSize.y / Mathf.Max(0.0001f, spriteSize.x);
-            float bottomTarget = showPlate ? DishBottomOnPlate : DishBottomOnTray;
+            float bottomTarget = showPlate ? DishBottomOnPlate : DishBottomWithoutPlate;
             dishRenderer.transform.localPosition = new Vector3(0f, bottomTarget - heightInCard * (dishBottom - 0.5f), 0f);
 
             shadowRenderer.transform.localPosition = showPlate ? PlateShadowPosition : DishShadowPosition;
