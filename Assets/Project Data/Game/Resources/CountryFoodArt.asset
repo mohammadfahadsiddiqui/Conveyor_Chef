@@ -49,6 +49,6 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 197643caa6fa4bb396475d30c78c5cce, type: 3}
   - {fileID: 21300000, guid: 8129052f57134cffbec19601a01b2619, type: 3}
   sizeMultiplier: 1.35
-  blockedTint: {r: 0.72, g: 0.72, b: 0.72, a: 1}
+  blockedTint: {r: 0.86, g: 0.86, b: 0.86, a: 1}
   shadowAlpha: 0.35
   ringAlpha: 0

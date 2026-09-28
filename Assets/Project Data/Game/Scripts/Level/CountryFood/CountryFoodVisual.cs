@@ -117,7 +117,7 @@ namespace Watermelon.BusStop
             SetWorldScale(card, scale);
 
             CountryFoodArt art = CountryFood.Art;
-            Color blocked = art != null ? art.blockedTint : new Color(0.72f, 0.72f, 0.72f, 1f);
+            Color blocked = art != null ? art.blockedTint : new Color(0.86f, 0.86f, 0.86f, 1f);
             dishRenderer.color = character.IsHighlighted || character.IsSubmitted ? Color.white : blocked;
         }
 

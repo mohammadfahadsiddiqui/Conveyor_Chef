@@ -20,7 +20,7 @@ namespace Watermelon.BusStop
         [Tooltip("Dish size relative to the tile footprint (the character tap collider).")]
         public float sizeMultiplier = 1.35f;
         [Tooltip("Tint of dishes that cannot be picked yet (the donut outline did this before).")]
-        public Color blockedTint = new Color(0.72f, 0.72f, 0.72f, 1f);
+        public Color blockedTint = new Color(0.86f, 0.86f, 0.86f, 1f);
         [Range(0f, 1f)] public float shadowAlpha = 0.35f;
         [Tooltip("Opacity of the ring in the food's colour under each dish; 0 hides it.")]
         [Range(0f, 1f)] public float ringAlpha = 0f;
