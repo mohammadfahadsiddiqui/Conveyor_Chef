@@ -270,6 +270,11 @@ namespace Watermelon
         [SerializeField] GameObject confettiObject; // The confetti from hierarchy
 
         private TweenCase noThanksAppearTween;
+
+        // The buttons pop in with the same scale animation as the banner.
+        private UIScaleAnimation multiplyButtonScale;
+        private UIScaleAnimation noThanksButtonScale;
+
         private int coinsHash = FloatingCloud.StringToHash(CurrencyType.Coins.ToString());
 
         private readonly string NO_THANKS_TEXT = "NO, THANKS";
@@ -282,6 +287,9 @@ namespace Watermelon
         {
             multiplyRewardButton.onClick.AddListener(MultiplyRewardButton);
             noThanksButton.onClick.AddListener(NoThanksButton);
+
+            multiplyButtonScale = new UIScaleAnimation((RectTransform)multiplyRewardButton.transform);
+            noThanksButtonScale = new UIScaleAnimation((RectTransform)noThanksButton.transform);
 
             coinsPanelUI.Initialise();
 
@@ -402,6 +410,13 @@ namespace Watermelon
         // Helper method to show buttons
         private void ShowButtons()
         {
+            // Same timing and pop as levelCompleteLabel.Show(), so the buttons arrive with
+            // the banner instead of appearing in place while it grows.
+            multiplyButtonScale.Hide(immediately: true);
+            noThanksButtonScale.Hide(immediately: true);
+            multiplyButtonScale.Show();
+            noThanksButtonScale.Show();
+
             multiplyRewardButtonFade.Show(duration: 0.3f);
             multiplyRewardButton.interactable = true;
 

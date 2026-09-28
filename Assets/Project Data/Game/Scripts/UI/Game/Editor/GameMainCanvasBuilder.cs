@@ -73,7 +73,7 @@ namespace Watermelon.EditorTools
         // Bump when the generated layout changes: an older canvas is rebuilt once
         // automatically. Auto-build runs once per version and project copy, so deleting
         // the canvas later is respected.
-        private const int LayoutVersion = 12;
+        private const int LayoutVersion = 13;
         private static readonly string AutoBuiltKey =
             "ConveyorChef.GameMainCanvas.AutoBuilt.v" + LayoutVersion + "." + Application.dataPath.GetHashCode();
 
@@ -1164,7 +1164,14 @@ namespace Watermelon.EditorTools
             UIComplete complete = page.GetComponent<UIComplete>();
             if (complete != null)
             {
-                AddHomeButton(page, complete.HomeButton, new Vector2(0f, top - frameH * 0.906f));
+                // Inside the banner holder, so it pops in with the banner.
+                Transform homeParent = Find(page, "Level Complered Holder");
+                float homeY = top - frameH * 0.906f;
+                if (homeParent != null)
+                    homeY -= top - frameH * 0.307f; // relative to the holder on the ribbon
+                else
+                    homeParent = page;
+                AddHomeButton(page, homeParent, complete.HomeButton, new Vector2(0f, homeY));
                 WireCompleteButtons(complete, next, multiply);
             }
 
@@ -1209,11 +1216,23 @@ namespace Watermelon.EditorTools
             // Home on the frame's bottom edge (blue band at 90%). It is already wired to
             // GameController.HomeButton; its child images (one drew a dark box under
             // RESTART) and label are switched off so only the home art shows.
-            Transform home = page.Find("home (2)");
+            Transform home = Find(page, "home (2)");
             if (home != null)
             {
                 home.gameObject.SetActive(true);
-                Place(home, Center, Center, new Vector2(0f, top - frameH * 0.899f), new Vector2(116f, 116f));
+
+                // Inside the header (which carries the frame), so it pops in with the frame.
+                // It was added in the scene, so it may be re-parented inside the prefab instance.
+                Transform headerParent = Find(page, "Level Failed Text");
+                float homeY = top - frameH * 0.899f;
+                if (headerParent != null)
+                {
+                    home.SetParent(headerParent, false);
+                    homeY -= top - frameH * 0.29f;
+                    home.SetAsLastSibling();
+                }
+
+                Place(home, Center, Center, new Vector2(0f, homeY), new Vector2(116f, 116f));
                 SetSprite(home, LoadSprite("Toolbar/home_button.png"), true);
                 Image homeImage = home.GetComponent<Image>();
                 if (homeImage != null)
@@ -1231,13 +1250,13 @@ namespace Watermelon.EditorTools
         private const string HomeButtonName = "Home Button (Popup)";
         private const int PopupSortingOrder = 20;
 
-        private static void AddHomeButton(Transform page, UnityEngine.Events.UnityAction onClick, Vector2 position)
+        private static void AddHomeButton(Transform page, Transform parent, UnityEngine.Events.UnityAction onClick, Vector2 position)
         {
-            Transform previous = page.Find(HomeButtonName);
+            Transform previous = Find(page, HomeButtonName);
             if (previous != null)
                 Object.DestroyImmediate(previous.gameObject);
 
-            RectTransform home = CreateImage(HomeButtonName, page, LoadSprite("Toolbar/home_button.png"), Color.white, true);
+            RectTransform home = CreateImage(HomeButtonName, parent, LoadSprite("Toolbar/home_button.png"), Color.white, true);
             Place(home, Center, Center, position, new Vector2(116f, 116f));
             home.SetAsLastSibling();
 
