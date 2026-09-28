@@ -422,22 +422,12 @@ namespace Watermelon.BusStop
 /// <summary>
 /// Check if a level is unlocked
 /// </summary>
-public static bool IsLevelUnlocked(int levelIndex)
-{
-    if (levelIndex == 0) return true;
-    return IsLevelCompleted(levelIndex - 1);
-}
+public static bool IsLevelUnlocked(int levelIndex) => GameProgress.IsLevelUnlocked(levelIndex);
 
 /// <summary>
 /// Check if a level has been completed
 /// </summary>
-public static bool IsLevelCompleted(int levelIndex)
-{
-    LevelSave save = SaveController.GetSaveObject<LevelSave>("level");
-    LevelProgressData data = save.GetLevelProgress(levelIndex);
-    
-    return data != null && data.isCompleted;
-}
+public static bool IsLevelCompleted(int levelIndex) => GameProgress.IsLevelCompleted(levelIndex);
 
 /// <summary>
 /// Get the number of stars earned for a level
