@@ -59,7 +59,7 @@ namespace Watermelon.BusStop
             return foodArt != null && colour >= 0 && country >= 0 ? foodArt.GetDish(country, colour) : null;
         }
 
-        /// <summary>The game's colour for a food type, used for the ring under each dish.</summary>
+        /// <summary>The game's colour for a food type, used for the plate under each dish.</summary>
         public static Color GetTypeColour(LevelElement.Type type)
         {
             switch (type)
