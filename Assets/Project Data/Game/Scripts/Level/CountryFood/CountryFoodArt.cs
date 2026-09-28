@@ -17,7 +17,7 @@ namespace Watermelon.BusStop
         public Sprite[] dishes = new Sprite[35];
 
         [Header("Board look")]
-        [Tooltip("Dish size relative to the original donut model.")]
+        [Tooltip("Dish size relative to the tile footprint (the character tap collider).")]
         public float sizeMultiplier = 1.35f;
         [Tooltip("Tint of dishes that cannot be picked yet (the donut outline did this before).")]
         public Color blockedTint = new Color(0.72f, 0.72f, 0.72f, 1f);

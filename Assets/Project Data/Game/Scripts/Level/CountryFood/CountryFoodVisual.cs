@@ -19,6 +19,9 @@ namespace Watermelon.BusStop
         // never cuts off its lower half.
         private const float TowardsCamera = 0.55f;
 
+        // Tile footprint used when the character has no usable collider.
+        private const float DefaultFootprint = 0.8f;
+
         private static Sprite shadowSprite;
         private static Sprite ringSprite;
 
@@ -144,13 +147,15 @@ namespace Watermelon.BusStop
             return sr;
         }
 
-        // Hides the donut model and records its size and centre, measured through local
-        // transforms so it also works while the spawn animation has the character at scale 0.
+        // Hides the visible donut model and records where the dish goes. The size comes from
+        // the character's tap collider (the tile footprint): the prefabs keep many inactive
+        // leftover models at large scales, so measuring meshes would give a giant card.
+        // Everything is measured through local transforms so it also works while the spawn
+        // animation has the character at scale 0.
         private void MeasureAndHideModel()
         {
             hiddenRenderers.Clear();
 
-            Bounds? rootBounds = null;
             foreach (Renderer r in graphics.GetComponentsInChildren<Renderer>(true))
             {
                 if (r is ParticleSystemRenderer || r is SpriteRenderer)
@@ -160,12 +165,6 @@ namespace Watermelon.BusStop
                 if (card != null && r.transform.IsChildOf(card))
                     continue;
 
-                Bounds local = GetLocalBounds(r);
-                Matrix4x4 toGraphics = LocalChain(r.transform, graphics);
-                Bounds b = TransformBounds(local, toGraphics);
-                if (rootBounds.HasValue) { Bounds acc = rootBounds.Value; acc.Encapsulate(b); rootBounds = acc; }
-                else rootBounds = b;
-
                 if (r.enabled)
                 {
                     r.enabled = false;
@@ -173,28 +172,22 @@ namespace Watermelon.BusStop
                 }
             }
 
-            Bounds bounds = rootBounds ?? new Bounds(Vector3.zero, Vector3.one * 0.8f);
-            centreInGraphics = bounds.center;
+            Vector3 footprintCentre = new Vector3(0f, 0.3f, 0f);
+            float footprint = DefaultFootprint;
+            if (character.TryGetComponent(out BoxCollider box))
+            {
+                footprintCentre = box.center;
+                footprint = Mathf.Max(box.size.x, box.size.z);
+            }
 
-            // Size of the model relative to the character root at scale 1.
+            if (footprint < 0.1f || footprint > 3f)
+                footprint = DefaultFootprint;
+
             Matrix4x4 graphicsToRoot = LocalChain(graphics, character.transform);
-            Vector3 s = bounds.size;
-            float size = Mathf.Max(s.x * graphicsToRoot.lossyScale.x, s.y * graphicsToRoot.lossyScale.y, s.z * graphicsToRoot.lossyScale.z);
+            centreInGraphics = graphicsToRoot.inverse.MultiplyPoint3x4(footprintCentre);
 
             CountryFoodArt art = CountryFood.Art;
-            worldSize = Mathf.Max(0.2f, size) * (art != null ? art.sizeMultiplier : 1.35f);
-        }
-
-        private static Bounds GetLocalBounds(Renderer r)
-        {
-            if (r is SkinnedMeshRenderer skinned)
-                return skinned.localBounds;
-
-            MeshFilter filter = r.GetComponent<MeshFilter>();
-            if (filter != null && filter.sharedMesh != null)
-                return filter.sharedMesh.bounds;
-
-            return new Bounds(Vector3.zero, Vector3.one * 0.5f);
+            worldSize = footprint * (art != null ? art.sizeMultiplier : 1.35f);
         }
 
         private static Matrix4x4 LocalChain(Transform from, Transform to)
@@ -203,18 +196,6 @@ namespace Watermelon.BusStop
             for (Transform t = from; t != null && t != to; t = t.parent)
                 m = Matrix4x4.TRS(t.localPosition, t.localRotation, t.localScale) * m;
             return m;
-        }
-
-        private static Bounds TransformBounds(Bounds b, Matrix4x4 m)
-        {
-            Vector3 c = b.center, e = b.extents;
-            Bounds result = new Bounds(m.MultiplyPoint3x4(c), Vector3.zero);
-            for (int i = 0; i < 8; i++)
-            {
-                Vector3 corner = c + Vector3.Scale(e, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
-                result.Encapsulate(m.MultiplyPoint3x4(corner));
-            }
-            return result;
         }
 
         private static void SetWorldScale(Transform t, float scale)
