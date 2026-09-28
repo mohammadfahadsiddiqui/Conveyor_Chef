@@ -625,6 +625,7 @@ namespace Watermelon
             UIController.HidePage<UIComplete>();
 
             LevelSave levelSave = SaveController.GetSaveObject<LevelSave>("level");
+            int completedLevelIndex = levelSave.isPlayingFromLevelSelection ? levelSave.selectedLevelIndex : -1;
 
             if (levelSave.isPlayingFromLevelSelection)
             {
@@ -638,7 +639,45 @@ namespace Watermelon
                 SaveController.Save(true);
             }
 
+            if (TryShowCountryComplete(completedLevelIndex, levelSave))
+                return;
+
             GameController.LoadNextLevel();
+        }
+
+        private const string SelectedCountryKey = "CC_CountryMap_SelectedCountry";
+        private const string CountryCompleteShownKey = "CC_CountryComplete_Shown_";
+
+        // After the last level of a country, the first time every level of that country is
+        // complete: show "Country Completed!" and continue on the Country Map with the next
+        // country selected (World Map after the last country).
+        private static bool TryShowCountryComplete(int completedLevelIndex, LevelSave levelSave)
+        {
+            if (!CountryCatalog.IsLastLevelOfCountry(completedLevelIndex))
+                return false;
+
+            int country = CountryCatalog.GetCountryOfLevel(completedLevelIndex);
+            if (!CountryCatalog.IsCountryComplete(country, levelSave))
+                return false;
+
+            string shownKey = CountryCompleteShownKey + country;
+            if (PlayerPrefs.GetInt(shownKey, 0) == 1)
+                return false;
+
+            int next = CountryCatalog.GetNext(country);
+            PlayerPrefs.SetInt(shownKey, 1);
+            if (next >= 0)
+                PlayerPrefs.SetInt(SelectedCountryKey, next);
+            PlayerPrefs.Save();
+
+            Debug.Log($"[UIComplete] {CountryCatalog.GetName(country)} completed; next: {CountryCatalog.GetName(next)}");
+
+            CountryCompletePanel.Show(
+                country,
+                () => EnhancedLoadingScreen.LoadViaLoadingScreen(next >= 0 ? "CountryMap" : "WorldMap"),
+                () => EnhancedLoadingScreen.LoadViaLoadingScreen("menu"));
+
+            return true;
         }
 
         public void HomeButton()
