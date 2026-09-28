@@ -42,7 +42,7 @@ namespace Watermelon.EditorTools
         {
             CountryCompletePanel.Show(
                 country,
-                () => Debug.Log("[CountryComplete] Preview: CONTINUE -> CountryMap"),
+                () => Debug.Log("[CountryComplete] Preview: CONTINUE -> LevelSelection (next country)"),
                 () => Debug.Log("[CountryComplete] Preview: HOME -> menu"));
         }
     }

@@ -646,11 +646,13 @@ namespace Watermelon
         }
 
         private const string SelectedCountryKey = "CC_CountryMap_SelectedCountry";
+        private const string SelectedCountryLevelStartKey = "CC_CountryMap_SelectedLevelStart";
+        private const string FromCountryMapKey = "CC_LevelSelection_FromCountryMap";
         private const string CountryCompleteShownKey = "CC_CountryComplete_Shown_";
 
         // After the last level of a country, the first time every level of that country is
-        // complete: show "Country Completed!" and continue on the Country Map with the next
-        // country selected (World Map after the last country).
+        // complete: show "Country Completed!" and continue straight to Level Selection for
+        // the next country (World Map after the last country).
         private static bool TryShowCountryComplete(int completedLevelIndex, LevelSave levelSave)
         {
             if (!CountryCatalog.IsLastLevelOfCountry(completedLevelIndex))
@@ -667,14 +669,20 @@ namespace Watermelon
             int next = CountryCatalog.GetNext(country);
             PlayerPrefs.SetInt(shownKey, 1);
             if (next >= 0)
+            {
+                // Same hand-off the Country Map uses when a country is picked, so Level
+                // Selection opens on the next country and its Back returns to the map.
                 PlayerPrefs.SetInt(SelectedCountryKey, next);
+                PlayerPrefs.SetInt(SelectedCountryLevelStartKey, next * CountryCatalog.LevelsPerCountry);
+                PlayerPrefs.SetInt(FromCountryMapKey, 1);
+            }
             PlayerPrefs.Save();
 
             Debug.Log($"[UIComplete] {CountryCatalog.GetName(country)} completed; next: {CountryCatalog.GetName(next)}");
 
             CountryCompletePanel.Show(
                 country,
-                () => EnhancedLoadingScreen.LoadViaLoadingScreen(next >= 0 ? "CountryMap" : "WorldMap"),
+                () => EnhancedLoadingScreen.LoadViaLoadingScreen(next >= 0 ? "LevelSelection" : "WorldMap"),
                 () => EnhancedLoadingScreen.LoadViaLoadingScreen("menu"));
 
             return true;
