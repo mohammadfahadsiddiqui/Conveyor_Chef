@@ -21,6 +21,10 @@ namespace Watermelon.BusStop
                  "this, so the empty margins of the images do not matter.")]
         public Vector4[] dishRects = new Vector4[35];
 
+        [Tooltip("Per dish, same order as Dishes: x = dish image width on the card and y = where the food's " +
+                 "bottom sits, measured so the food fits inside the glass cloche. 0 = use Food Width instead.")]
+        public Vector2[] dishFits = new Vector2[35];
+
         [Header("Board look")]
         [Tooltip("Dish size relative to the tile footprint (the character tap collider).")]
         public float sizeMultiplier = 1.35f;
@@ -49,6 +53,19 @@ namespace Watermelon.BusStop
             }
 
             return DefaultDishRect;
+        }
+
+        /// <summary>Measured size and position that keep this dish inside the cloche, or zero.</summary>
+        public Vector2 GetDishFit(Sprite dish)
+        {
+            if (dish != null && dishes != null && dishFits != null)
+            {
+                int index = System.Array.IndexOf(dishes, dish);
+                if (index >= 0 && index < dishFits.Length)
+                    return dishFits[index];
+            }
+
+            return Vector2.zero;
         }
 
         public static readonly Vector4 DefaultDishRect = new Vector4(0.07f, 0.14f, 0.93f, 0.86f);

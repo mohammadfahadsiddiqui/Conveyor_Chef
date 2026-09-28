@@ -37,13 +37,14 @@ namespace Watermelon.BusStop
 
         // Glass cloche over dishes that cannot be picked yet: it stands on the plate and lifts
         // off (rises and fades) when the dish becomes pickable.
-        private const float ClocheWidth = 0.9f;
-        private const float ClocheBaseY = -0.254f;
+        private const float ClocheRadius = 0.45f;           // round dome, card units (plate top is 0.46)
+        private const float ClocheTilt = 0.417f;            // base ellipse height / width, as the plate rim
+        private const float ClocheBaseY = -0.254f;          // plate top-surface centre
         private const float ClocheLiftHeight = 0.35f;
         private const float ClocheLiftTime = 0.3f;
         private const float ClocheDropTime = 0.12f;
-        private const int ClocheTextureSize = 256;
-        private const float ClocheBase = 26f;      // base line in the cloche texture (its pivot)
+        private const int ClocheTextureWidth = 256;
+        private const float ClochePadding = 6f;
 
         private const int PlateTextureWidth = 256;
         private const int PlateTextureHeight = 128;
@@ -68,6 +69,7 @@ namespace Watermelon.BusStop
         private bool active;
         private Color plateColour;
         private Vector4 dishRect = CountryFoodArt.DefaultDishRect;
+        private Vector2 dishFit;
         private float clocheLift;        // 0 = on the plate, 1 = lifted off and gone
         private bool clocheReady;
 
@@ -93,6 +95,7 @@ namespace Watermelon.BusStop
 
             plateColour = typeColour;
             dishRect = art != null ? art.GetDishRect(dish) : CountryFoodArt.DefaultDishRect;
+            dishFit = art != null ? art.GetDishFit(dish) : Vector2.zero;
             clocheReady = false;
             dishRenderer.sprite = dish;
             ApplyPlateLayout();
@@ -133,9 +136,17 @@ namespace Watermelon.BusStop
             float rectHeight = Mathf.Max(0.05f, (dishRect.w - dishRect.y) * aspect);
 
             float dishScale = Mathf.Min(foodWidth / rectWidth, foodMaxHeight / rectHeight);
+            float bottomTarget = showPlate ? DishBottomOnPlate : DishBottomWithoutPlate;
+
+            // Measured fit: the largest size at which the food stays inside the glass cloche.
+            if (showPlate && dishFit.x > 0f)
+            {
+                dishScale = dishFit.x;
+                bottomTarget = dishFit.y;
+            }
+
             FitToUnit(dishRenderer, Vector3.one * dishScale);
 
-            float bottomTarget = showPlate ? DishBottomOnPlate : DishBottomWithoutPlate;
             float x = -dishScale * ((dishRect.x + dishRect.z) * 0.5f - 0.5f);
             float y = bottomTarget - dishScale * aspect * (dishRect.y - 0.5f);
             dishRenderer.transform.localPosition = new Vector3(x, y, 0f);
@@ -236,7 +247,7 @@ namespace Watermelon.BusStop
 
             float rise = 1f - (1f - clocheLift) * (1f - clocheLift) * (1f - clocheLift);   // ease out
             clocheRenderer.transform.localPosition = new Vector3(0f, ClocheBaseY + rise * ClocheLiftHeight, -0.01f);
-            FitToUnit(clocheRenderer, Vector3.one * (ClocheWidth * (1f + 0.08f * rise)));
+            FitToUnit(clocheRenderer, Vector3.one * (ClocheSpriteWidth * (1f + 0.08f * rise)));
             clocheRenderer.color = new Color(1f, 1f, 1f, 1f - Mathf.Clamp01((clocheLift - 0.25f) / 0.75f));
         }
 
@@ -253,7 +264,7 @@ namespace Watermelon.BusStop
             shadowRenderer = CreateLayer("Shadow", GetShadowSprite(), PlateShadowPosition, PlateShadowScale, 0);
             plateRenderer = CreateLayer("Colour Plate", null, PlatePosition, Vector3.one, 1);
             dishRenderer = CreateLayer("Dish", null, Vector3.zero, Vector3.one, 2);
-            clocheRenderer = CreateLayer("Glass Cloche", GetClocheSprite(), new Vector3(0f, ClocheBaseY, -0.01f), Vector3.one * ClocheWidth, 3);
+            clocheRenderer = CreateLayer("Glass Cloche", GetClocheSprite(), new Vector3(0f, ClocheBaseY, -0.01f), Vector3.one * ClocheSpriteWidth, 3);
         }
 
         private SpriteRenderer CreateLayer(string name, Sprite sprite, Vector3 localPosition, Vector3 localScale, int order)
@@ -358,76 +369,83 @@ namespace Watermelon.BusStop
             return clocheSprite;
         }
 
-        // A clear glass serving dome: faint glass that thickens towards its edge, a bright
-        // outline, the base rim (back half seen through the glass, front half on top), two
-        // highlights and a knob. The pivot is the base line, so it stands on the plate.
+        // Width of the cloche sprite on the card: the dome diameter plus the texture padding.
+        private static float ClocheSpriteWidth => 2f * ClocheRadius * ClocheTextureWidth / (ClocheTextureWidth - 2f * ClochePadding);
+
+        // A round glass serving dome seen from the game camera: the top outline is a circle and
+        // the base is an ellipse matching the plate rim. Faint glass that thickens towards the
+        // edge, a bright outline, the base rim (back half through the glass, front half on top),
+        // two highlights and a knob on a short neck. The pivot is the base centre.
         private static Sprite CreateCloche()
         {
-            const int size = ClocheTextureSize;
-            const float rx = 120f, ry = 196f, rimRy = 16f, knobR = 13f;
-            float cx = size * 0.5f;
-            Color glass = new Color(0.90f, 0.95f, 1f, 1f);
-            Color32[] pixels = new Color32[size * size];
+            const int w = ClocheTextureWidth;
+            float r = (w - 2f * ClochePadding) * 0.5f;
+            float knobR = r * 0.085f;
+            float baseLine = r * ClocheTilt + ClochePadding + 2f;
+            int h = (int)(baseLine + r + knobR * 2.6f + ClochePadding);
+            float cx = w * 0.5f;
+            Color glass = new Color(0.88f, 0.94f, 1f, 1f);
+            Color neckColour = new Color(0.78f, 0.84f, 0.90f, 1f);
+            Color32[] pixels = new Color32[w * h];
 
-            for (int y = 0; y < size; y++)
+            for (int y = 0; y < h; y++)
             {
-                for (int x = 0; x < size; x++)
+                for (int x = 0; x < w; x++)
                 {
-                    float px = x + 0.5f, py = y + 0.5f;
+                    float px = x + 0.5f - cx, py = y + 0.5f - baseLine;
                     Color c = Color.clear;
 
-                    float rnx = (px - cx) / rx, rny = (py - ClocheBase) / rimRy;
-                    float rimD = Mathf.Sqrt(rnx * rnx + rny * rny);
-                    float rimBand = Mathf.Max(0f, 1f - Mathf.Abs(rimD - 1f) * rimRy / 2.2f);
+                    float ellipse = Mathf.Sqrt(px * px + (py / ClocheTilt) * (py / ClocheTilt)) / r;
+                    float circle = Mathf.Sqrt(px * px + py * py) / r;
+                    float d = py >= 0f ? circle : ellipse;
+                    float inside = Mathf.Clamp01((1f - d) * r / 1.3f);
+                    float rimBand = Mathf.Max(0f, 1f - Mathf.Abs(ellipse - 1f) * r * ClocheTilt / 1.8f);
 
-                    if (py >= ClocheBase)
+                    if (py >= 0f)
+                        c = Over(c, Color.white, rimBand * 0.30f);
+
+                    if (inside > 0f)
                     {
-                        c = Over(c, Color.white, rimBand * 0.35f);
+                        c = Over(c, glass, inside * (0.07f + 0.42f * Mathf.Pow(d, 5f)));
 
-                        float dx = (px - cx) / rx, dy = (py - ClocheBase) / ry;
-                        float d = Mathf.Sqrt(dx * dx + dy * dy);
-                        float inside = Mathf.Clamp01((1f - d) * rx / 1.5f);
-                        float edge = Mathf.Max(0f, 1f - Mathf.Abs(d - 0.985f) * rx / 3f);
-
-                        if (inside > 0f)
+                        if (py >= 0f)
                         {
-                            c = Over(c, glass, inside * (0.10f + 0.40f * Mathf.Pow(d, 6f)));
-                            c = Over(c, Color.white, edge * 0.85f * inside);
+                            float angle = Mathf.Atan2(py, px);
+                            float streak = SmoothStep(0.58f, 0.64f, circle) * (1f - SmoothStep(0.80f, 0.86f, circle)) *
+                                           SmoothStep(0.45f, 0.85f, Mathf.Cos(angle - 2.3f));
+                            c = Over(c, Color.white, streak * 0.60f);
 
-                            float angle = Mathf.Atan2(dy, dx);
-                            float streak = SmoothStep(0.55f, 0.62f, d) * (1f - SmoothStep(0.80f, 0.88f, d)) *
-                                           SmoothStep(0.35f, 0.8f, Mathf.Cos(angle - 2.25f));
-                            c = Over(c, Color.white, streak * 0.55f);
-
-                            float small = SmoothStep(0.55f, 0.6f, d) * (1f - SmoothStep(0.66f, 0.71f, d)) *
-                                          SmoothStep(0.8f, 0.95f, Mathf.Cos(angle - 0.75f));
-                            c = Over(c, Color.white, small * 0.35f);
-                        }
-                        else
-                        {
-                            c = Over(c, Color.white, edge * 0.85f);
+                            float spot = SmoothStep(0.60f, 0.64f, circle) * (1f - SmoothStep(0.70f, 0.74f, circle)) *
+                                         SmoothStep(0.85f, 0.97f, Mathf.Cos(angle - 0.62f));
+                            c = Over(c, Color.white, spot * 0.40f);
                         }
                     }
+
+                    if (py >= 0f)
+                        c = Over(c, Color.white, Mathf.Max(0f, 1f - Mathf.Abs(circle - 0.99f) * r / 2.2f) * 0.80f);
                     else
-                    {
                         c = Over(c, Color.white, rimBand * 0.85f);
-                    }
 
-                    float kx = px - cx, ky = py - (ClocheBase + ry + knobR * 0.55f);
-                    float kd = Mathf.Sqrt(kx * kx + ky * ky) / knobR;
-                    float knob = Mathf.Clamp01((1f - kd) * knobR / 1.2f);
+                    // Knob on a short neck.
+                    if (Mathf.Abs(px) < knobR * 0.45f && py >= r - 2f && py <= r + knobR * 0.6f)
+                        c = Over(c, neckColour, 0.95f);
+
+                    float ky = py - (r + knobR * 1.25f);
+                    float kd = Mathf.Sqrt(px * px + ky * ky) / knobR;
+                    float knob = Mathf.Clamp01((1f - kd) * knobR / 1.1f);
                     if (knob > 0f)
                     {
-                        float shade = 0.78f + 0.22f * SmoothStep(-0.8f, 0.8f, (ky - kx * 0.5f) / knobR);
-                        c = Over(c, new Color(0.80f * shade, 0.86f * shade, 0.92f * shade, 1f), knob);
-                        c = Over(c, Color.white, knob * Mathf.Max(0f, 1f - Mathf.Abs(kd - 0.85f) * 5f) * 0.8f);
+                        float shade = 0.72f + 0.28f * SmoothStep(-0.9f, 0.9f, (ky - px * 0.6f) / knobR);
+                        c = Over(c, new Color(0.82f * shade, 0.88f * shade, 0.95f * shade, 1f), knob);
+                        float shine = SmoothStep(0.55f, 0f, Mathf.Sqrt((px + knobR * 0.35f) * (px + knobR * 0.35f) + (ky - knobR * 0.35f) * (ky - knobR * 0.35f)) / knobR);
+                        c = Over(c, Color.white, knob * shine * 0.8f);
                     }
 
-                    pixels[y * size + x] = c;
+                    pixels[y * w + x] = c;
                 }
             }
 
-            Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            Texture2D texture = new Texture2D(w, h, TextureFormat.RGBA32, false)
             {
                 name = "Dish Cloche",
                 wrapMode = TextureWrapMode.Clamp,
@@ -436,7 +454,7 @@ namespace Watermelon.BusStop
             };
             texture.SetPixels32(pixels);
             texture.Apply(false, true);
-            return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, ClocheBase / size), size);
+            return Sprite.Create(texture, new Rect(0, 0, w, h), new Vector2(0.5f, baseLine / h), w);
         }
 
         // A plate seen from the game camera: coloured side (thickness), lighter rim, a
