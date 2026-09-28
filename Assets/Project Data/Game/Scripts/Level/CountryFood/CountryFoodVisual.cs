@@ -21,8 +21,6 @@ namespace Watermelon.BusStop
         // never cuts off its lower half.
         private const float TowardsCamera = 0.55f;
 
-        // Tile footprint used when the character has no usable collider.
-        private const float DefaultFootprint = 0.8f;
 
         // Dish and plate layout on the card (the card is one unit wide).
         // Where the bottom of the food sits: in the middle of the plate, or (plates switched
@@ -65,7 +63,6 @@ namespace Watermelon.BusStop
 
         private readonly List<Renderer> hiddenRenderers = new List<Renderer>();
         private Vector3 centreInGraphics;
-        private float worldSize = 1f;
         private bool active;
         private Color plateColour;
         private Vector4 dishRect = CountryFoodArt.DefaultDishRect;
@@ -204,16 +201,30 @@ namespace Watermelon.BusStop
                 return;
 
             Vector3 centre = graphics.TransformPoint(centreInGraphics);
-            // World size of the character's footprint; also right on a rotated, unevenly scaled seat.
+            CountryFoodArt art = CountryFood.Art;
+
+            // The plate fills this share of a board tile. The character's own scale is kept, so
+            // the spawn animation and the smaller seats on the tray still apply (measured along
+            // its axes, which also works on a rotated, unevenly scaled seat).
             Transform root = character.transform;
             float rootScale = 0.5f * (root.TransformVector(Vector3.right).magnitude + root.TransformVector(Vector3.forward).magnitude);
-            float scale = worldSize * rootScale;
+            float plateWidth = art != null ? art.plateWidth : 1f;
+            float tileFill = art != null ? art.tileFill : 0.94f;
+            float scale = LevelController.ElementSize * tileFill / Mathf.Max(0.1f, plateWidth) * rootScale;
+
+            // The card is moved towards the camera (so the board never cuts it), which would make
+            // it look bigger on a perspective camera; shrink it so it looks exactly tile-sized.
+            if (!cam.orthographic)
+            {
+                float depth = Vector3.Dot(centre - cam.transform.position, cam.transform.forward);
+                if (depth > 0.01f)
+                    scale = scale * depth / (depth + TowardsCamera * scale);
+            }
 
             card.rotation = cam.transform.rotation;
             card.position = centre - cam.transform.forward * (scale * TowardsCamera);
             card.localScale = new Vector3(scale, scale, scale);
 
-            CountryFoodArt art = CountryFood.Art;
             Color blocked = art != null ? art.blockedTint : new Color(0.95f, 0.95f, 0.95f, 1f);
             bool pickable = character.IsHighlighted || character.IsSubmitted;
             Color tint = pickable ? Color.white : blocked;
@@ -293,11 +304,10 @@ namespace Watermelon.BusStop
             return layer >= 0 ? layer : 1;
         }
 
-        // Hides the visible donut model and records where the dish goes. The size comes from
-        // the character's tap collider (the tile footprint): the prefabs keep many inactive
-        // leftover models at large scales, so measuring meshes would give a giant card.
-        // Everything is measured through local transforms so it also works while the spawn
-        // animation has the character at scale 0.
+        // Hides the visible donut model and records where the dish goes: the centre of the
+        // character's tap collider. (The prefabs keep many inactive leftover models at large
+        // scales, so their meshes are not measured.) Measured through local transforms so it
+        // also works while the spawn animation has the character at scale 0.
         private void MeasureAndHideModel()
         {
             hiddenRenderers.Clear();
@@ -319,21 +329,11 @@ namespace Watermelon.BusStop
             }
 
             Vector3 footprintCentre = new Vector3(0f, 0.3f, 0f);
-            float footprint = DefaultFootprint;
             if (character.TryGetComponent(out BoxCollider box))
-            {
                 footprintCentre = box.center;
-                footprint = Mathf.Max(box.size.x, box.size.z);
-            }
-
-            if (footprint < 0.1f || footprint > 3f)
-                footprint = DefaultFootprint;
 
             Matrix4x4 graphicsToRoot = LocalChain(graphics, character.transform);
             centreInGraphics = graphicsToRoot.inverse.MultiplyPoint3x4(footprintCentre);
-
-            CountryFoodArt art = CountryFood.Art;
-            worldSize = footprint * (art != null ? art.sizeMultiplier : 1.35f);
         }
 
         private static Matrix4x4 LocalChain(Transform from, Transform to)

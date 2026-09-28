@@ -16,6 +16,8 @@ namespace Watermelon.BusStop
 
         [Space]
         [SerializeField] float levelElementSize = 1.0f;
+        /// <summary>Distance between neighbouring tiles on the board.</summary>
+        public static float ElementSize => instance != null ? instance.levelElementSize : 1f;
 
         [Space]
         [SerializeField] float startZ = 4.5f;

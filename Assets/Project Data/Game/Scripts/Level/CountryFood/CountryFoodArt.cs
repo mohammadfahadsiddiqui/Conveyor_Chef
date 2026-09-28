@@ -26,8 +26,8 @@ namespace Watermelon.BusStop
         public Vector2[] dishFits = new Vector2[35];
 
         [Header("Board look")]
-        [Tooltip("Dish size relative to the tile footprint (the character tap collider).")]
-        public float sizeMultiplier = 1.35f;
+        [Tooltip("How much of a board tile each plate covers; below 1 leaves a gap between neighbours.")]
+        [Range(0.6f, 1.1f)] public float tileFill = 0.94f;
         [Tooltip("Cover dishes that cannot be picked yet with a clear glass cloche that lifts off when they become pickable.")]
         public bool showCloche = true;
         [Tooltip("Tint of dishes (and plates) under the cloche.")]
