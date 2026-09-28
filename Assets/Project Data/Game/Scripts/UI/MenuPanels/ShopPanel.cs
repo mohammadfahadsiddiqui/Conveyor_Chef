@@ -85,55 +85,45 @@ namespace Watermelon
         private void BuildDailyGift()
         {
             bool taken = PlayerStats.IsDailyFlagSet("shop_gift");
-            RectTransform card = MenuUI.Card("Daily Gift", Content, 180f, !taken);
-
-            Image icon = MenuUI.Image("Coin", card, Art.coin);
-            MenuUI.Anchor(icon.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(32f, 0f), new Vector2(120f, 120f));
-
-            TextMeshProUGUI title = MenuUI.Text("Title", card, "DAILY GIFT", 38f, new Color32(170, 60, 20, 255), TextAlignmentOptions.Left);
-            MenuUI.Anchor(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(176f, -30f), new Vector2(340f, 50f));
+            RectTransform card = MenuRow.Create("Daily Gift", Content, 190f, !taken, Art.coin);
+            MenuRow.Title(card, "DAILY GIFT", new Color32(160, 56, 18, 255));
 
             TimeSpan left = PlayerStats.TimeUntilNextDay;
-            TextMeshProUGUI body = MenuUI.Text("Body", card,
-                taken ? $"Next gift in {(int)left.TotalHours}h {left.Minutes:00}m" : DailyGiftCoins + " free coins every day",
-                28f, MenuUI.TextSoft, TextAlignmentOptions.Left);
-            MenuUI.Anchor(body.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(176f, -86f), new Vector2(340f, 40f));
+            MenuRow.Subtitle(card, taken ? $"Next gift in {(int)left.TotalHours}h {left.Minutes:00}m" : DailyGiftCoins + " free coins every day");
 
-            Button claim = MenuUI.LabelButton("Claim", card, taken ? Art.buttonGray : Art.buttonGreen, taken ? "TAKEN" : "FREE", 40f, () =>
+            if (taken)
+            {
+                MenuRow.Done(card, Art.check, "TAKEN");
+                return;
+            }
+
+            MenuRow.Button(card, Art.buttonGreen, "FREE", () =>
             {
                 if (PlayerStats.IsDailyFlagSet("shop_gift"))
                     return;
                 PlayerStats.SetDailyFlag("shop_gift");
                 Grant(CurrencyType.Coins, DailyGiftCoins);
                 Refresh();
-            }, null, taken ? new Color32(70, 70, 70, 255) : new Color32(30, 90, 20, 255));
-            claim.interactable = !taken;
-            MenuUI.Anchor((RectTransform)claim.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-22f, 0f), new Vector2(200f, 104f));
+            }, new Color32(30, 90, 20, 255));
         }
 
         private void BuildPowerUp(int index, PUSettings settings)
         {
             PUSave save = GetPowerUpSave(settings);
-            RectTransform card = MenuUI.Card("Power-up " + index, Content, 190f);
-
             Sprite icon = Art.powerUpIcons != null && index < Art.powerUpIcons.Length && Art.powerUpIcons[index] != null
                 ? Art.powerUpIcons[index] : settings.Icon;
-            Image image = MenuUI.Image("Icon", card, icon);
-            MenuUI.Anchor(image.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(24f, 0f), new Vector2(140f, 140f));
 
-            string name = index < PowerUpNames.Length ? PowerUpNames[index] : settings.name;
-            TextMeshProUGUI title = MenuUI.Text("Title", card, name, 38f, MenuUI.TextDark, TextAlignmentOptions.Left);
-            MenuUI.Anchor(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(184f, -24f), new Vector2(330f, 48f));
+            RectTransform card = MenuRow.Create("Power-up " + index, Content, 200f, false, icon);
+            MenuRow.Title(card, index < PowerUpNames.Length ? PowerUpNames[index] : settings.name);
+            MenuRow.Subtitle(card, settings.Description);
 
-            TextMeshProUGUI description = MenuUI.Text("Description", card, settings.Description, 26f, MenuUI.TextSoft, TextAlignmentOptions.Left);
-            MenuUI.Anchor(description.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(184f, -74f), new Vector2(330f, 36f));
+            TextMeshProUGUI owned = MenuUI.Text("Owned", card, "You have " + (save != null ? Mathf.Max(0, save.Amount) : 0), 30f, MenuUI.Green, TextAlignmentOptions.Left);
+            MenuUI.Anchor(owned.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(MenuRow.TextX, 26f), new Vector2(MenuRow.TextWidth, 42f));
 
-            TextMeshProUGUI owned = MenuUI.Text("Owned", card, "Owned: " + (save != null ? Mathf.Max(0, save.Amount) : 0), 28f, MenuUI.Green, TextAlignmentOptions.Left);
-            MenuUI.Anchor(owned.rectTransform, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(184f, 24f), new Vector2(330f, 40f));
-
-            Button buy = MenuUI.LabelButton("Buy", card, Art.buttonOrange, "x" + settings.PurchaseAmount + "  " + settings.Price, 34f,
-                () => BuyPowerUp(index, settings), CurrencyIcon(settings.CurrencyType), new Color32(140, 70, 10, 255));
-            MenuUI.Anchor((RectTransform)buy.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-22f, 0f), new Vector2(230f, 104f));
+            TextMeshProUGUI amount = MenuUI.Text("Amount", card, "+" + settings.PurchaseAmount, 34f, MenuUI.TextDark);
+            MenuUI.Anchor(amount.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-MenuRow.Margin, 58f), new Vector2(MenuRow.RightWidth, 42f));
+            MenuRow.Button(card, Art.buttonOrange, settings.Price.ToString("N0"), () => BuyPowerUp(index, settings),
+                new Color32(140, 70, 10, 255), CurrencyIcon(settings.CurrencyType), -24f, 92f);
         }
 
         private RectTransform Row(string name, float height)
@@ -168,27 +158,14 @@ namespace Watermelon
         {
             bool active = IsNoAdsOwned();
             MenuUI.Section(Content, "NO ADS");
-            RectTransform card = MenuUI.Card("No Ads", Content, 180f);
-
-            Image icon = MenuUI.Image("Icon", card, Art.chefAvatar);
-            MenuUI.Anchor(icon.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(30f, 0f), new Vector2(116f, 132f));
-
-            TextMeshProUGUI title = MenuUI.Text("Title", card, "REMOVE ADS", 38f, MenuUI.TextDark, TextAlignmentOptions.Left);
-            MenuUI.Anchor(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(176f, -30f), new Vector2(340f, 50f));
-            TextMeshProUGUI body = MenuUI.Text("Body", card, active ? "Thank you! Ads are off." : "No more ads between levels", 28f, MenuUI.TextSoft, TextAlignmentOptions.Left);
-            MenuUI.Anchor(body.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(176f, -86f), new Vector2(340f, 40f));
+            RectTransform card = MenuRow.Create("No Ads", Content, 190f, false, Art.chefAvatar);
+            MenuRow.Title(card, "REMOVE ADS");
+            MenuRow.Subtitle(card, active ? "Ads are off. Thank you!" : "No ads between levels");
 
             if (active)
-            {
-                Image check = MenuUI.Image("Owned", card, Art.check);
-                MenuUI.Anchor(check.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-60f, 0f), new Vector2(100f, 88f));
-            }
+                MenuRow.Done(card, Art.check, "ACTIVE");
             else
-            {
-                Button buy = MenuUI.LabelButton("Buy", card, Art.buttonGreen, PriceOf(ProductKeyType.NoAds), 34f,
-                    () => Buy(ProductKeyType.NoAds), null, new Color32(30, 90, 20, 255));
-                MenuUI.Anchor((RectTransform)buy.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-22f, 0f), new Vector2(210f, 104f));
-            }
+                MenuRow.Button(card, Art.buttonGreen, PriceOf(ProductKeyType.NoAds), () => Buy(ProductKeyType.NoAds), new Color32(30, 90, 20, 255));
         }
 
         #endregion

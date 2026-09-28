@@ -36,10 +36,10 @@ namespace Watermelon
             Challenge[] today = GetTodaysChallenges();
 
             RectTransform header = MenuUI.Card("Header", Content, 150f, true);
-            TextMeshProUGUI heading = MenuUI.OutlinedText("Heading", header, "DAILY CHALLENGES", 46f, new Color32(150, 60, 20, 255));
-            MenuUI.Anchor(heading.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -18f), new Vector2(700f, 60f));
-            timerText = MenuUI.Text("Timer", header, string.Empty, 30f, MenuUI.TextSoft);
-            MenuUI.Anchor(timerText.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 20f), new Vector2(700f, 44f));
+            TextMeshProUGUI heading = MenuUI.Text("Heading", header, "DAILY CHALLENGES", 46f, new Color32(160, 56, 18, 255));
+            MenuUI.Anchor(heading.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -22f), new Vector2(720f, 58f));
+            timerText = MenuUI.Text("Timer", header, string.Empty, 32f, MenuUI.TextSoft);
+            MenuUI.Anchor(timerText.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 22f), new Vector2(720f, 44f));
             UpdateTimer();
 
             int claimed = 0;
@@ -78,40 +78,17 @@ namespace Watermelon
             bool done = progress >= challenge.Target;
             bool claimed = PlayerStats.IsDailyFlagSet("claim_" + challenge.Id);
 
-            RectTransform card = MenuUI.Card(challenge.Id, Content, 210f, done && !claimed);
+            RectTransform card = MenuRow.Create(challenge.Id, Content, 200f, done && !claimed, GetIcon(challenge.Counter));
+            MenuRow.Title(card, challenge.Title);
+            MenuRow.SubtitlePill(card, CurrencyIcon(challenge.RewardCurrency), challenge.Reward.ToString("N0"));
+            MenuRow.Bar(card, (float)progress / challenge.Target, MenuUI.Green, progress + " / " + challenge.Target);
 
-            Image iconBack = MenuUI.Image("Icon Back", card, MenuUI.Rounded(24, 3, new Color32(255, 236, 190, 255), MenuUI.CardBorder), null, false);
-            MenuUI.Anchor(iconBack.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(22f, 0f), new Vector2(150f, 150f));
-            Image icon = MenuUI.Image("Icon", iconBack.transform, GetIcon(challenge.Counter));
-            MenuUI.Stretch(icon.rectTransform, 14f, 14f, 14f, 14f);
-
-            TextMeshProUGUI title = MenuUI.Text("Title", card, challenge.Title, 36f, MenuUI.TextDark, TextAlignmentOptions.Left);
-            MenuUI.Anchor(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(190f, -24f), new Vector2(360f, 50f));
-
-            RectTransform reward = MenuUI.Pill("Reward", card, CurrencyIcon(challenge.RewardCurrency), challenge.Reward.ToString("N0"), 32f, MenuUI.TextDark);
-            MenuUI.Anchor(reward, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(190f, -82f), new Vector2(170f, 46f));
-
-            RectTransform bar = MenuUI.ProgressBar(card, (float)progress / challenge.Target, MenuUI.Green, progress + "/" + challenge.Target);
-            MenuUI.Anchor(bar, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(190f, 24f), new Vector2(340f, 50f));
-
-            Vector2 anchor = new Vector2(1f, 0.5f);
             if (claimed)
-            {
-                Image check = MenuUI.Image("Claimed", card, Art.check);
-                MenuUI.Anchor(check.rectTransform, anchor, new Vector2(1f, 0.5f), new Vector2(-50f, 14f), new Vector2(110f, 96f));
-                TextMeshProUGUI label = MenuUI.Text("Label", card, "CLAIMED", 28f, MenuUI.Green);
-                MenuUI.Anchor(label.rectTransform, anchor, new Vector2(1f, 0.5f), new Vector2(-30f, -58f), new Vector2(150f, 36f));
-            }
+                MenuRow.Done(card, Art.check, "CLAIMED");
             else if (done)
-            {
-                Button claim = MenuUI.LabelButton("Claim", card, Art.buttonGreen, "CLAIM", 40f, () => Claim(challenge), null, new Color32(30, 90, 20, 255));
-                MenuUI.Anchor((RectTransform)claim.transform, anchor, new Vector2(1f, 0.5f), new Vector2(-22f, 0f), new Vector2(190f, 104f));
-            }
+                MenuRow.Button(card, Art.buttonGreen, "CLAIM", () => Claim(challenge), new Color32(30, 90, 20, 255));
             else
-            {
-                Button go = MenuUI.LabelButton("Go", card, Art.buttonOrange, "GO", 40f, Play, null, new Color32(140, 70, 10, 255));
-                MenuUI.Anchor((RectTransform)go.transform, anchor, new Vector2(1f, 0.5f), new Vector2(-22f, 0f), new Vector2(190f, 104f));
-            }
+                MenuRow.Button(card, Art.buttonOrange, "PLAY", Play, new Color32(140, 70, 10, 255));
         }
 
         private void BuildBonus(int claimed, int total)
@@ -119,38 +96,30 @@ namespace Watermelon
             bool ready = claimed >= total;
             bool taken = PlayerStats.IsDailyFlagSet("claim_bonus");
 
-            RectTransform card = MenuUI.Card("Bonus", Content, 180f, ready && !taken);
+            MenuUI.Section(Content, "ALL-CLEAR BONUS");
+            RectTransform card = MenuRow.Create("Bonus", Content, 200f, ready && !taken, Art.gem);
+            MenuRow.Title(card, "Claim all " + total + " today");
+            MenuRow.SubtitlePill(card, Art.diamond, BonusDiamonds.ToString());
+            MenuRow.Bar(card, (float)claimed / total, MenuUI.Gold, claimed + " / " + total);
 
-            Image gem = MenuUI.Image("Gem", card, Art.gem);
-            MenuUI.Anchor(gem.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(30f, 0f), new Vector2(130f, 130f));
-
-            TextMeshProUGUI title = MenuUI.Text("Title", card, "ALL-CLEAR BONUS", 36f, new Color32(170, 60, 20, 255), TextAlignmentOptions.Left);
-            MenuUI.Anchor(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(190f, -26f), new Vector2(360f, 48f));
-            TextMeshProUGUI body = MenuUI.Text("Body", card, $"Claim all {total} challenges today ({claimed}/{total})", 26f, MenuUI.TextSoft, TextAlignmentOptions.Left);
-            MenuUI.Anchor(body.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(190f, -76f), new Vector2(360f, 36f));
-            RectTransform reward = MenuUI.Pill("Reward", card, Art.diamond, BonusDiamonds.ToString(), 32f, MenuUI.TextDark);
-            MenuUI.Anchor(reward, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(190f, 18f), new Vector2(120f, 46f));
-
-            Vector2 anchor = new Vector2(1f, 0.5f);
             if (taken)
             {
-                Image check = MenuUI.Image("Claimed", card, Art.check);
-                MenuUI.Anchor(check.rectTransform, anchor, new Vector2(1f, 0.5f), new Vector2(-50f, 0f), new Vector2(110f, 96f));
+                MenuRow.Done(card, Art.check, "CLAIMED");
             }
-            else
+            else if (ready)
             {
-                Button claim = MenuUI.LabelButton("Claim", card, ready ? Art.buttonPurple : Art.buttonGray, "CLAIM", 40f, () =>
+                MenuRow.Button(card, Art.buttonPurple, "CLAIM", () =>
                 {
-                    if (!ready)
-                    {
-                        Toast("Claim all challenges first");
-                        return;
-                    }
                     PlayerStats.SetDailyFlag("claim_bonus");
                     Grant(CurrencyType.Diamonds, BonusDiamonds);
                     Refresh();
-                }, null, ready ? new Color32(70, 20, 110, 255) : new Color32(70, 70, 70, 255));
-                MenuUI.Anchor((RectTransform)claim.transform, anchor, new Vector2(1f, 0.5f), new Vector2(-22f, 0f), new Vector2(190f, 104f));
+                }, new Color32(70, 20, 110, 255));
+            }
+            else
+            {
+                Image lockBadge = MenuUI.Image("Lock", card, Art.lockBadge);
+                MenuUI.Anchor(lockBadge.rectTransform, new Vector2(1f, 0.5f), new Vector2(0.5f, 0.5f),
+                    new Vector2(-MenuRow.Margin - MenuRow.RightWidth * 0.5f, 0f), new Vector2(120f, 97f));
             }
         }
 

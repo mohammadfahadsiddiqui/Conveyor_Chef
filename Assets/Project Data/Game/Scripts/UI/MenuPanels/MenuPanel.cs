@@ -321,14 +321,18 @@ namespace Watermelon
             if (ShowCurrencies)
             {
                 currencyRow = MenuUI.Rect("Currencies", stack);
-                currencyRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 72f;
+                LayoutElement currencyLayout = currencyRow.gameObject.AddComponent<LayoutElement>();
+                currencyLayout.preferredHeight = 72f;
+                currencyLayout.flexibleHeight = 0f;   // only the scroll area takes the spare height
                 BuildCurrencyRow();
             }
 
             if (Tabs != null && Tabs.Length > 0)
             {
                 tabsRow = MenuUI.Rect("Tabs", stack);
-                tabsRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 92f;
+                LayoutElement tabsLayout = tabsRow.gameObject.AddComponent<LayoutElement>();
+                tabsLayout.preferredHeight = 96f;
+                tabsLayout.flexibleHeight = 0f;
             }
 
             RectTransform scrollRect = MenuUI.Rect("Scroll", stack);

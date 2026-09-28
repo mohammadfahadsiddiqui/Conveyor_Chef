@@ -26,22 +26,35 @@ namespace Watermelon
                 BuildChapter(country);
         }
 
+        private static readonly Color32 Heading = new Color32(160, 56, 18, 255);
+
         private void BuildIntro()
         {
-            RectTransform card = MenuUI.Card("Intro", Content, 300f, true);
+            RectTransform card = MenuUI.Card("Intro", Content, 290f, true);
 
             Image chef = MenuUI.Image("Chef", card, Art.chefFull);
-            MenuUI.Anchor(chef.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(18f, 0f), new Vector2(150f, 280f));
+            MenuUI.Anchor(chef.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(24f, 0f), new Vector2(130f, 260f));
 
-            TextMeshProUGUI heading = MenuUI.Text("Heading", card, "THE CHEF'S JOURNEY", 44f, new Color32(170, 60, 20, 255), TextAlignmentOptions.Left);
-            MenuUI.Anchor(heading.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(185f, -24f), new Vector2(560f, 58f));
+            TextMeshProUGUI heading = MenuUI.Text("Heading", card, "THE CHEF'S JOURNEY", 44f, Heading, TextAlignmentOptions.Left);
+            MenuUI.Anchor(heading.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(176f, -26f), new Vector2(580f, 56f));
+
+            TextMeshProUGUI body = MenuUI.Text("Body", card,
+                "Cook your way across Asia and master every country's street food.",
+                30f, MenuUI.TextDark, TextAlignmentOptions.TopLeft, true);
+            MenuUI.Anchor(body.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(176f, -90f), new Vector2(580f, 84f));
 
             PlayerStats.GetProgress(out int completed, out int stars, out _);
-            TextMeshProUGUI body = MenuUI.Text("Body", card,
-                "Cook your way across Asia and learn every country's favourite street food.\n" +
-                $"<color=#A0521E>{PlayerStats.CountriesCompleted}/{CountryCatalog.CountryCount} countries  -  {completed}/{PlayerStats.TotalLevels} levels  -  {stars}/{PlayerStats.TotalStars} stars</color>",
-                30f, MenuUI.TextDark, TextAlignmentOptions.TopLeft, true);
-            MenuUI.Anchor(body.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(185f, -90f), new Vector2(560f, 190f));
+            RectTransform stats = MenuUI.Rect("Stats", card);
+            MenuUI.Anchor(stats, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(176f, 26f), new Vector2(580f, 56f));
+            HorizontalLayoutGroup row = stats.gameObject.AddComponent<HorizontalLayoutGroup>();
+            row.childAlignment = TextAnchor.MiddleLeft;
+            row.spacing = 26f;
+            row.childControlWidth = true;
+            row.childControlHeight = true;
+            row.childForceExpandWidth = false;
+            MenuUI.Pill("Countries", stats, Art.GetFlag(0), PlayerStats.CountriesCompleted + "/" + CountryCatalog.CountryCount, 32f, MenuUI.TextDark);
+            MenuUI.Pill("Levels", stats, Art.iconTrophy, completed + "/" + PlayerStats.TotalLevels, 32f, MenuUI.TextDark);
+            MenuUI.Pill("Stars", stats, Art.star, stars + "/" + PlayerStats.TotalStars, 32f, MenuUI.TextDark);
         }
 
         private void BuildChapter(int country)
@@ -52,47 +65,53 @@ namespace Watermelon
             int stars = PlayerStats.GetCountryStars(country);
             bool current = unlocked && !complete;
 
-            RectTransform card = MenuUI.Card("Chapter " + (country + 1), Content, 470f, current);
+            RectTransform card = MenuUI.Card("Chapter " + (country + 1), Content, 590f, current);
 
             // Landmark banner across the top of the card.
             Image banner = MenuUI.Image("Banner", card, MenuUI.Rounded(22, 0, new Color32(186, 226, 246, 255), Color.clear), null, false);
-            MenuUI.Anchor(banner.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -12f), new Vector2(700f, 230f));
+            MenuUI.Anchor(banner.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -14f), new Vector2(750f, 240f));
             Image landmark = MenuUI.Image("Landmark", banner.transform, Art.GetLandmark(country));
-            MenuUI.Stretch(landmark.rectTransform, 20f, 6f, 20f, 6f);
+            MenuUI.Stretch(landmark.rectTransform, 20f, 8f, 20f, 8f);
             if (!unlocked)
             {
                 landmark.color = new Color(0.45f, 0.45f, 0.5f, 1f);
-                banner.color = new Color(0.6f, 0.62f, 0.66f, 1f);
+                banner.color = new Color(0.62f, 0.64f, 0.68f, 1f);
+            }
+            if (complete)
+            {
+                Image check = MenuUI.Image("Done", banner.transform, Art.check);
+                MenuUI.Anchor(check.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-12f, -10f), new Vector2(84f, 74f));
             }
 
+            // Flag badge, chapter and country name.
             Image flag = MenuUI.Image("Flag", card, Art.GetFlag(country));
-            MenuUI.Anchor(flag.rectTransform, new Vector2(0f, 1f), new Vector2(0.5f, 0.5f), new Vector2(76f, -250f), new Vector2(104f, 104f));
+            MenuUI.Anchor(flag.rectTransform, new Vector2(0f, 1f), new Vector2(0.5f, 0.5f), new Vector2(84f, -300f), new Vector2(116f, 116f));
 
-            TextMeshProUGUI chapter = MenuUI.Text("Chapter", card, "CHAPTER " + (country + 1), 28f, MenuUI.TextSoft, TextAlignmentOptions.Left);
-            MenuUI.Anchor(chapter.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(140f, -250f), new Vector2(360f, 38f));
+            TextMeshProUGUI chapter = MenuUI.Text("Chapter", card, "CHAPTER " + (country + 1), 30f, MenuUI.TextSoft, TextAlignmentOptions.Left);
+            MenuUI.Anchor(chapter.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(160f, -262f), new Vector2(380f, 38f));
 
-            TextMeshProUGUI name = MenuUI.OutlinedText("Country", card, CountryCatalog.GetName(country).ToUpperInvariant(), 46f,
-                new Color32(120, 50, 10, 255), TextAlignmentOptions.Left);
-            MenuUI.Anchor(name.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(140f, -284f), new Vector2(420f, 58f));
+            TextMeshProUGUI name = MenuUI.Text("Country", card, CountryCatalog.GetName(country).ToUpperInvariant(), 52f, Heading, TextAlignmentOptions.Left);
+            MenuUI.Anchor(name.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(160f, -298f), new Vector2(400f, 62f));
 
-            TextMeshProUGUI story = MenuUI.Text("Story", card, DishCatalog.CountryStories[country], 26f, MenuUI.TextDark, TextAlignmentOptions.TopLeft, true);
-            MenuUI.Anchor(story.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(26f, -350f), new Vector2(470f, 100f));
+            RectTransform starPill = MenuUI.Pill("Stars", card, Art.star, stars + "/" + (CountryCatalog.LevelsPerCountry * 3), 38f, MenuUI.TextDark);
+            MenuUI.Anchor(starPill, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-24f, -272f), new Vector2(190f, 60f));
 
-            // Stars and levels.
-            RectTransform starRow = MenuUI.Pill("Stars", card, Art.star, stars + "/" + (CountryCatalog.LevelsPerCountry * 3), 32f, MenuUI.TextDark);
-            MenuUI.Anchor(starRow, new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(-28f, -262f), new Vector2(200f, 50f));
-            TextMeshProUGUI levelText = MenuUI.Text("Levels", card, "LEVELS " + levels + "/" + CountryCatalog.LevelsPerCountry, 28f, MenuUI.TextSoft, TextAlignmentOptions.Right);
-            MenuUI.Anchor(levelText.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(-28f, -310f), new Vector2(220f, 40f));
+            // Two-line description.
+            TextMeshProUGUI story = MenuUI.Text("Story", card, DishCatalog.CountryStories[country], 30f, MenuUI.TextDark, TextAlignmentOptions.TopLeft, true);
+            MenuUI.Anchor(story.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(28f, -378f), new Vector2(726f, 84f));
 
-            // Action.
-            Vector2 actionAnchor = new Vector2(1f, 0f);
+            // Bottom row: level progress and the action.
+            RectTransform bar = MenuUI.ProgressBar(card, (float)levels / CountryCatalog.LevelsPerCountry, complete ? MenuUI.Gold : MenuUI.Green,
+                "LEVELS " + levels + "/" + CountryCatalog.LevelsPerCountry);
+            MenuUI.Anchor(bar, new Vector2(0f, 0f), new Vector2(0f, 0.5f), new Vector2(28f, 72f), new Vector2(460f, 52f));
+
             if (!unlocked)
             {
                 Image lockBadge = MenuUI.Image("Lock", card, Art.lockBadge);
-                MenuUI.Anchor(lockBadge.rectTransform, actionAnchor, new Vector2(1f, 0f), new Vector2(-40f, 26f), new Vector2(130f, 105f));
+                MenuUI.Anchor(lockBadge.rectTransform, new Vector2(1f, 0f), new Vector2(0.5f, 0.5f), new Vector2(-134f, 84f), new Vector2(112f, 90f));
 
-                TextMeshProUGUI hint = MenuUI.Text("Locked", card, "Finish " + CountryCatalog.GetName(country - 1), 24f, MenuUI.TextSoft, TextAlignmentOptions.Center);
-                MenuUI.Anchor(hint.rectTransform, actionAnchor, new Vector2(1f, 0f), new Vector2(-10f, 2f), new Vector2(200f, 30f));
+                TextMeshProUGUI hint = MenuUI.Text("Locked", card, "Finish " + CountryCatalog.GetName(country - 1), 26f, MenuUI.TextSoft);
+                MenuUI.Anchor(hint.rectTransform, new Vector2(1f, 0f), new Vector2(0.5f, 0.5f), new Vector2(-134f, 26f), new Vector2(240f, 34f));
             }
             else
             {
@@ -100,13 +119,7 @@ namespace Watermelon
                 Button button = MenuUI.LabelButton("Play", card, complete ? Art.buttonOrange : Art.buttonGreen,
                     complete ? "REPLAY" : "PLAY", 40f, () => PlayCountry(chosen), null,
                     complete ? new Color32(140, 70, 10, 255) : new Color32(30, 90, 20, 255));
-                MenuUI.Anchor((RectTransform)button.transform, actionAnchor, new Vector2(1f, 0f), new Vector2(-24f, 22f), new Vector2(210f, 100f));
-
-                if (complete)
-                {
-                    Image check = MenuUI.Image("Done", card, Art.check);
-                    MenuUI.Anchor(check.rectTransform, new Vector2(1f, 1f), new Vector2(0.5f, 0.5f), new Vector2(-40f, -30f), new Vector2(82f, 72f));
-                }
+                MenuUI.Anchor((RectTransform)button.transform, new Vector2(1f, 0f), new Vector2(1f, 0.5f), new Vector2(-24f, 72f), new Vector2(230f, 100f));
             }
         }
 

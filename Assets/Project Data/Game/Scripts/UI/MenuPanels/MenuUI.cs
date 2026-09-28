@@ -62,7 +62,7 @@ namespace Watermelon
             text.color = color;
             text.fontSize = size;
             text.enableAutoSizing = true;
-            text.fontSizeMin = Mathf.Max(12f, size * 0.55f);
+            text.fontSizeMin = Mathf.Max(18f, size * 0.75f);
             text.fontSizeMax = size;
             text.alignment = alignment;
             text.textWrappingMode = wrap ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
@@ -94,8 +94,10 @@ namespace Watermelon
             Material material = new Material(Font.material) { name = "Menu Outline " + key };
             material.EnableKeyword("OUTLINE_ON");
             material.SetColor("_OutlineColor", outline);
-            material.SetFloat("_OutlineWidth", 0.22f);
-            material.SetFloat("_FaceDilate", 0.18f);
+            material.SetFloat("_OutlineWidth", 0.2f);
+            material.SetFloat("_FaceDilate", 0.15f);
+            // Without the ratio update TMP keeps the old padding and clips the outline away.
+            ShaderUtilities.UpdateShaderRatios(material);
             outlineMaterials[key] = material;
             return material;
         }
@@ -309,8 +311,8 @@ namespace Watermelon
             LayoutElement layout = holder.gameObject.AddComponent<LayoutElement>();
             layout.preferredHeight = 64f;
 
-            TextMeshProUGUI text = OutlinedText("Title", holder, title, 44f, new Color32(150, 60, 20, 255), TextAlignmentOptions.Left);
-            Stretch(text.rectTransform, 8f, 0f, 8f, 0f);
+            TextMeshProUGUI text = Text("Title", holder, title, 42f, new Color32(160, 56, 18, 255), TextAlignmentOptions.Left);
+            Stretch(text.rectTransform, 12f, 0f, 12f, 4f);
             return holder;
         }
 
@@ -327,6 +329,87 @@ namespace Watermelon
         public static void PlayClick()
         {
             try { AudioController.PlaySound(AudioController.Sounds.buttonSound); } catch { }
+        }
+    }
+
+    /// <summary>
+    /// The shared list-row layout (challenges, achievements, power-ups): an icon box on the
+    /// left, title and subtitle in the middle with an optional progress bar under them, and
+    /// one action column on the right. All rows line up because they use these numbers.
+    /// </summary>
+    public static class MenuRow
+    {
+        public const float Margin = 22f;
+        public const float IconSize = 150f;
+        public const float TextX = Margin + IconSize + 20f;
+        public const float TextWidth = 340f;
+        public const float RightWidth = 200f;
+
+        public static RectTransform Create(string name, Transform parent, float height, bool highlighted, Sprite icon, bool dimIcon = false)
+        {
+            RectTransform card = MenuUI.Card(name, parent, height, highlighted);
+
+            Image back = MenuUI.Image("Icon Box", card, MenuUI.Rounded(26, 3, new Color32(255, 238, 200, 255), MenuUI.CardBorder), null, false);
+            MenuUI.Anchor(back.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(Margin, 0f), new Vector2(IconSize, IconSize));
+            Image image = MenuUI.Image("Icon", back.transform, icon);
+            MenuUI.Stretch(image.rectTransform, 16f, 16f, 16f, 16f);
+            if (dimIcon)
+                image.color = new Color(1f, 1f, 1f, 0.5f);
+            return card;
+        }
+
+        public static TextMeshProUGUI Title(RectTransform card, string text, Color? color = null)
+        {
+            TextMeshProUGUI title = MenuUI.Text("Title", card, text, 38f, color ?? MenuUI.TextDark, TextAlignmentOptions.Left);
+            MenuUI.Anchor(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(TextX, -24f), new Vector2(TextWidth, 48f));
+            return title;
+        }
+
+        public static TextMeshProUGUI Subtitle(RectTransform card, string text, Color? color = null)
+        {
+            TextMeshProUGUI subtitle = MenuUI.Text("Subtitle", card, text, 30f, color ?? MenuUI.TextSoft, TextAlignmentOptions.Left);
+            MenuUI.Anchor(subtitle.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(TextX, -76f), new Vector2(TextWidth, 40f));
+            return subtitle;
+        }
+
+        /// <summary>Reward or price on the subtitle line.</summary>
+        public static RectTransform SubtitlePill(RectTransform card, Sprite icon, string amount)
+        {
+            RectTransform pill = MenuUI.Pill("Reward", card, icon, amount, 32f, MenuUI.TextDark);
+            pill.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+            MenuUI.Anchor(pill, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(TextX, -74f), new Vector2(TextWidth, 46f));
+            return pill;
+        }
+
+        public static RectTransform Bar(RectTransform card, float value, Color color, string label)
+        {
+            RectTransform bar = MenuUI.ProgressBar(card, value, color, label);
+            MenuUI.Anchor(bar, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(TextX, 24f), new Vector2(TextWidth, 46f));
+            return bar;
+        }
+
+        /// <summary>Action button in the right column; <paramref name="y"/> moves it up (+) or down (-).</summary>
+        public static Button Button(RectTransform card, Sprite sprite, string label, UnityEngine.Events.UnityAction action,
+            Color outline, Sprite icon = null, float y = 0f, float height = 96f)
+        {
+            Button button = MenuUI.LabelButton("Action", card, sprite, label, label.Length > 7 ? 32f : 38f, action, icon, outline);
+            MenuUI.Anchor((RectTransform)button.transform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-Margin, y), new Vector2(RightWidth, height));
+            return button;
+        }
+
+        public static RectTransform RightPill(RectTransform card, Sprite icon, string amount, float y)
+        {
+            RectTransform pill = MenuUI.Pill("Reward", card, icon, amount, 34f, MenuUI.TextDark);
+            MenuUI.Anchor(pill, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-Margin, y), new Vector2(RightWidth, 50f));
+            return pill;
+        }
+
+        public static void Done(RectTransform card, Sprite check, string label)
+        {
+            Image image = MenuUI.Image("Done", card, check);
+            MenuUI.Anchor(image.rectTransform, new Vector2(1f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-Margin - RightWidth * 0.5f, 18f), new Vector2(96f, 84f));
+            TextMeshProUGUI text = MenuUI.Text("Label", card, label, 30f, MenuUI.Green);
+            MenuUI.Anchor(text.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-Margin, -46f), new Vector2(RightWidth, 38f));
         }
     }
 

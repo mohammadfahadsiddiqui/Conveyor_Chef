@@ -62,13 +62,11 @@ namespace Watermelon
 
             ordered.Sort((x, y) => Rank(x).CompareTo(Rank(y)));
 
-            RectTransform header = MenuUI.Card("Header", Content, 170f, true);
-            Image trophy = MenuUI.Image("Trophy", header, Art.iconTrophy);
-            MenuUI.Anchor(trophy.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(24f, 0f), new Vector2(150f, 136f));
-            TextMeshProUGUI title = MenuUI.Text("Title", header, $"UNLOCKED  {unlocked}/{All.Length}", 38f, MenuUI.TextDark, TextAlignmentOptions.Left);
-            MenuUI.Anchor(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(196f, -28f), new Vector2(540f, 50f));
+            RectTransform header = MenuRow.Create("Header", Content, 190f, true, Art.iconTrophy);
+            MenuRow.Title(header, "UNLOCKED " + unlocked + " / " + All.Length, new Color32(160, 56, 18, 255));
+            MenuRow.Subtitle(header, "Finish goals to earn coins and diamonds");
             RectTransform bar = MenuUI.ProgressBar(header, (float)unlocked / All.Length, MenuUI.Gold);
-            MenuUI.Anchor(bar, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(196f, 34f), new Vector2(540f, 42f));
+            MenuUI.Anchor(bar, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(MenuRow.TextX, 26f), new Vector2(560f, 42f));
 
             foreach (Achievement a in ordered)
                 BuildRow(a);
@@ -82,47 +80,37 @@ namespace Watermelon
             bool claimed = a.Claimed;
             bool done = a.Done;
 
-            RectTransform card = MenuUI.Card(a.Id, Content, 200f, done && !claimed);
+            RectTransform card = MenuRow.Create(a.Id, Content, 200f, done && !claimed, a.Icon(Art), !done);
+            MenuRow.Title(card, a.Title.ToUpperInvariant());
+            MenuRow.Subtitle(card, a.Description);
+            MenuRow.Bar(card, (float)a.Current / a.Target, done ? MenuUI.Gold : MenuUI.Green,
+                a.Current.ToString("N0") + " / " + a.Target.ToString("N0"));
 
-            Image iconBack = MenuUI.Image("Icon Back", card, MenuUI.Rounded(24, 3, new Color32(255, 236, 190, 255), MenuUI.CardBorder), null, false);
-            MenuUI.Anchor(iconBack.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(22f, 0f), new Vector2(146f, 146f));
-            Image icon = MenuUI.Image("Icon", iconBack.transform, a.Icon(Art));
-            MenuUI.Stretch(icon.rectTransform, 14f, 14f, 14f, 14f);
-            if (!done)
-                icon.color = new Color(1f, 1f, 1f, 0.55f);
-
-            TextMeshProUGUI title = MenuUI.Text("Title", card, a.Title.ToUpperInvariant(), 34f, MenuUI.TextDark, TextAlignmentOptions.Left);
-            MenuUI.Anchor(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(186f, -20f), new Vector2(360f, 46f));
-            TextMeshProUGUI description = MenuUI.Text("Description", card, a.Description, 26f, MenuUI.TextSoft, TextAlignmentOptions.Left);
-            MenuUI.Anchor(description.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(186f, -66f), new Vector2(360f, 36f));
-
-            RectTransform bar = MenuUI.ProgressBar(card, (float)a.Current / a.Target, done ? MenuUI.Gold : MenuUI.Green,
-                a.Current.ToString("N0") + "/" + a.Target.ToString("N0"));
-            MenuUI.Anchor(bar, new Vector2(0f, 0f), new Vector2(0f, 0f), new Vector2(186f, 22f), new Vector2(340f, 48f));
-
-            Vector2 anchor = new Vector2(1f, 0.5f);
             if (claimed)
             {
-                Image check = MenuUI.Image("Claimed", card, Art.check);
-                MenuUI.Anchor(check.rectTransform, anchor, new Vector2(1f, 0.5f), new Vector2(-54f, 14f), new Vector2(104f, 90f));
-                TextMeshProUGUI label = MenuUI.Text("Label", card, "CLAIMED", 26f, MenuUI.Green);
-                MenuUI.Anchor(label.rectTransform, anchor, new Vector2(1f, 0.5f), new Vector2(-34f, -54f), new Vector2(150f, 34f));
+                MenuRow.Done(card, Art.check, "CLAIMED");
             }
-            else
+            else if (done)
             {
-                RectTransform reward = MenuUI.Pill("Reward", card, CurrencyIcon(a.Currency), a.Reward.ToString("N0"), 30f, MenuUI.TextDark);
-                MenuUI.Anchor(reward, anchor, new Vector2(1f, 0.5f), new Vector2(-30f, 52f), new Vector2(170f, 44f));
-
-                Button claim = MenuUI.LabelButton("Claim", card, done ? Art.buttonGreen : Art.buttonGray, "CLAIM", 36f, () =>
+                MenuRow.RightPill(card, CurrencyIcon(a.Currency), a.Reward.ToString("N0"), 52f);
+                MenuRow.Button(card, Art.buttonGreen, "CLAIM", () =>
                 {
                     if (!a.Done || a.Claimed)
                         return;
                     PlayerStats.SetFlag("achievement_" + a.Id);
                     Grant(a.Currency, a.Reward);
                     Refresh();
-                }, null, done ? new Color32(30, 90, 20, 255) : new Color32(70, 70, 70, 255));
-                claim.interactable = done;
-                MenuUI.Anchor((RectTransform)claim.transform, anchor, new Vector2(1f, 0.5f), new Vector2(-22f, -30f), new Vector2(180f, 90f));
+                }, new Color32(30, 90, 20, 255), null, -30f, 88f);
+            }
+            else
+            {
+                // Not finished yet: just show what it pays.
+                Image rewardBack = MenuUI.Image("Reward Box", card, MenuUI.Rounded(26, 3, new Color32(255, 238, 200, 255), MenuUI.CardBorder), null, false);
+                MenuUI.Anchor(rewardBack.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-MenuRow.Margin, 0f), new Vector2(MenuRow.RightWidth, 120f));
+                TextMeshProUGUI label = MenuUI.Text("Label", rewardBack.transform, "REWARD", 26f, MenuUI.TextSoft);
+                MenuUI.Anchor(label.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(180f, 34f));
+                RectTransform pill = MenuUI.Pill("Reward", rewardBack.transform, CurrencyIcon(a.Currency), a.Reward.ToString("N0"), 36f, MenuUI.TextDark);
+                MenuUI.Anchor(pill, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 14f), new Vector2(180f, 56f));
             }
         }
 

@@ -62,7 +62,7 @@ namespace Watermelon
 
             TextMeshProUGUI label = MenuUI.Text("Label", card, "YOUR CHEF SCORE", 30f, MenuUI.TextSoft, TextAlignmentOptions.Left);
             MenuUI.Anchor(label.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(172f, -22f), new Vector2(380f, 40f));
-            TextMeshProUGUI value = MenuUI.OutlinedText("Score", card, score.ToString("N0"), 64f, new Color32(150, 60, 20, 255), TextAlignmentOptions.Left);
+            TextMeshProUGUI value = MenuUI.Text("Score", card, score.ToString("N0"), 64f, new Color32(160, 56, 18, 255), TextAlignmentOptions.Left);
             MenuUI.Anchor(value.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(172f, -62f), new Vector2(380f, 80f));
 
             Image rankBack = MenuUI.Image("Rank", card, MenuUI.Rounded(30, 4, new Color32(90, 56, 30, 255), MenuUI.Gold), null, false);
@@ -73,7 +73,7 @@ namespace Watermelon
             MenuUI.Anchor(rankValue.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 10f), new Vector2(170f, 70f));
 
             TextMeshProUGUI how = MenuUI.Text("How", card,
-                "Star  +100    Level  +50    Dish served  +2", 26f, MenuUI.TextSoft);
+                "Star +100   |   Level +50   |   Dish +2", 28f, MenuUI.TextSoft);
             MenuUI.Anchor(how.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 18f), new Vector2(720f, 36f));
         }
 

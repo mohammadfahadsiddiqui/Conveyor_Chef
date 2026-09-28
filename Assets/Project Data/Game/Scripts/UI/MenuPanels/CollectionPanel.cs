@@ -51,7 +51,7 @@ namespace Watermelon
             Image book = MenuUI.Image("Book", card, Art.iconCollection);
             MenuUI.Anchor(book.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(20f, 0f), new Vector2(160f, 150f));
 
-            TextMeshProUGUI title = MenuUI.Text("Title", card, $"DISHES DISCOVERED  {discovered}/{PlayerStats.TotalDishes}", 34f, MenuUI.TextDark, TextAlignmentOptions.Left);
+            TextMeshProUGUI title = MenuUI.Text("Title", card, $"DISHES DISCOVERED  {discovered}/{PlayerStats.TotalDishes}", 36f, new Color32(160, 56, 18, 255), TextAlignmentOptions.Left);
             MenuUI.Anchor(title.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(196f, -26f), new Vector2(540f, 46f));
 
             RectTransform bar = MenuUI.ProgressBar(card, (float)discovered / PlayerStats.TotalDishes, MenuUI.Gold);
@@ -104,11 +104,11 @@ namespace Watermelon
                 MenuUI.Stretch(mark.rectTransform);
             }
 
-            TextMeshProUGUI name = MenuUI.Text("Name", cell.transform, discovered ? DishCatalog.GetName(dish) : "???", 28f, MenuUI.TextDark);
+            TextMeshProUGUI name = MenuUI.Text("Name", cell.transform, discovered ? DishCatalog.GetName(dish) : "???", 31f, MenuUI.TextDark);
             MenuUI.Anchor(name.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 48f), new Vector2(CellWidth - 20f, 40f));
 
             TextMeshProUGUI detail = MenuUI.Text("Served", cell.transform,
-                discovered ? (served > 0 ? "Served x" + served.ToString("N0") : "Discovered") : "Not found yet", 22f, MenuUI.TextSoft);
+                discovered ? (served > 0 ? "Served x" + served.ToString("N0") : "Discovered") : "Not found yet", 26f, MenuUI.TextSoft);
             MenuUI.Anchor(detail.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 14f), new Vector2(CellWidth - 20f, 32f));
         }
     }
