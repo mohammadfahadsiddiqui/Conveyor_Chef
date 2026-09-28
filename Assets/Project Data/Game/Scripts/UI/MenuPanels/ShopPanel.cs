@@ -188,7 +188,7 @@ namespace Watermelon
             }
 
             save.Amount = Mathf.Max(0, save.Amount) + settings.PurchaseAmount;
-            SaveController.MarkAsSaveIsRequired();
+            SaveNow();
             try { AudioController.PlaySound(AudioController.Sounds.buttonSound); } catch { }
             Toast("+" + settings.PurchaseAmount + " " + (index < PowerUpNames.Length ? PowerUpNames[index] : "POWER-UPS"), new Color32(40, 110, 30, 255));
             Refresh();

@@ -103,7 +103,7 @@ namespace Watermelon
         private void SelectTray(SkinData tray)
         {
             Art.skinsDatabase[SkinTab.Bus] = tray.UniqueId;
-            SaveController.MarkAsSaveIsRequired();
+            SaveNow();
             Toast(tray.Name.Replace("Bus", "Tray") + " selected", new Color32(40, 110, 30, 255));
             Refresh();
         }

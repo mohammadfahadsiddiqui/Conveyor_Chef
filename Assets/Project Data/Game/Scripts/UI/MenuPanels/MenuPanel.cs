@@ -129,6 +129,7 @@ namespace Watermelon
                 if (!CurrenciesController.HasAmount(currency, amount))
                     return false;
                 CurrenciesController.Substract(currency, amount);
+                SaveNow();
                 return true;
             }
             catch (Exception ex)
@@ -143,7 +144,7 @@ namespace Watermelon
             try
             {
                 CurrenciesController.Add(currency, amount);
-                SaveController.MarkAsSaveIsRequired();
+                SaveNow();
             }
             catch (Exception ex)
             {
@@ -153,6 +154,20 @@ namespace Watermelon
             try { AudioController.PlaySound(AudioController.Sounds.completeSound); } catch { }
             Toast("+" + amount.ToString("N0") + (currency == CurrencyType.Coins ? " COINS" : " DIAMONDS"), new Color32(40, 110, 30, 255));
             UpdateCurrencies();
+        }
+
+        /// <summary>Writes the save right away, so purchases and rewards survive closing the app.</summary>
+        protected static void SaveNow()
+        {
+            try
+            {
+                SaveController.MarkAsSaveIsRequired();
+                SaveController.Save(true);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[MenuPanel] Could not save: " + ex.Message);
+            }
         }
 
         protected Sprite CurrencyIcon(CurrencyType currency) => currency == CurrencyType.Coins ? Art.coin : Art.diamond;

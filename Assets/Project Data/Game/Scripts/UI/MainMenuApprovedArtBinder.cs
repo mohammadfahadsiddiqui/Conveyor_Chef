@@ -17,6 +17,8 @@ namespace Watermelon
     [DefaultExecutionOrder(-1000)]
     public sealed class MainMenuApprovedArtBinder : MonoBehaviour
     {
+        private const string OverrideFolder = "MainMenu/";
+
         private void OnEnable()
         {
             ApplyApprovedArtwork();
@@ -95,7 +97,10 @@ namespace Watermelon
             if (image == null)
                 return;
 
-            Sprite sprite = ProfessionalMainMenuEmbeddedAssets.GetSprite(assetName);
+            // A sharper replacement in Resources/MainMenu/<assetName> wins over the atlas crop.
+            Sprite sprite = Resources.Load<Sprite>(OverrideFolder + assetName);
+            if (sprite == null)
+                sprite = ProfessionalMainMenuEmbeddedAssets.GetSprite(assetName);
             if (sprite == null)
                 return;
 
