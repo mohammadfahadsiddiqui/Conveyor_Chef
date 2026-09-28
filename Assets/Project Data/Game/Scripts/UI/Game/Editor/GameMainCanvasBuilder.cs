@@ -73,7 +73,7 @@ namespace Watermelon.EditorTools
         // Bump when the generated layout changes: an older canvas is rebuilt once
         // automatically. Auto-build runs once per version and project copy, so deleting
         // the canvas later is respected.
-        private const int LayoutVersion = 11;
+        private const int LayoutVersion = 12;
         private static readonly string AutoBuiltKey =
             "ConveyorChef.GameMainCanvas.AutoBuilt.v" + LayoutVersion + "." + Application.dataPath.GetHashCode();
 
@@ -1374,15 +1374,12 @@ namespace Watermelon.EditorTools
             RectTransform title = CreateImage("Menu Title", menu, LoadSprite("Menu/menu_title.png"), Color.white, true);
             Place(title, Center, Center, new Vector2(0f, top - panelH * 0.11f), new Vector2(540f, 180f));
 
-            Button resume = CreateArtButton("Resume Button", menu, "Popups/continue_button.png", new Vector2(0f, 285f), new Vector2(430f, 135f));
-
-            RectTransform settings = CreateImage("Settings Title", menu, LoadSprite("Menu/settings_title.png"), Color.white, true);
-            Place(settings, Center, Center, new Vector2(0f, 160f), new Vector2(390f, 120f));
-
-            Button sound = CreateArtButton("Sound Button", menu, "Menu/sound_on_button.png", new Vector2(0f, 40f), new Vector2(450f, 150f));
-            Button vibration = CreateArtButton("Vibration Button", menu, "Menu/vibration_on_button.png", new Vector2(0f, -100f), new Vector2(450f, 150f));
-            Button restart = CreateArtButton("Restart Button", menu, "Popups/restart_button.png", new Vector2(0f, -238f), new Vector2(430f, 135f));
-            Button home = CreateArtButton("Home Button", menu, "Toolbar/home_button.png", new Vector2(0f, -340f), new Vector2(100f, 100f));
+            // settings_title.png (Images/GameUI/Menu) is kept for a separate Settings panel.
+            Button resume = CreateArtButton("Resume Button", menu, "Popups/continue_button.png", new Vector2(0f, 250f), new Vector2(430f, 135f));
+            Button sound = CreateArtButton("Sound Button", menu, "Menu/sound_on_button.png", new Vector2(0f, 105f), new Vector2(450f, 150f));
+            Button vibration = CreateArtButton("Vibration Button", menu, "Menu/vibration_on_button.png", new Vector2(0f, -40f), new Vector2(450f, 150f));
+            Button restart = CreateArtButton("Restart Button", menu, "Popups/restart_button.png", new Vector2(0f, -185f), new Vector2(430f, 135f));
+            Button home = CreateArtButton("Home Button", menu, "Toolbar/home_button.png", new Vector2(0f, -310f), new Vector2(110f, 110f));
 
             GameMenuPopup popup = root.GetComponent<GameMenuPopup>();
             if (popup == null)
