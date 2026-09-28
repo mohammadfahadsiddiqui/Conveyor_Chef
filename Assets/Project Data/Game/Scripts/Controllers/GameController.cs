@@ -441,6 +441,7 @@ namespace Watermelon
             Debug.Log($"Level {completedLevelIndex + 1} completed!");
 
             LevelController.MarkLevelCompleted(completedLevelIndex, 3);
+            PlayerStats.RecordLevelWon(3);
             SaveController.Save(true);
 
             //UIController.HidePage<UIGame>();

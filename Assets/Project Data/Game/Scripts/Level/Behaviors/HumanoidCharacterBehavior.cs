@@ -138,6 +138,8 @@ namespace Watermelon.BusStop
         {
             ParticlesController.PlayParticle(PARTICLE_POOF).SetPosition(transform.position + new Vector3(0, 1, 0));
 
+            PlayerStats.RecordDishServed(levelElement.ElementType);
+
             graphicsAnimator.Play(ANIMATOR_SITTING_ANIMATION, -1, Random.Range(0.0f, 1.0f));
         }
 
