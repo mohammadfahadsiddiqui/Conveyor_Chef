@@ -34,6 +34,8 @@ namespace Watermelon.BusStop
         public int ContinentIndex => continentIndex;
         public string ContinentName => continentName;
         public RectTransform MapTarget => transform as RectTransform;
+        public Sprite ArtworkSprite => continentImage != null ? continentImage.sprite : null;
+        public Button CardButton => cardButton;
 
         public void Bind(WorldMapSceneController controller)
         {

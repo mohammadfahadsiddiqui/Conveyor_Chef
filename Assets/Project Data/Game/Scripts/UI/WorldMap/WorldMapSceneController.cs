@@ -70,6 +70,10 @@ namespace Watermelon.BusStop
         [Header("Motion")]
         [SerializeField, Min(0.05f)] private float focusDuration = 0.35f;
 
+        [Header("Chapter bar")]
+        [Tooltip("Replace the small chapter cards with the illustrated chapter bar (WorldMapChapterStrip).")]
+        [SerializeField] private bool useChapterStrip = true;
+
         [Header("Scene-authored startup")]
         [Tooltip("When enabled, Play mode starts with exactly the sprites, colors, active states, sizes and positions saved in WorldMap.unity.")]
         [SerializeField] private bool preserveAuthoredStartupVisuals = true;
@@ -78,6 +82,7 @@ namespace Watermelon.BusStop
         [SerializeField] private bool focusSelectedContinentOnStart = false;
 
         private int selectedContinent;
+        private WorldMapChapterStrip chapterStrip;
         private Coroutine focusRoutine;
         private Coroutine hintRoutine;
         private readonly Dictionary<int, int> runtimeIndexBySerializedIndex =
@@ -149,6 +154,13 @@ namespace Watermelon.BusStop
             {
                 selectedContinent = RestoreSelectedContinent();
                 RefreshAll();
+            }
+
+            if (useChapterStrip)
+            {
+                chapterStrip = WorldMapChapterStrip.Create(this, continents);
+                if (chapterStrip != null)
+                    chapterStrip.Refresh(selectedContinent);
             }
 
             Canvas.ForceUpdateCanvases();
@@ -336,6 +348,20 @@ namespace Watermelon.BusStop
             button.onClick.AddListener(action);
         }
 
+        public int LevelsPerContinentCount => LevelsPerContinent;
+
+        public int GetContinentLevelsCompleted(int continentIndex)
+        {
+            int start = continentIndex * LevelsPerContinent;
+            int done = 0;
+            for (int level = start; level < start + LevelsPerContinent; level++)
+            {
+                if (LevelController.IsLevelCompleted(level))
+                    done++;
+            }
+            return done;
+        }
+
         public bool IsContinentUnlocked(int continentIndex)
         {
             if (continentIndex <= 0)
@@ -469,6 +495,9 @@ namespace Watermelon.BusStop
                     ? "UNLOCKED  •  " + LevelsPerContinent + " LEVELS"
                     : "LOCKED  •  COMPLETE THE PREVIOUS CONTINENT";
             }
+
+            if (chapterStrip != null)
+                chapterStrip.Refresh(selectedContinent);
 
             if (leftButton != null)
                 leftButton.interactable = selectedContinent > 0;
