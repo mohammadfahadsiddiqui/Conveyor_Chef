@@ -133,7 +133,7 @@ namespace Watermelon.BusStop
         private SpriteRenderer CreateLayer(string name, Sprite sprite, Vector3 localPosition, Vector3 localScale)
         {
             GameObject go = new GameObject(name);
-            go.layer = gameObject.layer;
+            go.layer = GetDishLayer();
             go.transform.SetParent(card, false);
             go.transform.localPosition = localPosition;
             go.transform.localScale = localScale;
@@ -145,6 +145,14 @@ namespace Watermelon.BusStop
             if (sprite != null)
                 FitToUnit(sr, localScale);
             return sr;
+        }
+
+        // The URP renderer only draws transparent objects (sprites are always transparent) on
+        // the TransparentFX and UI layers, so the card must not stay on the character's layer.
+        private static int GetDishLayer()
+        {
+            int layer = LayerMask.NameToLayer("TransparentFX");
+            return layer >= 0 ? layer : 1;
         }
 
         // Hides the visible donut model and records where the dish goes. The size comes from
