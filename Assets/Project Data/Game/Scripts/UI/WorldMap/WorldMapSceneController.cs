@@ -71,8 +71,8 @@ namespace Watermelon.BusStop
         [SerializeField, Min(0.05f)] private float focusDuration = 0.35f;
 
         [Header("Chapter bar")]
-        [Tooltip("Replace the small chapter cards with the illustrated chapter bar (WorldMapChapterStrip).")]
-        [SerializeField] private bool useChapterStrip = true;
+        [Tooltip("The illustrated chapter bar in the scene (Conveyor Chef > World Map > Rebuild Chapter Bar).")]
+        [SerializeField] private WorldMapChapterStrip chapterStrip;
 
         [Header("Scene-authored startup")]
         [Tooltip("When enabled, Play mode starts with exactly the sprites, colors, active states, sizes and positions saved in WorldMap.unity.")]
@@ -82,7 +82,6 @@ namespace Watermelon.BusStop
         [SerializeField] private bool focusSelectedContinentOnStart = false;
 
         private int selectedContinent;
-        private WorldMapChapterStrip chapterStrip;
         private Coroutine focusRoutine;
         private Coroutine hintRoutine;
         private readonly Dictionary<int, int> runtimeIndexBySerializedIndex =
@@ -156,11 +155,13 @@ namespace Watermelon.BusStop
                 RefreshAll();
             }
 
-            if (useChapterStrip)
+            if (chapterStrip == null)
+                chapterStrip = FindFirstObjectByType<WorldMapChapterStrip>(FindObjectsInactive.Include);
+
+            if (chapterStrip != null)
             {
-                chapterStrip = WorldMapChapterStrip.Create(this, continents);
-                if (chapterStrip != null)
-                    chapterStrip.Refresh(selectedContinent);
+                chapterStrip.Bind(this, continents);
+                chapterStrip.Refresh(selectedContinent);
             }
 
             Canvas.ForceUpdateCanvases();
@@ -220,7 +221,7 @@ namespace Watermelon.BusStop
             }
         }
 
-        private static int GetCanonicalContinentIndex(WorldMapContinentNode node)
+        public static int GetCanonicalContinentIndex(WorldMapContinentNode node)
         {
             if (node == null)
                 return int.MaxValue;
