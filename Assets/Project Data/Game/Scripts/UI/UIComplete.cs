@@ -667,8 +667,11 @@ namespace Watermelon
                 return false;
 
             int next = CountryCatalog.GetNext(country);
+            // Within a continent CONTINUE opens the next country's Level Selection; after a
+            // continent's last country it goes to the World Map with the next continent chosen.
+            bool nextInSameContinent = next >= 0 && !CountryCatalog.IsLastOfContinent(country);
             PlayerPrefs.SetInt(shownKey, 1);
-            if (next >= 0)
+            if (nextInSameContinent)
             {
                 // Same hand-off the Country Map uses when a country is picked, so Level
                 // Selection opens on the next country and its Back returns to the map.
@@ -676,13 +679,18 @@ namespace Watermelon
                 PlayerPrefs.SetInt(SelectedCountryLevelStartKey, next * CountryCatalog.LevelsPerCountry);
                 PlayerPrefs.SetInt(FromCountryMapKey, 1);
             }
+            else if (next >= 0)
+            {
+                PlayerPrefs.SetInt("CC_WorldMap_SelectedContinent", WorldCatalog.ContinentOfCountry(next));
+                PlayerPrefs.SetInt(SelectedCountryKey, next);
+            }
             PlayerPrefs.Save();
 
             Debug.Log($"[UIComplete] {CountryCatalog.GetName(country)} completed; next: {CountryCatalog.GetName(next)}");
 
             CountryCompletePanel.Show(
                 country,
-                () => EnhancedLoadingScreen.LoadViaLoadingScreen(next >= 0 ? "LevelSelection" : "WorldMap"),
+                () => EnhancedLoadingScreen.LoadViaLoadingScreen(nextInSameContinent ? "LevelSelection" : "WorldMap"),
                 () => EnhancedLoadingScreen.LoadViaLoadingScreen("menu"));
 
             return true;

@@ -23,12 +23,6 @@ namespace Watermelon.BusStop
         private const string LaunchedFromWorldMapKey = "CC_CountryMap_LaunchedFromWorldMap";
         private const string SelectedCountryLevelStartKey = "CC_CountryMap_SelectedLevelStart";
         private const int AsiaContinentIndex = 0;
-        private const int AuthoredGameplayLevelStart = 0;
-
-        private static readonly string[] ContinentNames =
-        {
-            "Asia", "North America", "South America", "Europe", "Africa", "Australia"
-        };
 
         [Header("Countries")]
         [SerializeField] private CountryMapCountryNode[] countryNodes;
@@ -150,35 +144,27 @@ namespace Watermelon.BusStop
 
         private void Start()
         {
-            int requestedWorldMapContinent = Mathf.Clamp(
+            // The World Map owns the chosen continent; this scene shows any continent,
+            // using its countries and art from WorldCatalog / WorldArt.
+            selectedContinent = Mathf.Clamp(
                 PlayerPrefs.GetInt(SelectedContinentKey, AsiaContinentIndex),
                 0,
-                ContinentNames.Length - 1);
+                WorldCatalog.ContinentCount - 1);
 
             PlayerPrefs.DeleteKey(LaunchedFromWorldMapKey);
 
-            // This scene is specifically the Asia country-map pack.
-            // Asia is canonical Chapter 1 / continent index 0.
-            selectedContinent = AsiaContinentIndex;
-
-            selectedCountry = Mathf.Clamp(
-                PlayerPrefs.GetInt(SelectedCountryKey, 0),
-                0,
-                CountriesPerContinent - 1);
-
-            if (requestedWorldMapContinent != selectedContinent)
-            {
-                Debug.Log(
-                    "[CountryMap] Requested " + ContinentNames[requestedWorldMapContinent] +
-                    ", but the installed CountryMap art pack is " +
-                    ContinentNames[selectedContinent] + ". Showing the authored Asia map.");
-            }
+            // CC_CountryMap_SelectedCountry holds the global country index (0-29).
+            int savedCountry = PlayerPrefs.GetInt(SelectedCountryKey, WorldCatalog.GlobalCountry(selectedContinent, 0));
+            selectedCountry = WorldCatalog.ContinentOfCountry(savedCountry) == selectedContinent
+                ? savedCountry % CountriesPerContinent
+                : 0;
 
             // Do not overwrite CC_WorldMap_SelectedContinent here. WorldMap owns that
             // value and should return to the same continent after Back.
-            PlayerPrefs.SetInt(SelectedCountryKey, selectedCountry);
+            PlayerPrefs.SetInt(SelectedCountryKey, GlobalCountry(selectedCountry));
             PlayerPrefs.Save();
 
+            ApplyContinentArt();
             ApplyContinentHeader();
             ConfigureProgressFillRendering();
             RefreshHUD();
@@ -212,9 +198,67 @@ namespace Watermelon.BusStop
                 RefreshHUD();
         }
 
+        private int GlobalCountry(int localCountry) => WorldCatalog.GlobalCountry(selectedContinent, localCountry);
+
+        // Names, landmark dioramas and flags of this continent's countries, plus the continent
+        // map and progress globe. Countries without their own art yet show the Asian stand-in.
+        private void ApplyContinentArt()
+        {
+            if (countryNodes != null)
+            {
+                for (int i = 0; i < countryNodes.Length && i < CountriesPerContinent; i++)
+                {
+                    CountryMapCountryNode node = countryNodes[i];
+                    if (node == null)
+                        continue;
+
+                    int country = GlobalCountry(i);
+                    node.ApplyCountry(
+                        WorldCatalog.GetCountryName(country),
+                        WorldArt.ForCountry(country, WorldArt.MapDiorama),
+                        WorldArt.ForCountry(country, WorldArt.FlagBadge));
+                }
+            }
+
+            SetSceneSprite("Background Artwork", WorldArt.ForContinent(selectedContinent, WorldArt.ContinentMap));
+            SetSceneSprite("Globe Icon", WorldArt.ForContinent(selectedContinent, WorldArt.ProgressGlobe));
+        }
+
+        private void SetSceneSprite(string objectName, Sprite sprite)
+        {
+            if (sprite == null)
+                return;
+
+            Transform target = FindDeep(transform.root, objectName);
+            if (target == null)
+            {
+                GameObject found = GameObject.Find(objectName);
+                target = found != null ? found.transform : null;
+            }
+
+            Image image = target != null ? target.GetComponent<Image>() : null;
+            if (image != null)
+                image.sprite = sprite;
+        }
+
+        private static Transform FindDeep(Transform parent, string objectName)
+        {
+            if (parent == null)
+                return null;
+            if (parent.name == objectName)
+                return parent;
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                Transform found = FindDeep(parent.GetChild(i), objectName);
+                if (found != null)
+                    return found;
+            }
+            return null;
+        }
+
         private void ApplyContinentHeader()
         {
-            string continent = ContinentNames[Mathf.Clamp(selectedContinent, 0, ContinentNames.Length - 1)];
+            string continent = WorldCatalog.GetContinentName(selectedContinent);
 
             if (titleText != null)
                 titleText.text = continent.ToUpperInvariant();
@@ -224,9 +268,8 @@ namespace Watermelon.BusStop
 
             if (infoText != null)
             {
-                infoText.text = selectedContinent == AsiaContinentIndex
-                    ? "Explore amazing cuisines\nand cultures across Asia!"
-                    : "Explore the countries and\nculinary stops of " + continent + ".";
+                WorldCatalog.Continent info = WorldCatalog.GetContinent(selectedContinent);
+                infoText.text = info != null ? info.Info : "Explore the countries and culinary stops of " + continent + ".";
             }
 
             if (guideText != null)
@@ -318,7 +361,7 @@ namespace Watermelon.BusStop
             if (!IsCountryUnlocked(selectedCountry, save))
             {
                 selectedCountry = highestUnlocked;
-                PlayerPrefs.SetInt(SelectedCountryKey, selectedCountry);
+                PlayerPrefs.SetInt(SelectedCountryKey, GlobalCountry(selectedCountry));
                 PlayerPrefs.Save();
             }
 
@@ -408,7 +451,7 @@ namespace Watermelon.BusStop
             }
 
             selectedCountry = countryIndex;
-            PlayerPrefs.SetInt(SelectedCountryKey, selectedCountry);
+            PlayerPrefs.SetInt(SelectedCountryKey, GlobalCountry(selectedCountry));
             PlayerPrefs.Save();
 
             RefreshCountryProgress();
@@ -417,7 +460,7 @@ namespace Watermelon.BusStop
             if (statusText != null && countryNodes != null && countryIndex < countryNodes.Length &&
                 countryNodes[countryIndex] != null)
             {
-                int firstHumanLevel = AuthoredGameplayLevelStart + countryIndex * LevelsPerCountry + 1;
+                int firstHumanLevel = WorldCatalog.FirstLevelOfCountry(GlobalCountry(countryIndex)) + 1;
                 int lastHumanLevel = firstHumanLevel + LevelsPerCountry - 1;
                 statusText.text = countryNodes[countryIndex].CountryName.ToUpperInvariant() +
                                   " SELECTED  •  LEVELS " + firstHumanLevel + "-" + lastHumanLevel;
@@ -426,8 +469,7 @@ namespace Watermelon.BusStop
             // Hand off the selected country to the existing LevelSelection scene.
             // The level-selection controller reads these keys, opens the page that
             // contains this country's first level, and routes Back to CountryMap.
-            int selectedLevelStart =
-                AuthoredGameplayLevelStart + countryIndex * LevelsPerCountry;
+            int selectedLevelStart = WorldCatalog.FirstLevelOfCountry(GlobalCountry(countryIndex));
 
             PlayerPrefs.SetInt(SelectedCountryLevelStartKey, selectedLevelStart);
             PlayerPrefs.SetInt("CC_LevelSelection_FromCountryMap", 1);
@@ -441,53 +483,11 @@ namespace Watermelon.BusStop
             return save != null && IsCountryUnlocked(countryIndex, save);
         }
 
-        private bool IsCountryUnlocked(int countryIndex, LevelSave save)
-        {
-            if (countryIndex <= 0)
-                return true;
+        private bool IsCountryUnlocked(int countryIndex, LevelSave save) => WorldCatalog.IsCountryUnlocked(GlobalCountry(countryIndex));
 
-            int previousCountryLastLevel =
-                AuthoredGameplayLevelStart + countryIndex * LevelsPerCountry - 1;
+        private int GetCompletedLevelsInCountry(int countryIndex) => WorldCatalog.CountryLevelsCompleted(GlobalCountry(countryIndex));
 
-            return IsLevelCompletedForCountryMap(previousCountryLastLevel, save);
-        }
-
-        private int GetCompletedLevelsInCountry(int countryIndex)
-        {
-            LevelSave save = SaveController.GetSaveObject<LevelSave>("level");
-            return save != null ? GetCompletedLevelsInCountry(countryIndex, save) : 0;
-        }
-
-        private int GetCompletedLevelsInCountry(int countryIndex, LevelSave save)
-        {
-            int start = AuthoredGameplayLevelStart + countryIndex * LevelsPerCountry;
-            int completed = 0;
-
-            for (int i = 0; i < LevelsPerCountry; i++)
-            {
-                if (IsLevelCompletedForCountryMap(start + i, save))
-                    completed++;
-            }
-
-            return completed;
-        }
-
-        private static bool IsLevelCompletedForCountryMap(int levelIndex, LevelSave save)
-        {
-            if (save == null || levelIndex < 0)
-                return false;
-
-            // Primary source: explicit per-level completion written by GameController.
-            LevelProgressData progress = save.GetLevelProgress(levelIndex);
-            if (progress != null && progress.isCompleted)
-                return true;
-
-            // Compatibility with saves created before per-level progress was added.
-            // DisplayLevelNumber is the number of levels already advanced through in
-            // the original linear progression, so treat those earlier map slots as done.
-            int legacyCompletedCount = Mathf.Max(0, save.DisplayLevelNumber);
-            return levelIndex < legacyCompletedCount;
-        }
+        private int GetCompletedLevelsInCountry(int countryIndex, LevelSave save) => GetCompletedLevelsInCountry(countryIndex);
 
         private static void EnsureSaveControllerReady()
         {

@@ -63,6 +63,14 @@ namespace Watermelon.BusStop
 
         public LevelData GetLevel(int levelIndex)
         {
+            // Levels past the designed ones (the world has 90) reuse existing layouts,
+            // skipping the first few introductory levels, until new ones are added.
+            if (levelIndex >= levels.Length && levels.Length > 0)
+            {
+                int start = Mathf.Min(5, levels.Length - 1);
+                levelIndex = start + (levelIndex - levels.Length) % (levels.Length - start);
+            }
+
             levelIndex = Mathf.Clamp(levelIndex, 0, levels.Length - 1);
 
             return levels[levelIndex];

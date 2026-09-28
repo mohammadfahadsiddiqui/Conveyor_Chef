@@ -23,37 +23,8 @@ namespace Watermelon.BusStop
         private const string DiamondCurrencyMigrationKey = "CC_DiamondCurrencyMigrated";
         private const int LevelsPerCountry = 3;
 
-        private static readonly string[] CountryNames =
-        {
-            "China", "Japan", "India", "South Korea", "Thailand"
-        };
-
-        private static readonly string[] CountrySubtitles =
-        {
-            "FLAVORS, CULTURE, JOURNEY",
-            "FLAVORS, CULTURE, JOURNEY",
-            "FLAVORS, CULTURE, JOURNEY",
-            "FLAVORS, CULTURE, JOURNEY",
-            "FLAVORS, CULTURE, JOURNEY"
-        };
-
-        private static readonly string[,] MissionTitles =
-        {
-            { "Beijing Bites", "Shanghai Rush", "Sichuan Station" },
-            { "Tokyo Treats", "Kyoto Kitchen", "Osaka Rush" },
-            { "Varanasi Ghats", "Delhi Streets", "Mumbai Docks" },
-            { "Seoul Street Food", "Busan Harbor", "Jeonju Kitchen" },
-            { "Bangkok Market", "Chiang Mai Feast", "Phuket Pier" }
-        };
-
-        private static readonly string[] CountryDescriptions =
-        {
-            "Explore China's iconic cities and bold regional flavors as you master three culinary missions.",
-            "Travel across Japan through fast kitchens, classic streets and unforgettable food destinations.",
-            "Explore India's rich food culture, vibrant cities and iconic destinations as you deliver delicious dishes across the country!",
-            "Discover Korea's energetic food streets, coastal stops and traditional culinary culture.",
-            "Serve your way through Thailand's colorful markets, northern kitchens and tropical waterfronts."
-        };
+        private const string CountrySubtitle = "FLAVORS, CULTURE, JOURNEY";
+        private const string SelectedContinentKey = "CC_WorldMap_SelectedContinent";
 
         [Header("Navigation")]
         [SerializeField] private Button homeButton;
@@ -144,16 +115,13 @@ namespace Watermelon.BusStop
 
         private void Start()
         {
+            // Global country index (0-29) across all continents, see WorldCatalog.
             selectedCountry = Mathf.Clamp(
                 PlayerPrefs.GetInt(SelectedCountryKey, 2),
                 0,
-                CountryNames.Length - 1);
+                WorldCatalog.CountryCount - 1);
 
-            countryLevelStart = Mathf.Max(
-                0,
-                PlayerPrefs.GetInt(
-                    SelectedCountryLevelStartKey,
-                    selectedCountry * LevelsPerCountry));
+            countryLevelStart = WorldCatalog.FirstLevelOfCountry(selectedCountry);
 
             PlayerPrefs.SetInt(SelectedCountryKey, selectedCountry);
             PlayerPrefs.SetInt(SelectedCountryLevelStartKey, countryLevelStart);
@@ -221,16 +189,17 @@ namespace Watermelon.BusStop
 
         private void ApplyCountryPresentation()
         {
-            string countryName = CountryNames[selectedCountry];
+            WorldCatalog.Country country = WorldCatalog.GetCountry(selectedCountry);
+            string countryName = country != null ? country.Name : "Country";
 
             if (countryTitleText != null)
                 countryTitleText.text = countryName.ToUpperInvariant();
 
             if (countrySubtitleText != null)
-                countrySubtitleText.text = CountrySubtitles[selectedCountry];
+                countrySubtitleText.text = CountrySubtitle;
 
-            if (descriptionText != null)
-                descriptionText.text = CountryDescriptions[selectedCountry];
+            if (descriptionText != null && country != null)
+                descriptionText.text = country.Description;
 
             if (guideText != null)
                 guideText.text = "Complete all 3 missions\nto master " + countryName + "’s flavors!";
@@ -238,10 +207,64 @@ namespace Watermelon.BusStop
             if (progressTitleText != null)
                 progressTitleText.text = "COUNTRY PROGRESS";
 
-            // The first art pack is India. Keep its thumbnails authored and editable.
-            // Additional country art packs can be assigned later without changing layout.
-            if (selectedCountry == 2 && heroImage != null && indiaHeroSprite != null)
-                heroImage.sprite = indiaHeroSprite;
+            // Country art by name (Resources/World/<continent>/<country>/...), with the
+            // existing Asian art standing in until a country has its own.
+            Sprite hero = WorldArt.ForCountry(selectedCountry, WorldArt.LevelSelectHero);
+            if (hero == null)
+                hero = indiaHeroSprite;
+
+            if (hero != null)
+            {
+                if (heroImage != null)
+                    heroImage.sprite = hero;
+                SetSceneSprite("Background Artwork", hero);
+            }
+
+            Sprite icon = WorldArt.ForCountry(selectedCountry, WorldArt.LevelSelectIcon);
+            if (icon != null)
+            {
+                SetSceneSprite("India Icon", icon);
+                SetSceneSprite("Country Icon", icon);
+            }
+
+            if (countryFlagImage != null)
+            {
+                Sprite flag = WorldArt.ForCountry(selectedCountry, WorldArt.FlagRound);
+                if (flag != null)
+                    countryFlagImage.sprite = flag;
+            }
+        }
+
+        private void SetSceneSprite(string objectName, Sprite sprite)
+        {
+            if (sprite == null)
+                return;
+
+            Transform target = FindDeep(transform.root, objectName);
+            if (target == null)
+            {
+                GameObject found = GameObject.Find(objectName);
+                target = found != null ? found.transform : null;
+            }
+
+            Image image = target != null ? target.GetComponent<Image>() : null;
+            if (image != null)
+                image.sprite = sprite;
+        }
+
+        private static Transform FindDeep(Transform parent, string objectName)
+        {
+            if (parent == null)
+                return null;
+            if (parent.name == objectName)
+                return parent;
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                Transform found = FindDeep(parent.GetChild(i), objectName);
+                if (found != null)
+                    return found;
+            }
+            return null;
         }
 
         private void RefreshAll()
@@ -345,17 +368,16 @@ namespace Watermelon.BusStop
                 bool completed = IsLevelCompleted(levelIndex);
                 int stars = GetLevelStars(levelIndex);
 
-                Sprite thumbnail = null;
-                if (selectedCountry == 2 &&
-                    indiaThumbnails != null &&
-                    slot < indiaThumbnails.Length)
-                {
+                Sprite thumbnail = WorldArt.ForCountry(selectedCountry, WorldArt.LevelThumbnail(slot));
+                if (thumbnail == null && indiaThumbnails != null && slot < indiaThumbnails.Length)
                     thumbnail = indiaThumbnails[slot];
-                }
+
+                WorldCatalog.Country country = WorldCatalog.GetCountry(selectedCountry);
+                string mission = country != null && slot < country.Missions.Length ? country.Missions[slot] : "Mission " + (slot + 1);
 
                 card.Refresh(
                     levelIndex,
-                    MissionTitles[selectedCountry, slot],
+                    mission,
                     thumbnail,
                     unlocked,
                     slot == selectedSlot,
@@ -506,6 +528,8 @@ namespace Watermelon.BusStop
         {
             PlayClick();
             PlayerPrefs.SetInt(FromCountryMapKey, 1);
+            // Back to this country's continent on the Country Map.
+            PlayerPrefs.SetInt(SelectedContinentKey, Mathf.Max(0, WorldCatalog.ContinentOfCountry(selectedCountry)));
             PlayerPrefs.Save();
             EnhancedLoadingScreen.LoadViaLoadingScreen("CountryMap");
         }
@@ -567,26 +591,9 @@ namespace Watermelon.BusStop
                 vibrationText.text = "VIBRATION: " + (AudioController.IsVibrationEnabled() ? "ON" : "OFF");
         }
 
-        private bool IsLevelUnlocked(int levelIndex)
-        {
-            if (levelIndex <= 0)
-                return true;
+        private bool IsLevelUnlocked(int levelIndex) => GameProgress.IsLevelUnlocked(levelIndex);
 
-            return IsLevelCompleted(levelIndex - 1);
-        }
-
-        private bool IsLevelCompleted(int levelIndex)
-        {
-            if (levelSave == null || levelIndex < 0)
-                return false;
-
-            LevelProgressData progress = levelSave.GetLevelProgress(levelIndex);
-            if (progress != null && progress.isCompleted)
-                return true;
-
-            int legacyCompletedCount = Mathf.Max(0, levelSave.DisplayLevelNumber);
-            return levelIndex < legacyCompletedCount;
-        }
+        private bool IsLevelCompleted(int levelIndex) => GameProgress.IsLevelCompleted(levelIndex);
 
         private int GetLevelStars(int levelIndex)
         {

@@ -48,6 +48,22 @@ namespace Watermelon.BusStop
             button.onClick.AddListener(HandlePressed);
         }
 
+        /// <summary>Shows a country of the current continent (name, landmark diorama, flag).</summary>
+        public void ApplyCountry(string displayName, Sprite landmark, Sprite flag)
+        {
+            if (!string.IsNullOrEmpty(displayName))
+                countryName = displayName;
+
+            if (countryNameText != null)
+                countryNameText.text = countryName;
+
+            if (landmark != null && landmarkImage != null)
+                landmarkImage.sprite = landmark;
+
+            if (flag != null && flagImage != null)
+                flagImage.sprite = flag;
+        }
+
         public void Refresh(bool unlocked, bool selected, int completedLevels, int levelsPerCountry)
         {
             completedLevels = Mathf.Clamp(completedLevels, 0, Mathf.Max(1, levelsPerCountry));

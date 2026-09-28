@@ -4,9 +4,8 @@ namespace Watermelon.BusStop
 {
     /// <summary>
     /// Picks the dish shown for each food colour, based on the country of the level being
-    /// played (country i owns levels i*3 .. i*3+2). The colours and all gameplay stay the
-    /// same; only the picture changes. Levels past the last country cycle through the
-    /// countries again.
+    /// played (country i owns levels i*3 .. i*3+2, across all continents; see WorldCatalog).
+    /// The colours and all gameplay stay the same; only the picture changes.
     /// </summary>
     public static class CountryFood
     {
@@ -40,7 +39,7 @@ namespace Watermelon.BusStop
                 if (levelIndex < 0)
                     return -1;
 
-                return (levelIndex / Watermelon.CountryCatalog.LevelsPerCountry) % Watermelon.CountryCatalog.CountryCount;
+                return (levelIndex / Watermelon.WorldCatalog.LevelsPerCountry) % Watermelon.WorldCatalog.CountryCount;
             }
         }
 
@@ -51,12 +50,23 @@ namespace Watermelon.BusStop
         }
 
         /// <summary>Dish for this colour in the current country, or null to keep the original look.</summary>
-        public static Sprite GetDish(LevelElement.Type type)
+        public static Sprite GetDish(LevelElement.Type type) => GetDish(CurrentCountry, GetColourIndex(type));
+
+        /// <summary>
+        /// A country's dish: its own file in Resources/World/.../dish_&lt;colour&gt;, else the Asian
+        /// country in the same position (see WorldArt), else the Asian dish set.
+        /// </summary>
+        public static Sprite GetDish(int country, int colour)
         {
+            if (country < 0 || colour < 0 || colour >= CountryFoodArt.ColoursPerCountry)
+                return null;
+
+            Sprite dish = Watermelon.WorldArt.ForCountry(country, Watermelon.WorldArt.Dish(colour));
+            if (dish != null)
+                return dish;
+
             CountryFoodArt foodArt = Art;
-            int colour = GetColourIndex(type);
-            int country = CurrentCountry;
-            return foodArt != null && colour >= 0 && country >= 0 ? foodArt.GetDish(country, colour) : null;
+            return foodArt != null ? foodArt.GetDish(Watermelon.WorldCatalog.StandInCountry(country), colour) : null;
         }
 
         /// <summary>The game's colour for a food type, used for the plate under each dish.</summary>
