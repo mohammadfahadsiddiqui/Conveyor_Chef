@@ -70,6 +70,16 @@ namespace Watermelon.BusStop
         private float clocheLift;        // 0 = on the plate, 1 = lifted off and gone
         private bool clocheReady;
 
+        // Dish layout from ApplyPlateLayout (the size that fits under the cloche); the food
+        // grows from dishBottom when the cloche is off.
+        private Vector3 dishBaseScale = Vector3.one;
+        private Vector3 dishBasePosition;
+        private float dishBottom;
+
+        // Tray the character sits on (found again whenever its parent changes).
+        private Transform lastParent;
+        private BusBehavior tray;
+
         public void Apply(BaseCharacterBehavior owner, Transform graphicsRoot, GameObject coverObject, Sprite dish, Color typeColour)
         {
             character = owner;
@@ -149,6 +159,10 @@ namespace Watermelon.BusStop
             float y = bottomTarget - dishScale * aspect * (dishRect.y - 0.5f);
             dishRenderer.transform.localPosition = new Vector3(x, y, 0f);
 
+            dishBaseScale = dishRenderer.transform.localScale;
+            dishBasePosition = dishRenderer.transform.localPosition;
+            dishBottom = bottomTarget;
+
             shadowRenderer.transform.localPosition = showPlate ? PlateShadowPosition : DishShadowPosition;
             FitToUnit(shadowRenderer, showPlate ? PlateShadowScale : DishShadowScale);
         }
@@ -213,6 +227,18 @@ namespace Watermelon.BusStop
             float tileFill = art != null ? art.tileFill : 0.94f;
             float scale = LevelController.ElementSize * tileFill / Mathf.Max(0.1f, plateWidth) * rootScale;
 
+            // On a tray the seats are scaled down, which made the dishes tiny. There the plate
+            // fills the gap between two seats instead; the character's own scale still applies
+            // so the pop-in animation on arrival is kept.
+            float traySpacing = GetTraySeatSpacing();
+            if (traySpacing > 0f)
+            {
+                float trayFill = art != null ? art.trayFill : 0.94f;
+                Vector3 own = root.localScale;
+                float appear = 0.5f * (Mathf.Abs(own.x) + Mathf.Abs(own.z));
+                scale = traySpacing * trayFill / Mathf.Max(0.1f, plateWidth) * appear;
+            }
+
             // The card is moved towards the camera (so the board never cuts it), which would make
             // it look bigger on a perspective camera; shrink it so it looks exactly tile-sized.
             if (!cam.orthographic)
@@ -233,6 +259,44 @@ namespace Watermelon.BusStop
             plateRenderer.color = tint;
 
             UpdateCloche(!pickable && (art == null || art.showCloche));
+            UpdateFoodSize(art);
+        }
+
+        // Under the cloche the food must fit inside the glass; once the cloche is off (or on
+        // the dock/tray) it grows on its plate so the food itself reads bigger. It grows from
+        // its bottom, so it keeps standing on the plate.
+        private void UpdateFoodSize(CountryFoodArt art)
+        {
+            bool showPlate = art == null || art.showColourPlate;
+            float grow = art != null ? art.uncoveredFoodScale : 1.15f;
+            float t = 1f - (1f - clocheLift) * (1f - clocheLift);   // ease out
+            float m = showPlate ? Mathf.Lerp(1f, grow, t) : grow;
+
+            Transform dish = dishRenderer.transform;
+            dish.localScale = dishBaseScale * m;
+            dish.localPosition = new Vector3(
+                dishBasePosition.x * m,
+                dishBottom + (dishBasePosition.y - dishBottom) * m,
+                dishBasePosition.z);
+        }
+
+        // World distance between neighbouring seats of the tray this character sits on, or 0
+        // when it is not on a tray (board, dock, moving).
+        private float GetTraySeatSpacing()
+        {
+            Transform parent = character.transform.parent;
+            if (parent != lastParent)
+            {
+                lastParent = parent;
+                tray = parent != null ? parent.GetComponentInParent<BusBehavior>() : null;
+            }
+
+            if (tray == null || tray.seats == null || tray.seats.Count < 2)
+                return 0f;
+
+            Transform a = tray.seats[0];
+            Transform b = tray.seats[1];
+            return a != null && b != null ? Vector3.Distance(a.position, b.position) : 0f;
         }
 
         // Pieces placed at level start take their state at once; later a lid lifts off with a

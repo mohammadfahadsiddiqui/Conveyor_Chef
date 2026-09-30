@@ -27,7 +27,12 @@ namespace Watermelon.BusStop
 
         [Header("Board look")]
         [Tooltip("How much of a board tile each plate covers; below 1 leaves a gap between neighbours.")]
-        [Range(0.6f, 1.1f)] public float tileFill = 0.94f;
+        [Range(0.6f, 1.1f)] public float tileFill = 1f;
+        [Tooltip("How much of the gap between two tray seats each plate covers.")]
+        [Range(0.6f, 1.1f)] public float trayFill = 0.94f;
+        [Tooltip("Size of the food on its plate once the cloche is off (pickable, on the dock or tray), " +
+                 "relative to the size that fits under the cloche. Grows from the plate, so it never floats.")]
+        [Range(1f, 1.4f)] public float uncoveredFoodScale = 1.15f;
         [Tooltip("Cover dishes that cannot be picked yet with a clear glass cloche that lifts off when they become pickable.")]
         public bool showCloche = true;
         [Tooltip("Tint of dishes (and plates) under the cloche.")]

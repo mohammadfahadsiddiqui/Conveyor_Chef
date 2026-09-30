@@ -120,7 +120,9 @@ MonoBehaviour:
   - {x: 0.9502, y: -0.4300}
   - {x: 0.8827, y: -0.4300}
   - {x: 0.8819, y: -0.4300}
-  tileFill: 0.94
+  tileFill: 1
+  trayFill: 0.94
+  uncoveredFoodScale: 1.15
   showCloche: 1
   blockedTint: {r: 0.95, g: 0.95, b: 0.95, a: 1}
   shadowAlpha: 0.35
