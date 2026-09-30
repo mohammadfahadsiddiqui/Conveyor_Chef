@@ -47,6 +47,28 @@ namespace Watermelon.EditorTools
         // Layout at the 1080x1920 reference resolution, measured from Game UI Reference.png.
         private const float TopBarHeight = 150f;
         private const float TopRowY = -86f;
+
+        // Top HUD row, 1080 wide. Taller than the first version and closer to the art's own
+        // shape; the row already used the full width, so the gaps were tightened instead.
+        // "Resize Top Bar" applies these to an existing Game scene without a full rebuild.
+        private const int TopHudVersion = 1;
+        private static readonly Vector2 LivesPosition = new Vector2(64f, TopRowY);
+        private static readonly Vector2 LivesSize = new Vector2(212f, 72f);
+        private static readonly Vector2 HeartSize = new Vector2(100f, 92f);
+        private static readonly Vector2 LivesAmountSize = new Vector2(66f, 58f);
+        private static readonly Vector2 InfinitySize = new Vector2(50f, 50f);
+        private static readonly Vector2 LevelPanelPosition = new Vector2(-130f, TopRowY - 6f);
+        private static readonly Vector2 LevelPanelSize = new Vector2(248f, 96f);
+        private static readonly Vector2 ChefHatPosition = new Vector2(-4f, 56f);
+        private static readonly Vector2 ChefHatSize = new Vector2(80f, 70f);
+        private static readonly Vector2 CoinPosition = new Vector2(-330f, TopRowY);
+        private static readonly Vector2 CoinSize = new Vector2(206f, 76f);
+        private static readonly Vector2 DiamondPosition = new Vector2(-114f, TopRowY);
+        private static readonly Vector2 DiamondSize = new Vector2(172f, 68f);
+        private static readonly Vector2 DiamondIconSize = new Vector2(76f, 76f);
+        private static readonly Vector2 PausePosition = new Vector2(-60f, TopRowY);
+        private static readonly Vector2 PauseSize = new Vector2(104f, 104f);
+        private static readonly Vector2 PlusSize = new Vector2(48f, 48f);
         private const float ToolbarWidth = 1070f;
         private const float ToolbarHeight = 357f;
         private const float ToolbarBottom = -38f;
@@ -98,7 +120,7 @@ namespace Watermelon.EditorTools
 
         private static void QueueAutoBuild()
         {
-            if (autoQueued || EditorPrefs.GetBool(AutoBuiltKey, false))
+            if (autoQueued || (EditorPrefs.GetBool(AutoBuiltKey, false) && EditorPrefs.GetBool(TopHudKey, false)))
                 return;
 
             autoQueued = true;
@@ -110,7 +132,10 @@ namespace Watermelon.EditorTools
             autoQueued = false;
 
             if (EditorPrefs.GetBool(AutoBuiltKey, false))
+            {
+                TryAutoResizeTopHud();
                 return;
+            }
 
             // Play mode is retried from OnPlayModeChanged when the editor returns to Edit mode.
             if (EditorApplication.isPlayingOrWillChangePlaymode)
@@ -131,11 +156,88 @@ namespace Watermelon.EditorTools
             if (existingMarker != null && existingMarker.LayoutVersion >= LayoutVersion)
             {
                 EditorPrefs.SetBool(AutoBuiltKey, true);
+                TryAutoResizeTopHud();
                 return;
             }
 
             if (BuildAndSave(scene))
+            {
                 EditorPrefs.SetBool(AutoBuiltKey, true);
+                EditorPrefs.SetBool(TopHudKey, true);   // a fresh build already uses these sizes
+            }
+        }
+
+        private static readonly string TopHudKey =
+            "ConveyorChef.GameMainCanvas.TopHud.v" + TopHudVersion + "." + Application.dataPath.GetHashCode();
+
+        // Applies the current top bar sizes to an already built canvas, once per version,
+        // without rebuilding the rest of it (so edits made in the Scene view are kept).
+        private static void TryAutoResizeTopHud()
+        {
+            if (EditorPrefs.GetBool(TopHudKey, false) || EditorApplication.isPlayingOrWillChangePlaymode)
+                return;
+
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+                return;
+
+            if (ResizeTopHud())
+            {
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+                EditorPrefs.SetBool(TopHudKey, true);
+            }
+        }
+
+        [MenuItem("Conveyor Chef/Game Scene/NEW MAIN CANVAS/2. Resize Top Bar", priority = 21)]
+        public static void ResizeTopHudMenu()
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid() || scene.path != ScenePath)
+            {
+                Debug.LogWarning("[GameMainCanvas] Open Game.unity first.");
+                return;
+            }
+
+            if (ResizeTopHud())
+            {
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+                EditorPrefs.SetBool(TopHudKey, true);
+            }
+        }
+
+        private static bool ResizeTopHud()
+        {
+            GameObject root = FindRoot(CanvasName);
+            if (root == null)
+                return false;
+
+            Transform t = root.transform;
+            Undo.RegisterFullObjectHierarchyUndo(root, "Resize Top Bar");
+
+            Transform lives = Find(t, "Life Counter");
+            if (lives != null)
+                SizeLives(lives);
+
+            Transform levelPanel = Find(t, "Level Panel");
+            if (levelPanel != null)
+                SizeLevelPanel(levelPanel);
+
+            Transform coins = Find(t, "Coin Counter");
+            if (coins != null)
+                SizeCurrency(coins, CoinPosition, CoinSize, iconBakedIntoPanel: true);
+
+            Transform diamonds = Find(t, "Diamond Counter");
+            if (diamonds != null)
+                SizeCurrency(diamonds, DiamondPosition, DiamondSize, iconBakedIntoPanel: false);
+
+            Transform pause = Find(t, "Pause Button");
+            if (pause != null)
+                Place(pause, new Vector2(1f, 1f), Center, PausePosition, PauseSize);
+
+            Debug.Log("[GameMainCanvas] Top bar resized (v" + TopHudVersion + ").");
+            return true;
         }
 
         [MenuItem("Conveyor Chef/Game Scene/NEW MAIN CANVAS/1. Build or Rebuild Game Main Canvas", priority = 20)]
@@ -281,12 +383,12 @@ namespace Watermelon.EditorTools
 
             CurrencyUIPanelSimple coins = LayoutCurrency(
                 t, safeZone, "Coin Counter", CurrencyType.Coins, "TopHUD/coin_counter_panel.png",
-                new Vector2(-325f, TopRowY), new Vector2(190f, 64f), iconBakedIntoPanel: true,
+                CoinPosition, CoinSize, iconBakedIntoPanel: true,
                 out Image coinIcon);
 
             CurrencyUIPanelSimple diamonds = LayoutCurrency(
                 t, safeZone, "Diamond Counter", CurrencyType.Diamonds, "TopHUD/diamond_counter_panel.png",
-                new Vector2(-125f, TopRowY), new Vector2(155f, 60f), iconBakedIntoPanel: false,
+                DiamondPosition, DiamondSize, iconBakedIntoPanel: false,
                 out Image diamondIcon);
 
             Button pauseButton = LayoutPauseButton(t, safeZone);
@@ -567,33 +669,40 @@ namespace Watermelon.EditorTools
             Transform t = lives.transform;
             t.SetParent(safeZone, false);
             lives.gameObject.SetActive(true);
-            Place(t, new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(74f, TopRowY), new Vector2(196f, 60f));
             SetSprite(lives.GetComponent<Image>(), LoadSprite("TopHUD/life_counter_panel.png"), false);
 
-            // Heart overlaps the left end of the pill, as in the reference.
             Transform heart = Find(t, "Heart Image");
-            Place(heart, new Vector2(0f, 0.5f), Center, new Vector2(-4f, 2f), new Vector2(90f, 82f));
             SetSprite(heart, LoadSprite("TopHUD/heart_icon.png"), true);
             if (heart != null)
                 heart.SetAsLastSibling();
 
+            SetSprite(Find(t, "Add Button"), LoadSprite("TopHUD/green_plus_button.png"), true);
+
+            SizeLives(t);
+            return lives;
+        }
+
+        private static void SizeLives(Transform t)
+        {
+            Place(t, new Vector2(0f, 1f), new Vector2(0f, 0.5f), LivesPosition, LivesSize);
+
+            // Heart overlaps the left end of the pill, as in the reference.
+            Transform heart = Find(t, "Heart Image");
+            Place(heart, new Vector2(0f, 0.5f), Center, new Vector2(-4f, 2f), HeartSize);
+
             // The lives number sits on the heart; in the prefab it may be a child of the
             // heart or of the panel.
             Transform amount = Find(t, "Lives Amount");
-            PlaceOnHeart(amount, heart, new Vector2(60f, 52f));
-            StyleText(amount, Color.white, 24f, 46f);
+            PlaceOnHeart(amount, heart, LivesAmountSize);
+            StyleText(amount, Color.white, 24f, 52f);
 
-            PlaceOnHeart(Find(t, "Infinity"), heart, new Vector2(44f, 44f));
+            PlaceOnHeart(Find(t, "Infinity"), heart, InfinitySize);
 
             Transform time = Find(t, "Time Text");
-            Fill(time, new Vector2(42f, 6f), new Vector2(-44f, -6f));
-            StyleText(time, NavyText, 20f, 36f);
+            Fill(time, new Vector2(48f, 8f), new Vector2(-50f, -8f));
+            StyleText(time, NavyText, 20f, 40f);
 
-            Transform add = Find(t, "Add Button");
-            Place(add, new Vector2(1f, 0.5f), Center, new Vector2(-20f, 0f), new Vector2(42f, 42f));
-            SetSprite(add, LoadSprite("TopHUD/green_plus_button.png"), true);
-
-            return lives;
+            Place(Find(t, "Add Button"), new Vector2(1f, 0.5f), Center, new Vector2(-22f, 0f), PlusSize);
         }
 
         private static void PlaceOnHeart(Transform target, Transform heart, Vector2 size)
@@ -615,22 +724,33 @@ namespace Watermelon.EditorTools
         private static RectTransform BuildLevelPanel(RectTransform safeZone, TextMeshProUGUI levelText)
         {
             RectTransform panel = CreateImage("Level Panel", safeZone, LoadSprite("TopHUD/level_title_panel.png"), Color.white, false);
-            Place(panel, new Vector2(0.5f, 1f), Center, new Vector2(-130f, TopRowY - 6f), new Vector2(240f, 84f));
 
             if (levelText != null)
             {
                 levelText.transform.SetParent(panel, false);
                 levelText.gameObject.SetActive(true);
-                // Inside the blue centre of level_title_panel.png, never over its gold border.
-                Fill(levelText.transform, new Vector2(34f, 20f), new Vector2(-34f, -22f));
-                StyleText(levelText.transform, Color.white, 16f, 40f);
                 levelText.text = "LEVEL 1";
             }
 
-            RectTransform hat = CreateImage("Chef Hat", panel, LoadSprite("TopHUD/chef_hat_icon.png"), Color.white, true);
-            Place(hat, Center, Center, new Vector2(-4f, 56f), new Vector2(72f, 62f));
+            CreateImage("Chef Hat", panel, LoadSprite("TopHUD/chef_hat_icon.png"), Color.white, true);
 
+            SizeLevelPanel(panel);
             return panel;
+        }
+
+        private static void SizeLevelPanel(Transform panel)
+        {
+            Place(panel, new Vector2(0.5f, 1f), Center, LevelPanelPosition, LevelPanelSize);
+
+            Transform levelText = Find(panel, "Level Text");
+            if (levelText != null)
+            {
+                // Inside the blue centre of level_title_panel.png, never over its gold border.
+                Fill(levelText, new Vector2(38f, 24f), new Vector2(-38f, -26f));
+                StyleText(levelText, Color.white, 16f, 46f);
+            }
+
+            Place(Find(panel, "Chef Hat"), Center, Center, ChefHatPosition, ChefHatSize);
         }
 
         private static CurrencyUIPanelSimple LayoutCurrency(
@@ -662,7 +782,6 @@ namespace Watermelon.EditorTools
             Transform t = panel.transform;
             t.SetParent(safeZone, false);
             panel.gameObject.SetActive(true);
-            Place(t, new Vector2(1f, 1f), new Vector2(1f, 0.5f), position, size);
             SetSprite(panel.GetComponent<Image>(), LoadSprite(panelSprite), false);
 
             Transform icon = Find(t, "Currency Icon");
@@ -676,23 +795,16 @@ namespace Watermelon.EditorTools
                 }
                 else
                 {
-                    Place(icon, new Vector2(0f, 0.5f), Center, new Vector2(0f, 2f), new Vector2(66f, 66f));
                     SetSprite(image, LoadSprite("TopHUD/diamond_icon.png"), true);
                     image.enabled = true;
                     iconImage = image;
                 }
             }
 
-            float textLeft = iconBakedIntoPanel ? 64f : 38f;
-            Transform amount = Find(t, "Amount Text");
-            Fill(amount, new Vector2(textLeft, 6f), new Vector2(-40f, -6f));
-            StyleText(amount, NavyText, 18f, 34f);
-
             Transform add = Find(t, "Add Button");
             if (add != null)
             {
                 add.gameObject.SetActive(true);
-                Place(add, new Vector2(1f, 0.5f), Center, new Vector2(-18f, 0f), new Vector2(42f, 42f));
                 SetSprite(add, LoadSprite("TopHUD/green_plus_button.png"), true);
                 add.SetAsLastSibling();
             }
@@ -700,7 +812,23 @@ namespace Watermelon.EditorTools
             if (icon != null)
                 icon.SetAsLastSibling();
 
+            SizeCurrency(t, position, size, iconBakedIntoPanel);
             return panel;
+        }
+
+        private static void SizeCurrency(Transform t, Vector2 position, Vector2 size, bool iconBakedIntoPanel)
+        {
+            Place(t, new Vector2(1f, 1f), new Vector2(1f, 0.5f), position, size);
+
+            if (!iconBakedIntoPanel)
+                Place(Find(t, "Currency Icon"), new Vector2(0f, 0.5f), Center, new Vector2(0f, 2f), DiamondIconSize);
+
+            float textLeft = iconBakedIntoPanel ? 72f : 44f;
+            Transform amount = Find(t, "Amount Text");
+            Fill(amount, new Vector2(textLeft, 8f), new Vector2(-46f, -8f));
+            StyleText(amount, NavyText, 18f, 40f);
+
+            Place(Find(t, "Add Button"), new Vector2(1f, 0.5f), Center, new Vector2(-20f, 0f), PlusSize);
         }
 
         private static Button LayoutPauseButton(Transform root, RectTransform safeZone)
@@ -719,7 +847,7 @@ namespace Watermelon.EditorTools
 
             pause.SetParent(safeZone, false);
             pause.gameObject.SetActive(true);
-            Place(pause, new Vector2(1f, 1f), Center, new Vector2(-62f, TopRowY), new Vector2(96f, 96f));
+            Place(pause, new Vector2(1f, 1f), Center, PausePosition, PauseSize);
             SetSprite(pause, LoadSprite("TopHUD/pause_button.png"), true);
 
             // The old replay button kept its art on a child, so its own Image was off.
