@@ -34,7 +34,31 @@ namespace Watermelon
             CacheComponents();
             EnsureMainCanvasActive();
             HideOtherGamePages();
+            HideOtherOrderPanels();
             ApplySafeArea();
+        }
+
+        // UIMainMenu keeps its own orders panel and is filled on every level load too; it
+        // drew a second set of cards over the HUD's panel. Only this canvas shows orders.
+        private void HideOtherOrderPanels()
+        {
+            BusStop.UIOrderPanel[] panels = FindObjectsByType<BusStop.UIOrderPanel>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            for (int i = 0; i < panels.Length; i++)
+            {
+                BusStop.UIOrderPanel panel = panels[i];
+                if (panel == null || panel.transform.IsChildOf(transform) || panel.gameObject.scene != gameObject.scene)
+                    continue;
+
+                panel.gameObject.SetActive(false);
+
+                // Its frame/background too, when it has one of its own.
+                Transform parent = panel.transform.parent;
+                if (parent != null && parent.GetComponent<UIPage>() == null &&
+                    parent.name.IndexOf("order", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    parent.gameObject.SetActive(false);
+                }
+            }
         }
 
         // UI Main Canvas holds UIController, result/store popups and the settings panel.
