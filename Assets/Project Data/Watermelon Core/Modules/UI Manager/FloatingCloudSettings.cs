@@ -46,6 +46,12 @@ namespace Watermelon
             RectTransform rectTransform = (RectTransform)tempPrefab.transform;
             rectTransform.sizeDelta = size;
 
+            // Currencies can register before any gameplay scene loads (CurrencyBootstrap);
+            // without this the template dies with the first scene and every cloud using it
+            // fails ("There's no attached prefab at pool").
+            if (Application.isPlaying)
+                Object.DontDestroyOnLoad(tempPrefab);
+
             this.prefab = tempPrefab;
         }
 

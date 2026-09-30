@@ -84,7 +84,11 @@ namespace Watermelon
 
             if (selected == null)
             {
+                // Created inactive: an active EventSystem added while another is still
+                // enabled logs "There can be only one active Event System".
+                // ActivateExactly disables the others first, then turns this one on.
                 GameObject go = new GameObject("EventSystem");
+                go.SetActive(false);
                 SceneManager.MoveGameObjectToScene(go, scene);
                 selected = go.AddComponent<EventSystem>();
             }

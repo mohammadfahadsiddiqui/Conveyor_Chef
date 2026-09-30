@@ -616,8 +616,16 @@ namespace Watermelon
         {
             if (type == PoolType.Single)
             {
+                if (pooledObjects == null)
+                    return;
+
                 for (int i = 0; i < pooledObjects.Count; i++)
                 {
+                    // Objects parented to a scene are destroyed when it unloads;
+                    // GetPooledObject replaces them, so skip them here.
+                    if (pooledObjects[i] == null)
+                        continue;
+
                     if (resetParrent)
                     {
                         pooledObjects[i].transform.SetParent(objectsContainer != null ? objectsContainer : PoolManager.ObjectsContainerTransform);

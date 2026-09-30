@@ -383,15 +383,31 @@ namespace Watermelon
             
             // ADDED: Fallback timeout in case FloatingCloud fails
             bool callbackCalled = false;
-            
-            FloatingCloud.SpawnCurrency(coinsHash, rewardLabel.RectTransform, coinsPanelScalable.RectTransform, 10, "", () =>
+
+            // An exception here would stop the tween from finishing, so it would call this
+            // again every frame (the endless "spawning currency" log). The coins are only
+            // decoration: if they fail, the reward is granted straight away.
+            try
             {
-                if (callbackCalled) return;
-                callbackCalled = true;
-                
-                Debug.Log("[UIComplete] Currency spawned callback");
-                GrantReward();
-            });
+                FloatingCloud.SpawnCurrency(coinsHash, rewardLabel.RectTransform, coinsPanelScalable.RectTransform, 10, "", () =>
+                {
+                    if (callbackCalled) return;
+                    callbackCalled = true;
+
+                    Debug.Log("[UIComplete] Currency spawned callback");
+                    GrantReward();
+                });
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogWarning("[UIComplete] Coin animation failed, granting reward: " + exception.Message);
+                if (!callbackCalled)
+                {
+                    callbackCalled = true;
+                    GrantReward();
+                }
+                return;
+            }
 
             // Fallback: grant the reward after 2 seconds if callback doesn't fire
             Tween.DelayedCall(2f, delegate

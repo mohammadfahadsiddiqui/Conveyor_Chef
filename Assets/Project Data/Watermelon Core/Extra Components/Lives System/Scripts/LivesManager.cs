@@ -341,6 +341,10 @@ namespace Watermelon
 
             Debug.Log($"[LivesManager] START - Lives Count: {Lives}");
 
+            // Indicators that registered before the save was loaded.
+            foreach (LivesIndicator indicator in indicators.ToArray())
+                ApplyIndicator(indicator);
+
             // For init purposses
             SetLifes(Lives);
 
@@ -357,15 +361,9 @@ namespace Watermelon
         {
             if(!addLivesPanels.Contains(panel)) addLivesPanels.Add(panel);
 
-            if(instance == null)
-            {
-                Tween.NextFrame(() => {
-                    panel.SetLivesCount(Lives);
-                });
-            } else
-            {
+            // Set up in Start when the save is not loaded yet (see AddIndicator).
+            if (IsReady)
                 panel.SetLivesCount(Lives);
-            }
         }
 
         public static void RemovePanel(AddLivesPanel panel)
@@ -377,22 +375,24 @@ namespace Watermelon
         {
             if(!indicators.Contains(indicator)) indicators.Add(indicator);
 
-            if(instance == null)
-            {
-                Tween.NextFrame(() => {
-                    indicator.Init(instance.data);
+            // Indicators can enable before this manager's Start has loaded the save, or in
+            // a scene without a LivesManager (World Map). They stay registered and are set
+            // up in Start; applying them now would throw a NullReferenceException.
+            if (IsReady)
+                ApplyIndicator(indicator);
+        }
 
-                    indicator.SetLivesCount(Lives);
+        // Instance alive (Unity null check) and the save loaded by Start.
+        private static bool IsReady => instance != null && instance.data != null && save != null;
 
-                    indicator.SetInfinite(save.infiniteLives);
-                });
-            } else
-            {
-                indicator.Init(instance.data);
+        private static void ApplyIndicator(LivesIndicator indicator)
+        {
+            if (indicator == null)
+                return;
 
-                indicator.SetLivesCount(Lives);
-                indicator.SetInfinite(save.infiniteLives);
-            }
+            indicator.Init(instance.data);
+            indicator.SetLivesCount(Lives);
+            indicator.SetInfinite(save.infiniteLives);
         }
 
         public static void RemoveIndicator(LivesIndicator indicator)
@@ -408,12 +408,16 @@ namespace Watermelon
 
             foreach(var indicator in indicators)
             {
+                if (indicator == null)
+                    continue;
                 indicator.SetLivesCount(Lives);
                 indicator.SetInfinite(save.infiniteLives);
             }
 
             foreach(var panel in addLivesPanels)
             {
+                if (panel == null)
+                    continue;
                 panel.SetLivesCount(value);
             }
         }

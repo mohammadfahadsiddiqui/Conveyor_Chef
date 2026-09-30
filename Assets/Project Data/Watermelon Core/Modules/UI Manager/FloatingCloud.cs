@@ -88,6 +88,17 @@ namespace Watermelon
             {
                 Debug.LogError($"Cloud with hash {hash} isn't registered!");
 
+                onCurrencyHittedTarget?.Invoke();
+                return;
+            }
+
+            // A cloud whose template was destroyed (or never set) cannot spawn anything.
+            // Skip the effect but still report "hit", so rewards are not lost.
+            if (floatingCloudLink[hash].Prefab == null || targetTransform == null || rectTransform == null)
+            {
+                Debug.LogWarning($"[FloatingCloud] Cloud \"{floatingCloudLink[hash].Name}\" can't play (missing template or target). Skipping the effect.");
+
+                onCurrencyHittedTarget?.Invoke();
                 return;
             }
 

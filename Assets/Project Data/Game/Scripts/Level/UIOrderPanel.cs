@@ -37,6 +37,11 @@ namespace Watermelon.BusStop
                 
                 orderItems[busType] = item;
             }
+
+            // Lay the cards out for this many orders straight away (no one-frame jump).
+            OrderPanelAdaptiveGrid grid = orderItemsContainer != null ? orderItemsContainer.GetComponent<OrderPanelAdaptiveGrid>() : null;
+            if (grid != null)
+                grid.Refresh();
         }
         
         public void OnBusCompleted(LevelElement.Type busType)
@@ -81,14 +86,20 @@ namespace Watermelon.BusStop
             {
                 foreach (var item in orderItems.Values)
                 {
+                    if (item == null)
+                        continue;
+                    item.transform.SetParent(null, false);
                     Destroy(item.gameObject);
                 }
                 orderItems.Clear();
             }
-            
-            // Clear container
-            foreach (Transform child in orderItemsContainer)
+
+            // Clear container. Detach first: Destroy is deferred, and old cards must not
+            // count towards the new layout.
+            for (int i = orderItemsContainer.childCount - 1; i >= 0; i--)
             {
+                Transform child = orderItemsContainer.GetChild(i);
+                child.SetParent(null, false);
                 Destroy(child.gameObject);
             }
         }
