@@ -44,7 +44,8 @@ namespace Watermelon
             isTablet = UIUtils.IsWideScreen(Camera.main);
             mainCamera = Camera.main;
 
-            CanvasScaler.matchWidthOrHeight = isTablet ? 1 : 0;
+            // Phone setting on every device: DesignFrame fits the phone layout onto tablets.
+            CanvasScaler.matchWidthOrHeight = 0;
 
             // A separate root Game UI canvas replaces the UIGame pages inside this canvas.
             GameMainCanvas gameMainCanvas = FindFirstObjectByType<GameMainCanvas>();

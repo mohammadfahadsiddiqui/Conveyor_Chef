@@ -102,8 +102,9 @@ namespace Watermelon
                 RaisePagesAboveHud(mainCanvas, canvas.sortingOrder);
             }
 
+            // Phone setting on every device: DesignFrame fits the phone layout onto tablets.
             if (canvasScaler != null)
-                canvasScaler.matchWidthOrHeight = isTablet ? 1f : 0f;
+                canvasScaler.matchWidthOrHeight = 0f;
 
             ApplySafeArea();
         }
@@ -193,10 +194,15 @@ namespace Watermelon
                 return canvas != null && canvas.scaleFactor > 0f ? canvas.scaleFactor : 1f;
 
             Vector2 reference = canvasScaler.referenceResolution;
-            float logWidth = Mathf.Log(Screen.width / reference.x, 2f);
-            float logHeight = Mathf.Log(Screen.height / reference.y, 2f);
+            float width = Screen.width / reference.x;
+            float height = Screen.height / reference.y;
 
-            return Mathf.Pow(2f, Mathf.Lerp(logWidth, logHeight, canvasScaler.matchWidthOrHeight));
+            switch (canvasScaler.screenMatchMode)
+            {
+                case CanvasScaler.ScreenMatchMode.Expand: return Mathf.Min(width, height);
+                case CanvasScaler.ScreenMatchMode.Shrink: return Mathf.Max(width, height);
+                default: return Mathf.Pow(2f, Mathf.Lerp(Mathf.Log(width, 2f), Mathf.Log(height, 2f), canvasScaler.matchWidthOrHeight));
+            }
         }
 
 #if UNITY_EDITOR
