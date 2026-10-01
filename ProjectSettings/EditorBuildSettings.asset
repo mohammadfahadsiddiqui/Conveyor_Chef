@@ -30,6 +30,18 @@ EditorBuildSettings:
     path: Assets/Project Data/Game/Scenes/LevelSelection_Thailand.unity
     guid: d7caf0bc110040789c22a9b09b8218d0
   - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_UnitedStates.unity
+    guid: f11f9a66a7e24204802bd34b983b1dcb
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Mexico.unity
+    guid: 1495882422554d64be7848a5798d32ca
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Canada.unity
+    guid: 383d332bc13046b0a86a8c89349a6a23
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Cuba.unity
+    guid: 67c837af2654486db8f6da2cbd0e6135
+  - enabled: 1
     path: Assets/Project Data/Game/Scenes/WorldMap.unity
     guid: 8f4b7a44c9a84c81b6f17bb0f40c9d21
   - enabled: 1
