@@ -117,6 +117,10 @@ namespace Watermelon
                 return;
             }
 
+            // Every caller asks for "LevelSelection"; open the selected country's own scene when it has one.
+            if (targetSceneName == Watermelon.LevelSelectionScenes.SharedScene)
+                targetSceneName = Watermelon.LevelSelectionScenes.ForSelectedCountry();
+
             routeInProgress = true;
             pendingSceneName = targetSceneName;
             PlayerPrefs.SetString(PendingSceneKey, targetSceneName);

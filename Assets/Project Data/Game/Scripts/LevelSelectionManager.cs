@@ -69,6 +69,12 @@ namespace Watermelon.BusStop
         [Header("State")]
         [SerializeField] private TextMeshProUGUI statusText;
 
+        [Header("Country Scene")]
+        [Tooltip("Country id from WorldCatalog (e.g. \"china\", \"south_korea\") this scene is made for. " +
+                 "When set, the scene opens on that country and keeps the hero, background, icon and " +
+                 "thumbnail images exactly as set in the Hierarchy. Empty = shared scene, art picked at runtime.")]
+        [SerializeField] private string sceneCountryId = "";
+
         [Header("Settings")]
         [SerializeField] private GameObject settingsPanel;
         [SerializeField] private Button closeSettingsButton;
@@ -82,6 +88,9 @@ namespace Watermelon.BusStop
         private int countryLevelStart;
         private int selectedSlot;
         private bool currencySubscribed;
+        private int sceneCountry = -1;
+
+        private bool UsesSceneArt => sceneCountry >= 0;
 
         private void Awake()
         {
@@ -120,6 +129,10 @@ namespace Watermelon.BusStop
                 PlayerPrefs.GetInt(SelectedCountryKey, 2),
                 0,
                 WorldCatalog.CountryCount - 1);
+
+            sceneCountry = FindCountry(sceneCountryId);
+            if (sceneCountry >= 0)
+                selectedCountry = sceneCountry;
 
             countryLevelStart = WorldCatalog.FirstLevelOfCountry(selectedCountry);
 
@@ -207,6 +220,10 @@ namespace Watermelon.BusStop
             if (progressTitleText != null)
                 progressTitleText.text = "COUNTRY PROGRESS";
 
+            // A country's own scene keeps the art set in its Hierarchy.
+            if (UsesSceneArt)
+                return;
+
             // Country art by name (Resources/World/<continent>/<country>/...), with the
             // existing Asian art standing in until a country has its own.
             Sprite hero = WorldArt.ForCountry(selectedCountry, WorldArt.LevelSelectHero);
@@ -233,6 +250,21 @@ namespace Watermelon.BusStop
                 if (flag != null)
                     countryFlagImage.sprite = flag;
             }
+        }
+
+        private static int FindCountry(string countryId)
+        {
+            if (string.IsNullOrWhiteSpace(countryId))
+                return -1;
+
+            for (int i = 0; i < WorldCatalog.CountryCount; i++)
+            {
+                if (string.Equals(WorldCatalog.Countries[i].Id, countryId.Trim(), StringComparison.OrdinalIgnoreCase))
+                    return i;
+            }
+
+            Debug.LogWarning("[LevelSelection] Unknown scene country id '" + countryId + "'.");
+            return -1;
         }
 
         private void SetSceneSprite(string objectName, Sprite sprite)
@@ -368,8 +400,9 @@ namespace Watermelon.BusStop
                 bool completed = IsLevelCompleted(levelIndex);
                 int stars = GetLevelStars(levelIndex);
 
-                Sprite thumbnail = WorldArt.ForCountry(selectedCountry, WorldArt.LevelThumbnail(slot));
-                if (thumbnail == null && indiaThumbnails != null && slot < indiaThumbnails.Length)
+                // Null keeps the card's own thumbnail (a country scene's Hierarchy art).
+                Sprite thumbnail = UsesSceneArt ? null : WorldArt.ForCountry(selectedCountry, WorldArt.LevelThumbnail(slot));
+                if (thumbnail == null && !UsesSceneArt && indiaThumbnails != null && slot < indiaThumbnails.Length)
                     thumbnail = indiaThumbnails[slot];
 
                 WorldCatalog.Country country = WorldCatalog.GetCountry(selectedCountry);

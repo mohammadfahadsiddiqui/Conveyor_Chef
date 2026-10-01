@@ -18,6 +18,18 @@ EditorBuildSettings:
     path: Assets/Project Data/Game/Scenes/LevelSelection.unity
     guid: 57e667af9e61c4cefa94e98846d2c436
   - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_China.unity
+    guid: c83a497c36df4529ba378bd9c1230846
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Japan.unity
+    guid: 0d66748b7e8c4ca0b9d53db6484a5917
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_SouthKorea.unity
+    guid: b80e8b8acfcb49a8b186eecedb96ad5e
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Thailand.unity
+    guid: d7caf0bc110040789c22a9b09b8218d0
+  - enabled: 1
     path: Assets/Project Data/Game/Scenes/WorldMap.unity
     guid: 8f4b7a44c9a84c81b6f17bb0f40c9d21
   - enabled: 1
