@@ -30,6 +30,7 @@ namespace Watermelon
 
         private RectTransform root;
         private RectTransform frame;
+        private MenuPanelFrame design;
         private CanvasGroup rootGroup;
         private ScrollRect scroll;
         private RectTransform tabsRow;
@@ -43,6 +44,8 @@ namespace Watermelon
         protected abstract string Title { get; }
         protected virtual string[] Tabs => null;
         protected virtual bool ShowCurrencies => false;
+        /// <summary>Designed frame picture in Resources/MenuPanelFrames (e.g. StoryPanel -> "story").</summary>
+        protected virtual string DesignKey => GetType().Name.Replace("Panel", string.Empty).ToLowerInvariant();
         /// <summary>Tab to show each time the panel opens; -1 keeps the last one.</summary>
         protected virtual int OpeningTab => -1;
         protected int SelectedTab => selectedTab;
@@ -283,8 +286,29 @@ namespace Watermelon
             float height = ((RectTransform)transform).rect.height;
             if (height <= 1f)
                 height = 1920f;
+
+            if (design != null)
+            {
+                // The designed picture keeps its proportions: as tall as fits, no wider than the screen.
+                float width = ((RectTransform)transform).rect.width;
+                if (width <= 1f)
+                    width = 1080f;
+                float frameHeight = Mathf.Min(DesignedMaxHeight, height - 120f);
+                float frameWidth = frameHeight * design.Aspect;
+                if (frameWidth > width - 40f)
+                {
+                    frameWidth = width - 40f;
+                    frameHeight = frameWidth / design.Aspect;
+                }
+                frame.sizeDelta = new Vector2(frameWidth, frameHeight);
+                return;
+            }
+
             frame.sizeDelta = new Vector2(FrameWidth, Mathf.Min(MaxFrameHeight, height - 250f));
         }
+
+        private const float DesignedMaxHeight = 1780f;
+        private const float DesignedInset = 14f;   // keeps content off the cream area's rounded rim
 
         #endregion
 
@@ -320,16 +344,36 @@ namespace Watermelon
             MenuUI.Stretch(dim.rectTransform);
             MenuUI.Button(dim, Close, false).transition = Selectable.Transition.None;
 
-            Image frameImage = MenuUI.Image("Frame", root, Art.frame, Art.frame == null ? MenuUI.CardFill : (Color?)null, false);
-            frameImage.pixelsPerUnitMultiplier = FrameSliceScale;
-            frameImage.raycastTarget = true;   // taps on the panel itself do not close it
-            frame = frameImage.rectTransform;
-            MenuUI.Place(frame, new Vector2(0f, -20f), new Vector2(FrameWidth, MaxFrameHeight));
+            design = MenuPanelFrame.Load(DesignKey);
 
-            // Inside of the frame (the cream area), from the 9-slice borders.
-            Vector4 border = Art.frame != null ? Art.frame.border / FrameSliceScale : new Vector4(40f, 40f, 40f, 40f);
-            RectTransform body = MenuUI.Rect("Body", frame);
-            MenuUI.Stretch(body, border.x + 14f, border.y + 16f, border.z + 14f, border.w + 18f);
+            RectTransform body;
+            if (design != null)
+            {
+                // The panel's own designed picture, title ribbon and close button included.
+                Image frameImage = MenuUI.Image("Frame", root, design.Sprite, null, true);
+                frameImage.raycastTarget = true;   // taps on the panel itself do not close it
+                frame = frameImage.rectTransform;
+                MenuUI.Place(frame, Vector2.zero, new Vector2(FrameWidth, FrameWidth / design.Aspect));
+
+                body = MenuUI.Rect("Body", frame);
+                body.anchorMin = design.CreamMin;
+                body.anchorMax = design.CreamMax;
+                body.offsetMin = new Vector2(DesignedInset, DesignedInset);
+                body.offsetMax = new Vector2(-DesignedInset, -DesignedInset);
+            }
+            else
+            {
+                Image frameImage = MenuUI.Image("Frame", root, Art.frame, Art.frame == null ? MenuUI.CardFill : (Color?)null, false);
+                frameImage.pixelsPerUnitMultiplier = FrameSliceScale;
+                frameImage.raycastTarget = true;   // taps on the panel itself do not close it
+                frame = frameImage.rectTransform;
+                MenuUI.Place(frame, new Vector2(0f, -20f), new Vector2(FrameWidth, MaxFrameHeight));
+
+                // Inside of the frame (the cream area), from the 9-slice borders.
+                Vector4 border = Art.frame != null ? Art.frame.border / FrameSliceScale : new Vector4(40f, 40f, 40f, 40f);
+                body = MenuUI.Rect("Body", frame);
+                MenuUI.Stretch(body, border.x + 14f, border.y + 16f, border.z + 14f, border.w + 18f);
+            }
 
             BuildHeader();
 
@@ -367,6 +411,18 @@ namespace Watermelon
 
         private void BuildHeader()
         {
+            if (design != null)
+            {
+                // Title and X are drawn in the picture; only the X needs a hit area.
+                Image closeArea = MenuUI.Image("Close Button", frame, null, new Color(1f, 1f, 1f, 0f));
+                closeArea.rectTransform.anchorMin = design.CloseMin;
+                closeArea.rectTransform.anchorMax = design.CloseMax;
+                closeArea.rectTransform.offsetMin = new Vector2(-12f, -12f);   // a little larger than the drawn button
+                closeArea.rectTransform.offsetMax = new Vector2(12f, 12f);
+                MenuUI.Button(closeArea, Close, false).transition = Selectable.Transition.None;
+                return;
+            }
+
             Image ribbon = MenuUI.Image("Title Ribbon", frame, Art.titleRibbon, Art.titleRibbon == null ? new Color32(200, 40, 40, 255) : (Color?)null);
             MenuUI.Anchor(ribbon.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, -40f), new Vector2(760f, 204f));
 
