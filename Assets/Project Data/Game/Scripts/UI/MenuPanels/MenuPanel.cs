@@ -43,6 +43,8 @@ namespace Watermelon
         protected abstract string Title { get; }
         protected virtual string[] Tabs => null;
         protected virtual bool ShowCurrencies => false;
+        /// <summary>Tab to show each time the panel opens; -1 keeps the last one.</summary>
+        protected virtual int OpeningTab => -1;
         protected int SelectedTab => selectedTab;
 
         public static bool AnyOpen
@@ -205,6 +207,8 @@ namespace Watermelon
         {
             MenuUI.PlayClick();
             FitToScreen();
+            if (OpeningTab >= 0)
+                selectedTab = OpeningTab;
             selectedTab = Mathf.Clamp(selectedTab, 0, Tabs != null ? Tabs.Length - 1 : 0);
             BuildTabs();
             RebuildContent();

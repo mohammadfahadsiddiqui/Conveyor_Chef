@@ -26,7 +26,7 @@ namespace Watermelon
         {
             // Open on the country being played.
             int country = CountryFood.CurrentCountry;
-            if (country >= 0 && country != SelectedTab)
+            if (country >= 0 && country < CountryTabs.Length && country != SelectedTab)
                 SelectTab(country);
         }
 
