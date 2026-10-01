@@ -8883,8 +8883,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 97
-  m_fontSizeBase: 97
+  m_fontSize: 90
+  m_fontSizeBase: 90
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -9093,7 +9093,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "Serve your way through Thailand's colorful markets, northern kitchens and tropical waterfronts."
+  m_text: Serve your way through Thailand's colorful markets, northern kitchens and
+    tropical waterfronts.
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 125cb55b44b24c4393181402bc6200e6, type: 2}
   m_sharedMaterial: {fileID: 2100000, guid: 125cb55b44b24c4393181402bc6200e6, type: 2}
@@ -10520,6 +10521,7 @@ MonoBehaviour:
   progressTitleText: {fileID: 0}
   progressValueText: {fileID: 0}
   statusText: {fileID: 0}
+  sceneCountryId: 
   settingsPanel: {fileID: 0}
   closeSettingsButton: {fileID: 0}
   soundButton: {fileID: 0}
