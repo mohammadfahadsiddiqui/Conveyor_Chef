@@ -69,12 +69,6 @@ namespace Watermelon.BusStop
         [Header("State")]
         [SerializeField] private TextMeshProUGUI statusText;
 
-        [Header("Country Scene")]
-        [Tooltip("Country id from WorldCatalog (e.g. \"china\", \"south_korea\") this scene is made for. " +
-                 "When set, the scene opens on that country and keeps the hero, background, icon and " +
-                 "thumbnail images exactly as set in the Hierarchy. Empty = shared scene, art picked at runtime.")]
-        [SerializeField] private string sceneCountryId = "";
-
         [Header("Settings")]
         [SerializeField] private GameObject settingsPanel;
         [SerializeField] private Button closeSettingsButton;
@@ -90,10 +84,21 @@ namespace Watermelon.BusStop
         private bool currencySubscribed;
         private int sceneCountry = -1;
 
+        // Inside a country's Level Selection (LevelSelectionCountry): that country, with the
+        // hero, background, icon and thumbnails exactly as set in the Hierarchy.
         private bool UsesSceneArt => sceneCountry >= 0;
 
         private void Awake()
         {
+            LevelSelectionCountry country = GetComponentInParent<LevelSelectionCountry>(true);
+            if (country != null)
+            {
+                if (!LevelSelectionCountry.Resolve(country))
+                    return;   // another country is shown; this copy is being removed
+
+                sceneCountry = LevelSelectionCountry.IndexOf(country.CountryId);
+            }
+
             Instance = this;
             EnsureSaveControllerReady();
             UIEventSystemRuntime.UseCurrentSceneEventSystem();
@@ -130,7 +135,6 @@ namespace Watermelon.BusStop
                 0,
                 WorldCatalog.CountryCount - 1);
 
-            sceneCountry = FindCountry(sceneCountryId);
             if (sceneCountry >= 0)
                 selectedCountry = sceneCountry;
 
@@ -250,21 +254,6 @@ namespace Watermelon.BusStop
                 if (flag != null)
                     countryFlagImage.sprite = flag;
             }
-        }
-
-        private static int FindCountry(string countryId)
-        {
-            if (string.IsNullOrWhiteSpace(countryId))
-                return -1;
-
-            for (int i = 0; i < WorldCatalog.CountryCount; i++)
-            {
-                if (string.Equals(WorldCatalog.Countries[i].Id, countryId.Trim(), StringComparison.OrdinalIgnoreCase))
-                    return i;
-            }
-
-            Debug.LogWarning("[LevelSelection] Unknown scene country id '" + countryId + "'.");
-            return -1;
         }
 
         private void SetSceneSprite(string objectName, Sprite sprite)

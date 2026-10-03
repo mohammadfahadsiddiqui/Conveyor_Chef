@@ -120,7 +120,7 @@ namespace Watermelon.EditorTools
             if (!active.IsValid() || active.path != ScenePath)
                 return;
 
-            GameObject newRoot = GameObject.Find("NEW Level Selection");
+            GameObject newRoot = FindNewRoot();
             if (newRoot == null)
                 return;
 
@@ -405,6 +405,14 @@ namespace Watermelon.EditorTools
             if (!active.IsValid() || active.path != ScenePath)
                 return;
 
+            // One Level Selection per country (LevelSelectionCountry): already the editable
+            // scene; never rebuild it or move the selection.
+            if (HasCountryRoots())
+            {
+                EnsureLegacyLevelSelectionDisabled(active);
+                return;
+            }
+
             Directory.CreateDirectory(AssetFolder);
             AssetDatabase.Refresh();
             ImportSprites();
@@ -420,7 +428,7 @@ namespace Watermelon.EditorTools
                 missing = MissingAssets();
             }
 
-            GameObject newRoot = GameObject.Find("NEW Level Selection");
+            GameObject newRoot = FindNewRoot();
             if (newRoot != null)
             {
                 Watermelon.LevelSelectionResponsiveLayout marker =
@@ -527,7 +535,7 @@ namespace Watermelon.EditorTools
 
             EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
-            if (GameObject.Find("NEW Level Selection") == null)
+            if (FindNewRoot() == null)
             {
                 List<string> missing = MissingAssets();
                 if (missing.Count > 0 && TryImportAssetPackFromKnownLocations())
@@ -541,7 +549,7 @@ namespace Watermelon.EditorTools
                     BakeInternal(false);
             }
 
-            GameObject root = GameObject.Find("NEW Level Selection");
+            GameObject root = FindNewRoot();
             if (root != null)
             {
                 Selection.activeGameObject = root;
@@ -556,7 +564,7 @@ namespace Watermelon.EditorTools
             if (!scene.IsValid() || scene.path != ScenePath)
                 scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
-            GameObject root = GameObject.Find("NEW Level Selection");
+            GameObject root = FindNewRoot();
             LevelSelectionController controller = root != null
                 ? root.GetComponentInChildren<LevelSelectionController>(true)
                 : null;
@@ -1159,6 +1167,31 @@ namespace Watermelon.EditorTools
                 EditorSceneManager.SaveScene(scene);
         }
 
+        /// <summary>
+        /// The editable root: "NEW Level Selection", or India's Level Selection when the scene
+        /// holds one per country (those can be switched off while another country is shown).
+        /// </summary>
+        public static GameObject FindNewRoot()
+        {
+            GameObject named = GameObject.Find("NEW Level Selection");
+            if (named != null)
+                return named;
+
+            Watermelon.LevelSelectionCountry first = null;
+            foreach (Watermelon.LevelSelectionCountry country in UnityEngine.Object.FindObjectsByType<Watermelon.LevelSelectionCountry>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (string.Equals(country.CountryId, "india", StringComparison.OrdinalIgnoreCase))
+                    return country.gameObject;
+                if (first == null)
+                    first = country;
+            }
+
+            return first != null ? first.gameObject : null;
+        }
+
+        public static bool HasCountryRoots() =>
+            UnityEngine.Object.FindAnyObjectByType<Watermelon.LevelSelectionCountry>(FindObjectsInactive.Include) != null;
+
         private static void FocusEditableRoot(GameObject root)
         {
             if (root == null)
@@ -1489,7 +1522,7 @@ namespace Watermelon.EditorTools
                 if (!active.IsValid() || active.path != "Assets/Project Data/Game/Scenes/LevelSelection.unity")
                     return;
 
-                if (GameObject.Find("NEW Level Selection") != null)
+                if (LevelSelectionSceneBuilder.FindNewRoot() != null)
                     return;
 
                 if (Directory.Exists("Assets/Project Data/Game/Images/LevelSelection"))
