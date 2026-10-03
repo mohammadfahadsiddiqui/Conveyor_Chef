@@ -65,7 +65,12 @@ namespace Watermelon
             }
 
             if (changed)
+            {
+                // Its texts are drawn for the first time now: make sure they are drawn sharp.
+                Canvas.ForceUpdateCanvases();
+                SharpText.Rebuild(country.transform);
                 SceneView.RepaintAll();
+            }
         }
 
         private static void StripPreviews(Scene scene)

@@ -28,6 +28,8 @@ namespace Watermelon
         private const float RefreshInterval = 0.5f;   // picks up UI created or re-anchored later
 
         private DesignFrameFitter fitter;
+        private Canvas canvas;
+        private float textScale = -1f;
         private Vector2 lastScreen;
         private Rect lastSafeArea;
         private bool refitLate;
@@ -57,7 +59,8 @@ namespace Watermelon
 
         private void Awake()
         {
-            fitter = new DesignFrameFitter(GetComponent<Canvas>());
+            canvas = GetComponent<Canvas>();
+            fitter = new DesignFrameFitter(canvas);
         }
 
         private void OnEnable()
@@ -81,6 +84,13 @@ namespace Watermelon
             {
                 refitLate = false;
                 Refit();
+            }
+
+            // Text drawn at another canvas scale would stay soft: redraw it at the new scale.
+            if (canvas != null && canvas.scaleFactor > 0f && !Mathf.Approximately(canvas.scaleFactor, textScale))
+            {
+                textScale = canvas.scaleFactor;
+                SharpText.Rebuild(transform);
             }
         }
 

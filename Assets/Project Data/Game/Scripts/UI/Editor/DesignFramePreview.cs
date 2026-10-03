@@ -28,6 +28,7 @@ namespace Watermelon
 
         private static readonly Dictionary<Canvas, DesignFrameFitter> fitters = new Dictionary<Canvas, DesignFrameFitter>();
         private static readonly List<Canvas> dead = new List<Canvas>();
+        private static readonly Dictionary<Canvas, float> textScales = new Dictionary<Canvas, float>();
         private static double nextTick;
 
         private static bool Enabled
@@ -104,6 +105,15 @@ namespace Watermelon
                         }
 
                         changed |= fitter.Apply(screen, true);
+
+                        // Text drawn at another canvas scale stays soft: redraw it at the new scale.
+                        if (canvas.scaleFactor > 0f &&
+                            (!textScales.TryGetValue(canvas, out float drawnAt) || !Mathf.Approximately(drawnAt, canvas.scaleFactor)))
+                        {
+                            textScales[canvas] = canvas.scaleFactor;
+                            SharpText.Rebuild(canvas.transform);
+                            changed = true;
+                        }
                     }
                 }
             }
@@ -114,7 +124,10 @@ namespace Watermelon
                     dead.Add(canvas);
             }
             for (int i = 0; i < dead.Count; i++)
+            {
                 fitters.Remove(dead[i]);
+                textScales.Remove(dead[i]);
+            }
             dead.Clear();
 
             if (changed)
