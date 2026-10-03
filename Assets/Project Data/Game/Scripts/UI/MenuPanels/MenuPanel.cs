@@ -206,6 +206,13 @@ namespace Watermelon
             Close();
         }
 
+        // Another screen while open (Simulator device, rotation): fit the frame to it.
+        private void LateUpdate()
+        {
+            if (root != null && root.gameObject.activeSelf && new Vector2(Screen.width, Screen.height) != fittedScreen)
+                FitToScreen();
+        }
+
         private void Open()
         {
             MenuUI.PlayClick();
@@ -280,8 +287,11 @@ namespace Watermelon
                 Destroy(text.gameObject);
         }
 
+        private Vector2 fittedScreen;
+
         private void FitToScreen()
         {
+            fittedScreen = new Vector2(Screen.width, Screen.height);
             Canvas.ForceUpdateCanvases();
             float height = ((RectTransform)transform).rect.height;
             if (height <= 1f)
