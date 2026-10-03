@@ -219,7 +219,8 @@ namespace Watermelon.BusStop
                 descriptionText.text = country.Description;
 
             if (guideText != null)
-                guideText.text = "Complete all 3 missions\nto master " + countryName + "’s flavors!";
+                guideText.text = "Complete all 3 missions\nto master " + countryName +
+                                 (countryName.EndsWith("s") ? "’" : "’s") + " flavors!";
 
             if (progressTitleText != null)
                 progressTitleText.text = "COUNTRY PROGRESS";
