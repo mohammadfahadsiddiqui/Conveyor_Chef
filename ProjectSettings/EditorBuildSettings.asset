@@ -42,6 +42,69 @@ EditorBuildSettings:
     path: Assets/Project Data/Game/Scenes/LevelSelection_Cuba.unity
     guid: 67c837af2654486db8f6da2cbd0e6135
   - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Jamaica.unity
+    guid: 32335560b2dc42b9b00110433766f4d8
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Brazil.unity
+    guid: 927baaced93a4a889e80db84b81598dc
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Argentina.unity
+    guid: 99e7ad260d4d45769bc4f675a09b0df0
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Peru.unity
+    guid: f93cc11f02814ca3b09549312da5884b
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Colombia.unity
+    guid: ce00d7b3198540b6a52a5a9c4c547913
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Chile.unity
+    guid: ec60808d23584cd3baed3bf37a284d74
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Italy.unity
+    guid: f462af8930f34b2c9a7b295d43c581dc
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_France.unity
+    guid: e4624d8e3baf4baf8008ac260f3ec285
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Spain.unity
+    guid: c15e91e56e06451192bb6323b27dce67
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Greece.unity
+    guid: da01fd662b8f468e83293de51b3049a2
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Germany.unity
+    guid: ee44a5f3c24840bdbb31c01ccea232ad
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Morocco.unity
+    guid: 51341c532ea84d8db9ca9a8243bf24c2
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Egypt.unity
+    guid: 0be6bf1e55204e3da8461c7c83708255
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Nigeria.unity
+    guid: c8732947abf74fb98354a6574538eb43
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Ethiopia.unity
+    guid: eaecaf6683684414ac08db99a589a4ef
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_SouthAfrica.unity
+    guid: 14aa63a035a440a789646303bcb7cd30
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Australia.unity
+    guid: 7327d69801b4442fa942d7e922f4cc5d
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_NewZealand.unity
+    guid: 1950497559254cd0a4af22309e1fc22a
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Fiji.unity
+    guid: 633e937af4454692acc7d88af4c88368
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Samoa.unity
+    guid: 47d0d43c81014c1c802402fade6b7eac
+  - enabled: 1
+    path: Assets/Project Data/Game/Scenes/LevelSelection_Tonga.unity
+    guid: cdfc5168c1664671a7d3194578956d88
+  - enabled: 1
     path: Assets/Project Data/Game/Scenes/WorldMap.unity
     guid: 8f4b7a44c9a84c81b6f17bb0f40c9d21
   - enabled: 1
