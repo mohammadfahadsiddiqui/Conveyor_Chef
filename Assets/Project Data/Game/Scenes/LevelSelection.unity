@@ -3252,6 +3252,7 @@ GameObject:
   - component: {fileID: 614058802}
   - component: {fileID: 614058804}
   - component: {fileID: 614058803}
+  - component: {fileID: 1165505319107289917}
   m_Layer: 0
   m_Name: Background Artwork
   m_TagString: Untagged
@@ -3298,7 +3299,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 96530238fea3793428cbe1176774ead7, type: 3}
+  m_Sprite: {fileID: 0}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -5853,7 +5854,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.011111111, y: 0.93854165}
   m_AnchorMax: {x: 0.20555556, y: 0.990625}
-  m_AnchoredPosition: {x: 37, y: -50}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1196371836
@@ -7806,7 +7807,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -12099,8 +12100,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 27.371, y: -59}
+  m_SizeDelta: {x: 580.2886, y: 575.8472}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &20687673267797634
 GameObject:
@@ -12438,7 +12439,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/asia/japan/levelselect_hero
+  resourcePath: World/asia/japan/levelselect_background
 --- !u!1 &30498180975180833
 GameObject:
   m_ObjectHideFlags: 0
@@ -13489,7 +13490,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -15814,7 +15815,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/south_america/colombia/levelselect_hero
+  resourcePath: World/south_america/colombia/levelselect_background
 --- !u!222 &99738126000771313
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -19249,8 +19250,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 27, y: -97}
+  m_SizeDelta: {x: 549.5034, y: 542.4965}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &162126813780553945
 GameObject:
@@ -23338,7 +23339,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &250129513150246931
 RectTransform:
   m_ObjectHideFlags: 0
@@ -26084,7 +26085,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/north_america/cuba/levelselect_hero
+  resourcePath: World/north_america/cuba/levelselect_background
 --- !u!222 &301679041800358454
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -31530,7 +31531,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -33261,7 +33262,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/north_america/mexico/levelselect_hero
+  resourcePath: World/north_america/mexico/levelselect_background
 --- !u!114 &445817224665099933
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -36470,7 +36471,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -39854,8 +39855,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 35.433735, y: -83.22373}
+  m_SizeDelta: {x: 564.1625, y: 521.0032}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &573229040945747864
 CanvasRenderer:
@@ -40579,8 +40580,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 28, y: -29.485}
+  m_SizeDelta: {x: 553.7712, y: 444.7412}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &585862997027678067
 CanvasRenderer:
@@ -40823,7 +40824,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -46863,7 +46864,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/europe/italy/levelselect_hero
+  resourcePath: World/europe/italy/levelselect_background
 --- !u!224 &709386000706903966
 RectTransform:
   m_ObjectHideFlags: 0
@@ -49562,7 +49563,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -55332,7 +55333,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -63409,7 +63410,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/asia/thailand/levelselect_hero
+  resourcePath: World/asia/thailand/levelselect_background
 --- !u!114 &1014878990806512753
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -63805,7 +63806,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/south_america/chile/levelselect_hero
+  resourcePath: World/south_america/chile/levelselect_background
 --- !u!114 &1023744286943374418
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -65992,7 +65993,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -67050,7 +67051,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -70893,7 +70894,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/oceania/fiji/levelselect_hero
+  resourcePath: World/oceania/fiji/levelselect_background
 --- !u!224 &1166261012886377136
 RectTransform:
   m_ObjectHideFlags: 0
@@ -72782,7 +72783,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -73774,7 +73775,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/europe/spain/levelselect_hero
+  resourcePath: World/europe/spain/levelselect_background
 --- !u!1 &1221830314883412996
 GameObject:
   m_ObjectHideFlags: 0
@@ -73967,8 +73968,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.42, y: -46.295}
+  m_SizeDelta: {x: 560.19, y: 478.3607}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1224602659259715829
 GameObject:
@@ -76540,8 +76541,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.97187, y: -67.616}
+  m_SizeDelta: {x: 559.0855, y: 521.0031}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1280757367322731710
 CanvasRenderer:
@@ -78571,7 +78572,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -85167,8 +85168,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.421, y: -27.5073}
+  m_SizeDelta: {x: 560.19, y: 491.6869}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1426245954696486016
 GameObject:
@@ -87466,8 +87467,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.421, y: -99.61186}
+  m_SizeDelta: {x: 560.19, y: 546.5557}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1474589169443444829
 GameObject:
@@ -89047,7 +89048,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -92038,7 +92039,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/oceania/tonga/levelselect_hero
+  resourcePath: World/oceania/tonga/levelselect_background
 --- !u!224 &1544031016618726066
 RectTransform:
   m_ObjectHideFlags: 0
@@ -92646,7 +92647,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/south_america/argentina/levelselect_hero
+  resourcePath: World/south_america/argentina/levelselect_background
 --- !u!114 &1555038779462464364
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -95372,7 +95373,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/africa/egypt/levelselect_hero
+  resourcePath: World/africa/egypt/levelselect_background
 --- !u!1 &1598288285815925786
 GameObject:
   m_ObjectHideFlags: 0
@@ -96152,8 +96153,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.421, y: -37.5194}
+  m_SizeDelta: {x: 560.19, y: 511.7113}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!224 &1610654329121583818
 RectTransform:
@@ -102996,8 +102997,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 36.189972, y: -38.327827}
+  m_SizeDelta: {x: 562.65, y: 462.4276}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1728434711674530518
 GameObject:
@@ -103340,7 +103341,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/europe/france/levelselect_hero
+  resourcePath: World/europe/france/levelselect_background
 --- !u!224 &1738471637193075653
 RectTransform:
   m_ObjectHideFlags: 0
@@ -110092,8 +110093,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.421, y: 21.7159}
+  m_SizeDelta: {x: 560.19, y: 393.2406}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1876395765514312308
 CanvasRenderer:
@@ -120805,8 +120806,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 38.18144, y: -98.09006}
+  m_SizeDelta: {x: 558.6672, y: 517.8091}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &2094029921387989967
 GameObject:
@@ -123362,7 +123363,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &2149868845541481956
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -129489,8 +129490,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 30.7963, y: -10.5824}
+  m_SizeDelta: {x: 546.938, y: 457.8373}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2247832920104437955
 CanvasRenderer:
@@ -130232,8 +130233,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.421, y: -56.5386}
+  m_SizeDelta: {x: 560.19, y: 549.7498}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!224 &2269111319901601881
 RectTransform:
@@ -130288,7 +130289,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/africa/nigeria/levelselect_hero
+  resourcePath: World/africa/nigeria/levelselect_background
 --- !u!114 &2269555696942852596
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -130997,8 +130998,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 32.079002, y: -21.105515}
+  m_SizeDelta: {x: 549.5034, y: 478.8834}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2286591240257454736
 CanvasRenderer:
@@ -134820,8 +134821,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 50.6494, y: 15.9321}
+  m_SizeDelta: {x: 585.5096, y: 827.2592}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &2349283502511712317
 GameObject:
@@ -135679,7 +135680,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -139719,8 +139720,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.42, y: -92}
+  m_SizeDelta: {x: 560.19, y: 511.421}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2432200916137018829
 CanvasRenderer:
@@ -141355,7 +141356,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/oceania/samoa/levelselect_hero
+  resourcePath: World/oceania/samoa/levelselect_background
 --- !u!224 &2456806541095569324
 RectTransform:
   m_ObjectHideFlags: 0
@@ -143519,7 +143520,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/asia/china/levelselect_hero
+  resourcePath: World/asia/china/levelselect_background
 --- !u!1 &2490329036184683489
 GameObject:
   m_ObjectHideFlags: 0
@@ -145821,7 +145822,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -146328,7 +146329,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -147340,7 +147341,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -148763,8 +148764,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.458, y: -85}
+  m_SizeDelta: {x: 560.11, y: 616.8939}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!224 &2579661823552852905
 RectTransform:
@@ -148782,7 +148783,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 29, y: 368}
+  m_AnchoredPosition: {x: 29, y: 366}
   m_SizeDelta: {x: 220, y: 42}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &2579720763078312750
@@ -152720,7 +152721,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/south_america/brazil/levelselect_hero
+  resourcePath: World/south_america/brazil/levelselect_background
 --- !u!114 &2658731127115872949
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -153942,8 +153943,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.421, y: -34.954}
+  m_SizeDelta: {x: 560.19, y: 506.5804}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!224 &2674264090774421929
 RectTransform:
@@ -154812,7 +154813,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -160651,8 +160652,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.42, y: -54.622}
+  m_SizeDelta: {x: 560.19, y: 495.0146}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!224 &2800546048429419257
 RectTransform:
@@ -163076,7 +163077,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/oceania/australia/levelselect_hero
+  resourcePath: World/oceania/australia/levelselect_background
 --- !u!222 &2851091213062622519
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -164867,7 +164868,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/europe/greece/levelselect_hero
+  resourcePath: World/europe/greece/levelselect_background
 --- !u!114 &2887982681364310529
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -167104,7 +167105,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -173339,8 +173340,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 33.118, y: 26.479}
+  m_SizeDelta: {x: 568.79, y: 438.73}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!224 &3050230371409590028
 RectTransform:
@@ -174276,7 +174277,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/africa/ethiopia/levelselect_hero
+  resourcePath: World/africa/ethiopia/levelselect_background
 --- !u!224 &3065862242395934559
 RectTransform:
   m_ObjectHideFlags: 0
@@ -177746,8 +177747,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.42, y: -34.75}
+  m_SizeDelta: {x: 560.19, y: 455.2719}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &3139267733993293497
 MonoBehaviour:
@@ -183250,8 +183251,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 39.520226, y: -53.9957}
+  m_SizeDelta: {x: 555.9855, y: 468.214}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &3249184788099694088
 MonoBehaviour:
@@ -183278,7 +183279,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/africa/morocco/levelselect_hero
+  resourcePath: World/africa/morocco/levelselect_background
 --- !u!224 &3250245237383898881
 RectTransform:
   m_ObjectHideFlags: 0
@@ -186609,7 +186610,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -191331,7 +191332,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/north_america/canada/levelselect_hero
+  resourcePath: World/north_america/canada/levelselect_background
 --- !u!114 &3414033554500666676
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -191677,7 +191678,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -193386,7 +193387,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
+  m_AnchoredPosition: {x: 42.763, y: -187.39}
   m_SizeDelta: {x: 549.5034, y: 760.558}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &3454494441400705473
@@ -196345,7 +196346,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -196534,8 +196535,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.42, y: -66}
+  m_SizeDelta: {x: 560.19, y: 496.3187}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &3523495651733047616
 GameObject:
@@ -199042,7 +199043,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/south_america/peru/levelselect_hero
+  resourcePath: World/south_america/peru/levelselect_background
 --- !u!114 &3567597248827667858
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204025,7 +204026,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -207480,8 +207481,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 97
-  m_fontSizeBase: 97
+  m_fontSize: 90
+  m_fontSizeBase: 90
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -208395,7 +208396,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/asia/south_korea/levelselect_hero
+  resourcePath: World/asia/south_korea/levelselect_background
 --- !u!114 &3750260158329432862
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -213660,7 +213661,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/north_america/jamaica/levelselect_hero
+  resourcePath: World/north_america/jamaica/levelselect_background
 --- !u!224 &3848867189121547616
 RectTransform:
   m_ObjectHideFlags: 0
@@ -216689,7 +216690,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/north_america/usa/levelselect_hero
+  resourcePath: World/north_america/usa/levelselect_background
 --- !u!1 &3898822885787679184
 GameObject:
   m_ObjectHideFlags: 0
@@ -221986,7 +221987,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/oceania/new_zealand/levelselect_hero
+  resourcePath: World/oceania/new_zealand/levelselect_background
 --- !u!114 &4011033046086949236
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -222924,7 +222925,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -230488,7 +230489,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0.00012207031, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &4183752431064712025
@@ -233289,7 +233290,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/europe/germany/levelselect_hero
+  resourcePath: World/europe/germany/levelselect_background
 --- !u!1 &4232837653817216945
 GameObject:
   m_ObjectHideFlags: 0
@@ -234043,8 +234044,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.421, y: -72.509}
+  m_SizeDelta: {x: 560.19, y: 581.6904}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &4240301430000937213
 CanvasRenderer:
@@ -236678,7 +236679,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -238335,7 +238336,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -238435,8 +238436,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 32.079, y: -43.9331}
+  m_SizeDelta: {x: 549.5034, y: 524.5385}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &4318051120495129576
 GameObject:
@@ -240644,8 +240645,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 32.07902, y: -161.94276}
-  m_SizeDelta: {x: 549.5034, y: 760.558}
+  m_AnchoredPosition: {x: 37.421, y: -13.1781}
+  m_SizeDelta: {x: 560.19, y: 463.0286}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &4364143038033658388
 MonoBehaviour:
@@ -241422,7 +241423,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  resourcePath: World/africa/south_africa/levelselect_hero
+  resourcePath: World/africa/south_africa/levelselect_background
 --- !u!222 &4379080792654763487
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -241486,7 +241487,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -242334,7 +242335,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -250185,7 +250186,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -250647,7 +250648,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -251875,7 +251876,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 27.95
+  m_fontSize: 27.4
   m_fontSizeBase: 30
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -252584,3 +252585,16 @@ SceneRoots:
   - {fileID: 1925670511}
   - {fileID: 2122547303}
   - {fileID: 1126140499}
+--- !u!114 &1165505319107289917
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 614058801}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d13307cd1dc54dd39e42e434bb3b1d3e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  resourcePath: World/asia/india/levelselect_background
