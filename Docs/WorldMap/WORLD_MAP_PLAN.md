@@ -6,7 +6,8 @@ The World Map becomes a **real world map** the player scrolls in every direction
 where it really is (North and South America on the left, Europe and Africa in the middle, Asia on
 the right, Oceania bottom-right), roughly in real proportion (Asia biggest, Europe smallest), with
 sea between them. A dotted sea route joins them in chapter order (Asia → North America over the
-north → South America → Europe → Africa → Oceania). See `layout_mockup.png`; it uses the current
+north → South America → Europe → Africa → Oceania). **Antarctica** runs along the bottom as
+scenery (no chapter, pin or levels), so the map shows all seven continents. See `layout_mockup.png`; it uses the current
 continent pictures as stand-ins.
 
 A single generated picture would be blurry: the map is about 3600 × 2400 units, while ChatGPT
@@ -54,6 +55,16 @@ the same chat so they stay consistent.
 | `continent_africa.png` | Africa: the pyramids and the Nile, Sahara dunes, savanna with acacias and giraffes, Table Mountain, rainforest, Moroccan minaret |
 | `continent_oceania.png` | Australia with the red outback, Uluru and the Sydney Opera House, New Zealand's green mountains, the Great Barrier Reef, small Pacific islands with palms |
 
+**Antarctica (scenery, not a chapter)** – `continent_antarctica.png`, **1536 × 1024 landscape**,
+transparent, same style and camera:
+> Bright, glossy, hand-painted mobile game art matching the attached references (Conveyor Chef
+> world map). Antarctica as a long icy coastline seen from above with a slight tilt, sunlight from
+> the top-left, stretching across the image: snowy plains and glaciers, blue-white ice cliffs,
+> floating icebergs, groups of cute penguins, a seal on an ice floe, and a small colourful research
+> station. A ring of pale turquoise shallow water along the north coast that fades smoothly to fully
+> transparent. Transparent background. No text, no labels, no pins, no open ocean, no dark outline.
+> Same style, camera and lighting as the other continents in this set.
+
 **Shape:** each continent's real outline, north at the top, so the six fit together as a real
 world map (Africa looks like Africa). Their size on the map is set in Unity, so all six can fill
 their square the same way.
@@ -90,6 +101,7 @@ worldmap/continent_south_america.png
 worldmap/continent_europe.png
 worldmap/continent_africa.png
 worldmap/continent_oceania.png
+worldmap/continent_antarctica.png
 worldmap/ocean_tile.png
 worldmap/props/prop_sailboat.png   (optional, and the other props)
 ```
@@ -99,7 +111,7 @@ ocean tile tested by placing two copies side by side (no visible seam), no text 
 
 ## What I do when the images arrive
 
-1. Rebuild the scrolling map in WorldMap.unity: about 3600 × 2400 units, the ocean tile repeated
+1. Rebuild the scrolling map in WorldMap.unity: about 3600 × 2800 units (Antarctica along the bottom), the ocean tile repeated
    underneath, the six continents at their real places and proportions, the dotted sea route in
    chapter order with the props along it and clouds at the edges.
 2. Move each continent's pin, lock, glow and tap area with it; the chapter bar, arrows and
