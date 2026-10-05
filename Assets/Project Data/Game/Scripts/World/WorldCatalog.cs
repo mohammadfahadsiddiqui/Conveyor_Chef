@@ -3,16 +3,16 @@ using UnityEngine;
 namespace Watermelon
 {
     /// <summary>
-    /// The whole culinary world: 6 continents x 5 countries x 3 levels.
+    /// The whole culinary world: 7 continents x 5 countries (Antarctica: 5 regions) x 3 levels.
     ///
     /// Countries have a global index (continent * 5 + position), and country c owns levels
     /// c*3 .. c*3+2, so Asia keeps levels 1-15 exactly as before, North America is 16-30,
-    /// and so on up to 90. Continent order matches the World Map chapters.
+    /// and so on up to 105. Continent order matches the World Map chapters.
     /// Art for each continent and country is looked up by name through <see cref="WorldArt"/>.
     /// </summary>
     public static class WorldCatalog
     {
-        public const int ContinentCount = 6;
+        public const int ContinentCount = 7;
         public const int CountriesPerContinent = 5;
         public const int LevelsPerCountry = 3;
         public const int CountryCount = ContinentCount * CountriesPerContinent;
@@ -73,6 +73,7 @@ namespace Watermelon
             new Continent(3, "europe", "Europe", "Bistros, trattorias and bakeries\nfrom every corner of Europe!"),
             new Continent(4, "africa", "Africa", "Spice markets and family feasts\nacross the African continent!"),
             new Continent(5, "oceania", "Oceania", "Island feasts and seaside kitchens\nacross Oceania!"),
+            new Continent(6, "antarctica", "Antarctica", "Icy kitchens and warm meals\nat the bottom of the world!"),
         };
 
         public static readonly Country[] Countries =
@@ -234,10 +235,37 @@ namespace Watermelon
                 new[] { "Apia Market", "To Sua Trench", "Umu Sunday Feast" },
                 new[] { "Sapasui", "Palusami", "Pani Popo", "Blue Oka", "Fa'ausi", "Coconut Lime Drink", "Koko Samoa" }),
             new Country(29, "tonga", "Tonga",
-                "Finish your world tour with Tonga's island feasts and royal celebrations.",
+                "Sail to Tonga for island feasts, reef fishing and royal celebrations.",
                 "Royal feasts: lu pulu, ota ika, faikakai and watermelon juice.",
                 new[] { "Nuku'alofa Market", "Ha'apai Islands", "Royal Feast" },
                 new[] { "Lu Pulu", "Ota Ika", "Watermelon Juice", "Blue Coconut Pudding", "Faikakai Topai", "Keke Lime Drink", "Ube Pudding" }),
+
+            // ---------------- Antarctica (levels 91-105): regions instead of countries ----------------
+            new Country(30, "peninsula", "Peninsula",
+                "Start your polar adventure where icebergs drift past penguin-filled bays.",
+                "Penguin bays and icy channels: hot soups, fresh fish and warm cocoa for chilly explorers.",
+                new[] { "Paradise Harbour", "Lemaire Channel", "Penguin Point" },
+                new[] { "Hot Tomato Soup", "Pea Soup", "Pink Salmon Bites", "Blueberry Porridge", "Golden Pancakes", "Mint Hot Cocoa", "Plum Crumble" }),
+            new Country(31, "weddell_sea", "Weddell Sea",
+                "Sail through the sea ice to cook for scientists and emperor penguin watchers.",
+                "Sea-ice camps by emperor penguin colonies: fish stew, herb dumplings and berry muffins.",
+                new[] { "Emperor Colony", "Sea Ice Camp", "Iceberg Alley" },
+                new[] { "Fish Stew", "Herb Dumplings", "Strawberry Jam Roll", "Icy Blue Jelly", "Corn Chowder", "Seaweed Crackers", "Berry Muffin" }),
+            new Country(32, "ross_shelf", "Ross Shelf",
+                "Serve warm meals on the edge of the biggest ice shelf in the world.",
+                "Glacier kitchens on the great ice shelf: grilled sausages, stews and sweet pies.",
+                new[] { "Ice Shelf Snack Bar", "Glacier Grill", "Whale Bay" },
+                new[] { "Grilled Sausage", "Green Bean Stew", "Pink Cupcake", "Blue Ice Pop", "Cheese Toastie", "Mint Tea", "Grape Pie" }),
+            new Country(33, "mcmurdo", "McMurdo",
+                "Run the busiest kitchen in Antarctica beneath a smoking volcano.",
+                "The busiest station kitchen beneath Mount Erebus: pizza night, burgers and hot drinks.",
+                new[] { "Station Mess Hall", "Volcano View Cafe", "Supply Ship Dock" },
+                new[] { "Station Pizza", "Veggie Burger", "Raspberry Waffles", "Blueberry Pie", "Fried Chicken", "Mint Milkshake", "Purple Potato Mash" }),
+            new Country(34, "south_pole", "South Pole",
+                "Reach the bottom of the world and cook the final feast of your world tour.",
+                "The final feast at the South Pole: roast dinner, hot chocolate and an ice-cream celebration.",
+                new[] { "Amundsen Base", "Polar Night Diner", "Pole Marker Feast" },
+                new[] { "Roast Dinner", "Spinach Pie", "Cherry Ice Cream", "Blue Velvet Cake", "Banana Bread", "Hot Chocolate", "Grape Smoothie" }),
         };
 
         public static bool IsValidCountry(int country) => country >= 0 && country < CountryCount;

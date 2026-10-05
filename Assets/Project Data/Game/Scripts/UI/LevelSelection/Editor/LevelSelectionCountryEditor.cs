@@ -90,7 +90,11 @@ namespace Watermelon
                 if (image == null || image.sprite == null)
                     continue;
 
-                if (image.sprite != lazy.Preview)
+                // Its own picture or the stand-in it falls back to: just leave it out of the file.
+                bool own = image.sprite == lazy.Preview ||
+                           image.sprite == Resources.Load<Sprite>(lazy.ResourcePath) ||
+                           (!string.IsNullOrEmpty(lazy.FallbackPath) && image.sprite == Resources.Load<Sprite>(lazy.FallbackPath));
+                if (!own)
                 {
                     // Picture swapped by hand: keep it.
                     string assetPath = AssetDatabase.GetAssetPath(image.sprite);

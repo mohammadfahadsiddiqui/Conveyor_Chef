@@ -18,7 +18,11 @@ namespace Watermelon
         [Tooltip("Resources path of the sprite, without extension, e.g. World/asia/china/level_1.")]
         [SerializeField] private string resourcePath = "";
 
+        [Tooltip("Used while the picture at Resource Path does not exist yet (art still to come).")]
+        [SerializeField] private string fallbackPath = "";
+
         public string ResourcePath => resourcePath;
+        public string FallbackPath => fallbackPath;
 
         /// <summary>Sprite shown as an editor preview (not saved).</summary>
         public Sprite Preview { get; private set; }
@@ -38,6 +42,8 @@ namespace Watermelon
                 return;
 
             Sprite sprite = Resources.Load<Sprite>(resourcePath);
+            if (sprite == null && !string.IsNullOrEmpty(fallbackPath))
+                sprite = Resources.Load<Sprite>(fallbackPath);
             if (sprite == null)
             {
                 Debug.LogWarning("[LevelSelection] Sprite not found in Resources: " + resourcePath, this);

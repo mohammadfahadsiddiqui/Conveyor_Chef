@@ -30,7 +30,8 @@ namespace Watermelon.BusStop
             "South America",
             "Europe",
             "Africa",
-            "Australia / Oceania"
+            "Australia / Oceania",
+            "Antarctica"
         };
 
         // Converts the old progression order

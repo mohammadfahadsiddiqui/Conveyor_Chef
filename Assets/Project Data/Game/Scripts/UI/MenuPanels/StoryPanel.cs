@@ -17,7 +17,7 @@ namespace Watermelon
         private const string FromCountryMapKey = "CC_LevelSelection_FromCountryMap";
 
         // WorldCatalog continent order.
-        private static readonly string[] ContinentTabs = { "ASIA", "N.AMER", "S.AMER", "EUROPE", "AFRICA", "OCEANIA" };
+        private static readonly string[] ContinentTabs = { "ASIA", "N.AMER", "S.AMER", "EUROPE", "AFRICA", "OCEANIA", "POLAR" };
 
         protected override string Title => "STORY";
         protected override string[] Tabs => ContinentTabs;
