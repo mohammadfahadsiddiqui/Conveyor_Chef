@@ -7,7 +7,7 @@ where it really is (North and South America on the left, Europe and Africa in th
 the right, Oceania bottom-right), roughly in real proportion (Asia biggest, Europe smallest), with
 sea between them. A dotted sea route joins them in chapter order (Asia → North America over the
 north → South America → Europe → Africa → Oceania). **Antarctica** runs along the bottom as
-scenery (no chapter, pin or levels), so the map shows all seven continents. See `layout_mockup.png`; it uses the current
+**chapter 7** (Oceania → Antarctica on the route), so the map shows all seven continents. See `layout_mockup.png`; it uses the current
 continent pictures as stand-ins.
 
 A single generated picture would be blurry: the map is about 3600 × 2400 units, while ChatGPT
@@ -55,7 +55,7 @@ the same chat so they stay consistent.
 | `continent_africa.png` | Africa: the pyramids and the Nile, Sahara dunes, savanna with acacias and giraffes, Table Mountain, rainforest, Moroccan minaret |
 | `continent_oceania.png` | Australia with the red outback, Uluru and the Sydney Opera House, New Zealand's green mountains, the Great Barrier Reef, small Pacific islands with palms |
 
-**Antarctica (scenery, not a chapter)** – `continent_antarctica.png`, **1536 × 1024 landscape**,
+**Antarctica (chapter 7)** – `continent_antarctica.png`, **1536 × 1024 landscape**,
 transparent, same style and camera:
 > Bright, glossy, hand-painted mobile game art matching the attached references (Conveyor Chef
 > world map). Antarctica as a long icy coastline seen from above with a slight tilt, sunlight from
