@@ -1,13 +1,15 @@
-# World Map – one painted journey map (option B)
+# World Map – one painted real world map (option B)
 
 ## The plan
 
-The World Map becomes a tall journey that the player scrolls **up**: chapter 1 (Asia) at the
-bottom, chapter 6 (Oceania) at the top, continents zig-zagging left/right with clear sea between
-them and a dotted sea route joining them in chapter order (see `layout_mockup.png`; it uses the
-current continent pictures as stand-ins).
+The World Map becomes a **real world map** the player scrolls in every direction: each continent
+where it really is (North and South America on the left, Europe and Africa in the middle, Asia on
+the right, Oceania bottom-right), roughly in real proportion (Asia biggest, Europe smallest), with
+sea between them. A dotted sea route joins them in chapter order (Asia → North America over the
+north → South America → Europe → Africa → Oceania). See `layout_mockup.png`; it uses the current
+continent pictures as stand-ins.
 
-A single generated picture would be blurry: the map is about 1800 × 6600 units, while ChatGPT
+A single generated picture would be blurry: the map is about 3600 × 2400 units, while ChatGPT
 images are at most ~1700 px. So the map is built from pieces painted to match:
 
 | Piece | Who | How it stays sharp |
@@ -52,7 +54,9 @@ the same chat so they stay consistent.
 | `continent_africa.png` | Africa: the pyramids and the Nile, Sahara dunes, savanna with acacias and giraffes, Table Mountain, rainforest, Moroccan minaret |
 | `continent_oceania.png` | Australia with the red outback, Uluru and the Sydney Opera House, New Zealand's green mountains, the Great Barrier Reef, small Pacific islands with palms |
 
-**Shape:** keep each continent's real outline roughly recognisable (Africa looks like Africa).
+**Shape:** each continent's real outline, north at the top, so the six fit together as a real
+world map (Africa looks like Africa). Their size on the map is set in Unity, so all six can fill
+their square the same way.
 
 ### 2. Ocean tile – `ocean_tile.png`
 
@@ -95,10 +99,10 @@ ocean tile tested by placing two copies side by side (no visible seam), no text 
 
 ## What I do when the images arrive
 
-1. Rebuild the scrolling map in WorldMap.unity: about 1800 × 6600 units, the ocean tile repeated
-   underneath, the six continents in the journey layout, the dotted route in chapter order with
-   the props along it and clouds at the edges.
+1. Rebuild the scrolling map in WorldMap.unity: about 3600 × 2400 units, the ocean tile repeated
+   underneath, the six continents at their real places and proportions, the dotted sea route in
+   chapter order with the props along it and clouds at the edges.
 2. Move each continent's pin, lock, glow and tap area with it; the chapter bar, arrows and
    "focus on the selected continent" keep working as they do now.
-3. Open the map on the player's current chapter, scrolling mainly up and down.
+3. Open the map centred on the player's current chapter; free scrolling in every direction.
 4. Everything stays normal scene objects you can move and edit in the Hierarchy.
