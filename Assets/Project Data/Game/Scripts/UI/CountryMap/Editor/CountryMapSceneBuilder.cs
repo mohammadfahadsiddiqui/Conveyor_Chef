@@ -281,7 +281,7 @@ namespace Watermelon.EditorTools
             Scene active = SceneManager.GetActiveScene();
             if (active.IsValid() && active.path == ScenePath)
             {
-                GameObject root = GameObject.Find("NEW Country Map");
+                GameObject root = FindRoot();
                 hierarchy = root != null ? "OK - EDITABLE SERIALIZED UI" : "PLACEHOLDER";
                 if (root != null)
                 {
@@ -411,7 +411,7 @@ namespace Watermelon.EditorTools
                 scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
             RectTransform panel =
-                GameObject.Find("NEW Country Map")?.transform.Find("Continent Progress Panel") as RectTransform;
+                FindRoot()?.transform.Find("Continent Progress Panel") as RectTransform;
 
             if (panel != null)
             {
@@ -426,14 +426,14 @@ namespace Watermelon.EditorTools
 
                 if (controller == null)
                 {
-                    GameObject rootObject = GameObject.Find("NEW Country Map");
+                    GameObject rootObject = FindRoot();
                     controller = rootObject != null
                         ? rootObject.GetComponentInChildren<CountryMapSceneController>(true)
                         : null;
                 }
 
                 TextMeshProUGUI status =
-                    GameObject.Find("NEW Country Map")?.transform.Find("Status Text")
+                    FindRoot()?.transform.Find("Status Text")
                         ?.GetComponent<TextMeshProUGUI>();
 
                 if (controller != null)
@@ -486,7 +486,7 @@ namespace Watermelon.EditorTools
             UpgradeEditableProgressWidget(scene, true);
             Focus(scene);
 
-            GameObject root = GameObject.Find("NEW Country Map");
+            GameObject root = FindRoot();
             RectTransform panel =
                 root != null ? root.transform.Find("Continent Progress Panel") as RectTransform : null;
 
@@ -884,7 +884,7 @@ namespace Watermelon.EditorTools
                 return false;
             }
 
-            GameObject root = GameObject.Find("NEW Country Map");
+            GameObject root = FindRoot();
             if (root == null)
                 return false;
 
@@ -1037,7 +1037,7 @@ namespace Watermelon.EditorTools
             if (!scene.IsValid() || scene.path != ScenePath)
                 return false;
 
-            GameObject root = GameObject.Find("NEW Country Map");
+            GameObject root = FindRoot();
             if (root == null)
                 return false;
 
@@ -1429,12 +1429,34 @@ namespace Watermelon.EditorTools
             EditorBuildSettings.scenes = scenes.ToArray();
         }
 
+        /// <summary>
+        /// The editable root: "NEW Country Map", or Asia's Country Map when the scene holds one
+        /// per continent (those can be switched off while another continent is shown).
+        /// </summary>
+        private static GameObject FindRoot()
+        {
+            GameObject named = GameObject.Find("NEW Country Map");
+            if (named != null)
+                return named;
+
+            Watermelon.CountryMapContinent first = null;
+            foreach (Watermelon.CountryMapContinent continent in UnityEngine.Object.FindObjectsByType<Watermelon.CountryMapContinent>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (string.Equals(continent.ContinentId, "asia", StringComparison.OrdinalIgnoreCase))
+                    return continent.gameObject;
+                if (first == null)
+                    first = continent;
+            }
+
+            return first != null ? first.gameObject : null;
+        }
+
         private static void Focus(Scene scene)
         {
             if (!scene.IsValid() || scene.path != ScenePath)
                 return;
 
-            GameObject root = GameObject.Find("NEW Country Map");
+            GameObject root = FindRoot();
             if (root == null)
                 return;
 

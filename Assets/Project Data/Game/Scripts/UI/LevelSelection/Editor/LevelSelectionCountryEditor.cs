@@ -8,7 +8,7 @@ using UnityEngine.UI;
 namespace Watermelon
 {
     /// <summary>
-    /// Editing the countries of LevelSelection.unity:
+    /// Editing the countries of LevelSelection.unity (and the continents of CountryMap.unity):
     /// - selecting a country (or anything inside it) in the Hierarchy shows that country on the
     ///   Canvas and hides the others;
     /// - country pictures (LevelSelectionLazySprite) are shown as a preview but not saved in the
@@ -46,17 +46,23 @@ namespace Watermelon
             if (selected == null || !selected.scene.IsValid())
                 return;
 
-            LevelSelectionCountry country = selected.GetComponentInParent<LevelSelectionCountry>(true);
-            if (country == null)
+            // Level Selection countries and Country Map continents work the same way.
+            Show(selected.GetComponentInParent<LevelSelectionCountry>(true));
+            Show(selected.GetComponentInParent<CountryMapContinent>(true));
+        }
+
+        private static void Show<T>(T variant) where T : Component
+        {
+            if (variant == null)
                 return;
 
             bool changed = false;
-            foreach (LevelSelectionCountry other in Object.FindObjectsByType<LevelSelectionCountry>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (T other in Object.FindObjectsByType<T>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
-                if (other.gameObject.scene != country.gameObject.scene)
+                if (other.gameObject.scene != variant.gameObject.scene)
                     continue;
 
-                bool show = other == country;
+                bool show = other == variant;
                 if (other.gameObject.activeSelf != show)
                 {
                     other.gameObject.SetActive(show);
@@ -68,7 +74,7 @@ namespace Watermelon
             {
                 // Its texts are drawn for the first time now: make sure they are drawn sharp.
                 Canvas.ForceUpdateCanvases();
-                SharpText.Rebuild(country.transform);
+                SharpText.Rebuild(variant.transform);
                 SceneView.RepaintAll();
             }
         }

@@ -60,9 +60,23 @@ namespace Watermelon.BusStop
         private int selectedContinent;
         private int selectedCountry;
         private bool currencySubscribed;
+        private int sceneContinent = -1;
+
+        // Inside a continent's Country Map (CountryMapContinent): that continent, with the map,
+        // globe, dioramas and flags exactly as set in the Hierarchy.
+        private bool UsesSceneArt => sceneContinent >= 0;
 
         private void Awake()
         {
+            CountryMapContinent continent = GetComponentInParent<CountryMapContinent>(true);
+            if (continent != null)
+            {
+                if (!CountryMapContinent.Resolve(continent))
+                    return;   // another continent is shown; this copy is being removed
+
+                sceneContinent = CountryMapContinent.IndexOf(continent.ContinentId);
+            }
+
             UIEventSystemRuntime.UseCurrentSceneEventSystem();
             EnsureSaveControllerReady();
             ResolveProgressReferences();
@@ -146,10 +160,9 @@ namespace Watermelon.BusStop
         {
             // The World Map owns the chosen continent; this scene shows any continent,
             // using its countries and art from WorldCatalog / WorldArt.
-            selectedContinent = Mathf.Clamp(
-                PlayerPrefs.GetInt(SelectedContinentKey, AsiaContinentIndex),
-                0,
-                WorldCatalog.ContinentCount - 1);
+            selectedContinent = UsesSceneArt
+                ? sceneContinent
+                : Mathf.Clamp(PlayerPrefs.GetInt(SelectedContinentKey, AsiaContinentIndex), 0, WorldCatalog.ContinentCount - 1);
 
             PlayerPrefs.DeleteKey(LaunchedFromWorldMapKey);
 
@@ -215,10 +228,13 @@ namespace Watermelon.BusStop
                     int country = GlobalCountry(i);
                     node.ApplyCountry(
                         WorldCatalog.GetCountryName(country),
-                        WorldArt.ForCountry(country, WorldArt.MapDiorama),
-                        WorldArt.ForCountry(country, WorldArt.FlagBadge));
+                        UsesSceneArt ? null : WorldArt.ForCountry(country, WorldArt.MapDiorama),
+                        UsesSceneArt ? null : WorldArt.ForCountry(country, WorldArt.FlagBadge));
                 }
             }
+
+            if (UsesSceneArt)
+                return;
 
             SetSceneSprite("Background Artwork", WorldArt.ForContinent(selectedContinent, WorldArt.ContinentMap));
             SetSceneSprite("Globe Icon", WorldArt.ForContinent(selectedContinent, WorldArt.ProgressGlobe));
