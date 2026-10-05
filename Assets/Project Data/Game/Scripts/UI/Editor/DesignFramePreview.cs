@@ -80,9 +80,7 @@ namespace Watermelon
                 return;
 
             PlayModeWindow.GetRenderingResolution(out uint width, out uint height);
-            if (width == 0 || height == 0)
-                return;
-            Vector2 screen = new Vector2(width, height);
+            Vector2 playView = new Vector2(width, height);
 
             bool changed = false;
             for (int i = 0; i < SceneManager.sceneCount; i++)
@@ -103,6 +101,15 @@ namespace Watermelon
                             fitter = new DesignFrameFitter(canvas);
                             fitters[canvas] = fitter;
                         }
+
+                        // The screen this canvas is really laid out for (its size times its scale).
+                        // The play view's resolution can belong to another window (a Game tab
+                        // next to the Simulator) and fit the layout for the wrong screen.
+                        Vector2 screen = ((RectTransform)canvas.transform).rect.size * canvas.scaleFactor;
+                        if (screen.x < 1f || screen.y < 1f)
+                            screen = playView;
+                        if (screen.x < 1f || screen.y < 1f)
+                            continue;
 
                         changed |= fitter.Apply(screen, true);
 
