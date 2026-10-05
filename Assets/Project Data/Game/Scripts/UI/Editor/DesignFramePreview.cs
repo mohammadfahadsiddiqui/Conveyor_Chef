@@ -17,13 +17,15 @@ namespace Watermelon
     /// Play, script reload, build and scene close, so scene files always keep the design-phone
     /// layout. Anchors changed by hand while previewing another device are converted back to
     /// design values. Edit the layout with the Galaxy S20 Ultra selected to see the true values.
-    /// Toggle with Conveyor Chef > Preview Device Fit In Edit Mode.
+    /// Off by default; turn on with Conveyor Chef > Preview Device Fit In Edit Mode.
     /// </summary>
     [InitializeOnLoad]
     public static class DesignFramePreview
     {
         private const string MenuPath = "Conveyor Chef/Preview Device Fit In Edit Mode";
-        private const string EnabledKey = "ConveyorChef.DesignFramePreview.Enabled";
+        // Off by default: while it is on, the anchors in the open scenes are the fitted ones, which
+        // is confusing to edit. Play mode and devices always fit (DesignFrame).
+        private const string EnabledKey = "ConveyorChef.DesignFramePreview.Enabled.v2";
         private const double TickInterval = 0.2;
 
         private static readonly Dictionary<Canvas, DesignFrameFitter> fitters = new Dictionary<Canvas, DesignFrameFitter>();
@@ -33,7 +35,7 @@ namespace Watermelon
 
         private static bool Enabled
         {
-            get => EditorPrefs.GetBool(EnabledKey, true);
+            get => EditorPrefs.GetBool(EnabledKey, false);
             set => EditorPrefs.SetBool(EnabledKey, value);
         }
 
