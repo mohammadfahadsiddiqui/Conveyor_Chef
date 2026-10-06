@@ -224,9 +224,10 @@ namespace Watermelon.EditorTools
                 changed++;
             }
 
-            if (scrollableImage.type != Image.Type.Simple)
+            if (scrollableImage.type != Image.Type.Tiled)
             {
-                scrollableImage.type = Image.Type.Simple;
+                scrollableImage.type = Image.Type.Tiled;
+                scrollableImage.pixelsPerUnitMultiplier = 1.4f;
                 changed++;
             }
 
@@ -341,7 +342,7 @@ namespace Watermelon.EditorTools
         private const string ScenePath = "Assets/Project Data/Game/Scenes/WorldMap.unity";
         private const string AssetFolder = "Assets/Project Data/Game/Images/WorldMap";
         private const string AssetPackFileName = "ConveyorChef_WorldMap_Assets_ForUnity.zip";
-        private const string CommittedScrollableOceanFile = "world_map_ocean_canvas.jpg";
+        private const string CommittedScrollableOceanFile = "ocean_tile.png";   // seamless, tiled under the map
 
         private const float DesignWidth = 1080f;
         private const float DesignHeight = 1920f;
@@ -2437,17 +2438,7 @@ namespace Watermelon.EditorTools
                     changed = true;
                 }
 
-                if (importer.maxTextureSize < 4096)
-                {
-                    importer.maxTextureSize = 4096;
-                    changed = true;
-                }
-
-                if (importer.textureCompression != TextureImporterCompression.Uncompressed)
-                {
-                    importer.textureCompression = TextureImporterCompression.Uncompressed;
-                    changed = true;
-                }
+                // Size and compression are left as set (compressed for the game's memory).
 
                 if (changed)
                     importer.SaveAndReimport();
