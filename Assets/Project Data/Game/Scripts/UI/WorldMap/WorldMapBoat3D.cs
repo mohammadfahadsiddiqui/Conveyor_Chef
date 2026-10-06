@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Globalization;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +8,7 @@ namespace Watermelon
     /// Draws a low-poly 3D boat model inside the World Map UI (the map is a Screen Space Overlay
     /// canvas, where normal 3D renderers can't appear). The model is turned, rolled and lit in 3D
     /// every time its pose changes, with a foam wake on the water and funnel smoke, all in one
-    /// UI draw. Models are OBJ-format text files (Models/WorldMap/Boats); rename one to .obj to
+    /// UI draw. Models are OBJ-format text files (Resources/WorldMapSea); rename one to .obj to
     /// open it in Blender. <see cref="WorldMapAmbientProp"/> drives the pose while playing.
     /// </summary>
     [RequireComponent(typeof(CanvasRenderer))]
@@ -59,17 +58,7 @@ namespace Watermelon
             new Vector2(0f, WakeTop), new Vector2(1f, WakeTop), new Vector2(1f, 0f), new Vector2(0f, 0f),
         };
 
-        private sealed class Model3D
-        {
-            public Vector3[] corners;      // 3 per triangle
-            public Vector3[] normals;      // per triangle
-            public Vector3[] centres;      // per triangle (of the original face)
-            public Color32[] colors;       // per triangle
-            public bool[] twoSided;        // per triangle
-            public Vector3[] smoke;
-        }
-
-        private static readonly Dictionary<TextAsset, Model3D> cache = new Dictionary<TextAsset, Model3D>();
+        private static readonly Dictionary<TextAsset, WorldMapModelText.Model> cache = new Dictionary<TextAsset, WorldMapModelText.Model>();
 
         private float roll, pitch, lift;
         private float[] faceDepth;
@@ -97,7 +86,7 @@ namespace Watermelon
         {
             if (Application.isPlaying && smokePuffs > 0 && effects != null)
             {
-                Model3D m = Get();
+                WorldMapModelText.Model m = Get();
                 if (m != null && m.smoke.Length > 0)
                     SetVerticesDirty();
             }
@@ -106,7 +95,7 @@ namespace Watermelon
         protected override void OnPopulateMesh(VertexHelper vh)
         {
             vh.Clear();
-            Model3D m = Get();
+            WorldMapModelText.Model m = Get();
             if (m == null)
                 return;
 
@@ -269,13 +258,13 @@ namespace Watermelon
             return v * ry * rz * rx;
         }
 
-        private Model3D Get()
+        private WorldMapModelText.Model Get()
         {
             if (model == null)
                 return null;
-            if (!cache.TryGetValue(model, out Model3D m))
+            if (!cache.TryGetValue(model, out WorldMapModelText.Model m))
             {
-                m = Parse(model.text);
+                m = WorldMapModelText.Parse(model.text);
                 cache[model] = m;
             }
             return m;
@@ -289,86 +278,5 @@ namespace Watermelon
             base.OnValidate();
         }
 #endif
-
-        private static Model3D Parse(string text)
-        {
-            var verts = new List<Vector3>();
-            var palette = new Dictionary<string, (Color32 color, bool twoSided)>();
-            var smoke = new List<Vector3>();
-            var corners = new List<Vector3>();
-            var normals = new List<Vector3>();
-            var centres = new List<Vector3>();
-            var colors = new List<Color32>();
-            var twoSided = new List<bool>();
-            var face = new List<Vector3>();
-            (Color32 color, bool twoSided) current = (new Color32(200, 200, 200, 255), false);
-            CultureInfo inv = CultureInfo.InvariantCulture;
-
-            foreach (string raw in text.Split('\n'))
-            {
-                string[] p = raw.Trim().Split((char[])null, System.StringSplitOptions.RemoveEmptyEntries);
-                if (p.Length == 0)
-                    continue;
-
-                switch (p[0])
-                {
-                    case "#color" when p.Length >= 5:
-                        palette[p[1]] = (new Color32(byte.Parse(p[2], inv), byte.Parse(p[3], inv), byte.Parse(p[4], inv), 255),
-                                         p.Length > 5 && p[5] == "doublesided");
-                        break;
-                    case "#smoke" when p.Length >= 4:
-                        smoke.Add(new Vector3(float.Parse(p[1], inv), float.Parse(p[2], inv), float.Parse(p[3], inv)));
-                        break;
-                    case "v" when p.Length >= 4:
-                        verts.Add(new Vector3(float.Parse(p[1], inv), float.Parse(p[2], inv), float.Parse(p[3], inv)));
-                        break;
-                    case "usemtl" when p.Length >= 2:
-                        if (!palette.TryGetValue(p[1], out current))
-                            current = (new Color32(200, 200, 200, 255), false);
-                        break;
-                    case "f" when p.Length >= 4:
-                        face.Clear();
-                        Vector3 centre = Vector3.zero;
-                        for (int i = 1; i < p.Length; i++)
-                        {
-                            int slash = p[i].IndexOf('/');
-                            int index = int.Parse(slash < 0 ? p[i] : p[i].Substring(0, slash), inv);
-                            Vector3 v = verts[index > 0 ? index - 1 : verts.Count + index];
-                            face.Add(v);
-                            centre += v;
-                        }
-                        centre /= face.Count;
-
-                        Vector3 n = Vector3.Cross(face[1] - face[0], face[2] - face[0]);
-                        if (n.sqrMagnitude < 1e-12f && face.Count > 3)
-                            n = Vector3.Cross(face[2] - face[0], face[3] - face[0]);
-                        if (n.sqrMagnitude < 1e-12f)
-                            break;
-                        n.Normalize();
-
-                        for (int i = 1; i + 1 < face.Count; i++)   // fan
-                        {
-                            corners.Add(face[0]);
-                            corners.Add(face[i]);
-                            corners.Add(face[i + 1]);
-                            normals.Add(n);
-                            centres.Add(centre);
-                            colors.Add(current.color);
-                            twoSided.Add(current.twoSided);
-                        }
-                        break;
-                }
-            }
-
-            return new Model3D
-            {
-                corners = corners.ToArray(),
-                normals = normals.ToArray(),
-                centres = centres.ToArray(),
-                colors = colors.ToArray(),
-                twoSided = twoSided.ToArray(),
-                smoke = smoke.ToArray(),
-            };
-        }
     }
 }

@@ -73,6 +73,9 @@ namespace Watermelon
             bool facingLeft = boat3D != null ? Mathf.Cos(baseYaw * Mathf.Deg2Rad) < 0f : baseScale.x < 0f;
             if (motion == Motion.Sail && facingLeft)
                 phase += 0.5f;   // boats facing left start heading left
+
+            SeaPosition = home;
+            PoseYaw = StartYaw;
         }
 
         private void OnEnable()
@@ -95,13 +98,26 @@ namespace Watermelon
                 canvasRenderer.SetAlpha(1f);
         }
 
+        // ---- pose, readable by the 3D sea (WorldMapSea3D) ----
+        public Motion PropMotion => motion;
+        /// <summary>Where the prop is on the map (map units, before bobbing).</summary>
+        public Vector2 SeaPosition { get; private set; }
+        /// <summary>0 = bow right, 180 = bow left, 90 = bow toward the camera.</summary>
+        public float PoseYaw { get; private set; }
+        public float PoseRoll { get; private set; }
+        public float PosePitch { get; private set; }
+        public float PoseLift { get; private set; }
+        /// <summary>1 = at the surface, 0 = fully dived (whales).</summary>
+        public float Surfacing { get; private set; } = 1f;
+        public float StartYaw => boat3D != null ? baseYaw : (baseScale.x < 0f ? 180f : 0f);
+
         private void Update()
         {
             float t = Time.time;
             switch (motion)
             {
                 case Motion.Sail: Sail(t); break;
-                case Motion.Float: Float(t, home); break;
+                case Motion.Float: Float(t, home, StartYaw); break;
                 case Motion.Surface: Surface(t); break;
                 case Motion.Drift: Drift(t); break;
             }
@@ -111,43 +127,39 @@ namespace Watermelon
         {
             float a = (t / tripSeconds + phase) * Tau;
             float heading = Mathf.Cos(a);    // > 0 sailing toward +Travel
-
             float dir = travel.x >= 0f ? 1f : -1f;
-            if (boat3D != null)
+
+            // a real 3D turn: the bow swings round toward the camera at each end of the trip
+            float turn = Mathf.Clamp(heading * dir * 3f, -1f, 1f);
+            Vector2 at = home + travel * Mathf.Sin(a);
+
+            if (boat3D == null)
             {
-                // a real 3D turn: the bow swings round toward the camera at each end of the trip
-                float turn = Mathf.Clamp(heading * dir * 3f, -1f, 1f);
-                rect.anchoredPosition = home + travel * Mathf.Sin(a);
-                Rock3D(t, 90f - 90f * turn);
-                return;
+                // picture boat: face the way it is going; the quick squash reads as turning around
+                float face = Mathf.Clamp(heading * 10f, -1f, 1f);
+                rect.localScale = new Vector3(Mathf.Abs(baseScale.x) * face * dir, baseScale.y, baseScale.z);
             }
-
-            // Face the way it is going; the quick squash at each end reads as turning around.
-            float face = Mathf.Clamp(heading * 10f, -1f, 1f);
-            rect.localScale = new Vector3(Mathf.Abs(baseScale.x) * face * dir, baseScale.y, baseScale.z);
-
-            Float(t, home + travel * Mathf.Sin(a));
+            Float(t, at, 90f - 90f * turn);
         }
 
-        private void Rock3D(float t, float yawDegrees)
+        private void Float(float t, Vector2 centre, float yawDegrees)
         {
             float b = (t / bobSeconds + phase) * Tau;
-            boat3D.SetPose(yawDegrees, rockDegrees * Mathf.Sin(b + 1.1f), 0.6f * rockDegrees * Mathf.Sin(b * 0.7f + 0.4f),
-                           bobHeight * Mathf.Sin(b));
-        }
+            SeaPosition = centre;
+            PoseYaw = yawDegrees;
+            PoseRoll = rockDegrees * Mathf.Sin(b + 1.1f);
+            PosePitch = 0.6f * rockDegrees * Mathf.Sin(b * 0.7f + 0.4f);
+            PoseLift = bobHeight * Mathf.Sin(b);
 
-        private void Float(float t, Vector2 centre)
-        {
             if (boat3D != null)
             {
                 rect.anchoredPosition = centre;
-                Rock3D(t, baseYaw);
+                boat3D.SetPose(PoseYaw, PoseRoll, PosePitch, PoseLift);
                 return;
             }
 
-            float b = (t / bobSeconds + phase) * Tau;
-            rect.anchoredPosition = centre + new Vector2(0f, bobHeight * Mathf.Sin(b));
-            rect.localRotation = baseRotation * Quaternion.Euler(0f, 0f, rockDegrees * Mathf.Sin(b + 1.1f));
+            rect.anchoredPosition = centre + new Vector2(0f, PoseLift);
+            rect.localRotation = baseRotation * Quaternion.Euler(0f, 0f, PoseRoll);
         }
 
         private void Surface(float t)
@@ -161,7 +173,9 @@ namespace Watermelon
             else if (u < 0.82f) up = 1f - Smooth((u - 0.68f) / 0.14f);
             else up = 0f;
 
-            Float(t, home + new Vector2(0f, -diveDepth * (1f - up)));
+            Float(t, home + new Vector2(0f, -diveDepth * (1f - up)), StartYaw);
+            SeaPosition = home;
+            Surfacing = up;
             if (canvasRenderer != null)
                 canvasRenderer.SetAlpha(up);
         }
@@ -177,6 +191,7 @@ namespace Watermelon
 
             float sway = Mathf.Sin((t / 23f + phase) * Tau);
             rect.anchoredPosition = new Vector2(x, home.y + 12f * sway);
+            SeaPosition = rect.anchoredPosition;
             rect.localScale = baseScale * (1f + 0.025f * sway);
         }
 

@@ -27467,6 +27467,7 @@ SceneRoots:
   - {fileID: 939224402}
   - {fileID: 491828409}
   - {fileID: 955754673}
+  - {fileID: 4482096053366145232}
 --- !u!1 &1805076544463012057
 GameObject:
   m_ObjectHideFlags: 0
@@ -29153,3 +29154,70 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   size: 48
   cells: 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000600000180000b300080800000800080c0000708021880000720581c800007f2103c00000ffa223e00000ff006380004ff3ccf040000fc0fff000060781fff0040fa103fff00c078007fffe3c03080ffffe7c0000e73fff3c0001bc3ffffc0a1ff87ffff00c1ff8ffffc0103fffffff80003fefffff0811ff07ffe60001fe7fe3df8007fc37f79bc007f0c7e7e00001f18f82f00011f24f00780008302c00780000202c003800000028000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+--- !u!1 &741602113342871039
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4482096053366145232}
+  - component: {fileID: 174073351317783464}
+  m_Layer: 0
+  m_Name: Sea 3D
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4482096053366145232
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 741602113342871039}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &174073351317783464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 741602113342871039}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 452bd1e4f54c489b9b75dd4efdc2d3dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mapProps: {fileID: 3688586812365818400}
+  sky: {fileID: 1336087895513663532}
+  hideWhileRunning:
+  - {fileID: 2026181104}
+  - {fileID: 1805076544463012057}
+  - {fileID: 498594228}
+  viewAngle: 42
+  sunDirection: {x: -0.5, y: 0.8, z: -0.3}
+  waveHeight: 1
+  waveSpeed: 1
+  boatSize: 0.46
+  whaleSize: 0.36
+  shadowStrength: 0.28
+  cloudShadowStrength: 0.16
+  sailboatModel: {fileID: 4900000, guid: f388bb687ac94528b34d487c3827fb31, type: 3}
+  steamshipModel: {fileID: 4900000, guid: a667b82f31ad483da6556f48c1a5f20f, type: 3}
+  whaleModel: {fileID: 4900000, guid: f988dbf6aa364e3387ca6e0452c86057, type: 3}
+  waterMaterial: {fileID: 2100000, guid: 98e5f6fac3c44f418d4064d152bc854b, type: 2}
+  modelMaterial: {fileID: 2100000, guid: 4f6dfdfa91994340b699559dbb14aa29, type: 2}
+  effectsMaterial: {fileID: 2100000, guid: 63344b348b9e4bfc94f20da79df6fc3a, type: 2}
+  seaLayer: 4
+  margin: 2500
+  waterCells: 110

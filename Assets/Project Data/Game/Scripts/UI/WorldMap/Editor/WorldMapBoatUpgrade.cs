@@ -12,7 +12,7 @@ namespace Watermelon
     /// </summary>
     public static class WorldMapBoatUpgrade
     {
-        private const string ModelFolder = "Assets/Project Data/Game/Models/WorldMap/Boats/";
+        private const string ModelFolder = "Assets/Project Data/Game/Resources/WorldMapSea/";
         private const string EffectsPath = "Assets/Project Data/Game/Images/WorldMap/Props/boat_fx.png";
 
         [MenuItem("Conveyor Chef/World Map/9. Use 3D Boats In Open World Map", priority = 9)]
