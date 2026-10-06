@@ -7,7 +7,8 @@ namespace Watermelon
     /// Gentle life for a World Map prop: boats sail back and forth and rock on the waves,
     /// whales surface and dive, clouds drift across the map. Runs in Play mode only, so the
     /// position, size and mirroring saved in the scene stay exactly as placed in the Hierarchy.
-    /// Mirror a boat (Scale X = -1) to make it start sailing left.
+    /// A 3D boat (WorldMapBoat3D) turns round in 3D; set its Yaw to 180 to make it start sailing left.
+    /// For a picture boat, mirror it (Scale X = -1) instead.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(RectTransform))]
@@ -48,6 +49,8 @@ namespace Watermelon
         private RectTransform rect;
         private RectTransform area;
         private CanvasRenderer canvasRenderer;
+        private WorldMapBoat3D boat3D;
+        private float baseYaw;
         private Vector2 home;
         private Vector3 baseScale;
         private Quaternion baseRotation;
@@ -58,6 +61,8 @@ namespace Watermelon
             rect = (RectTransform)transform;
             area = rect.parent as RectTransform;
             canvasRenderer = GetComponent<CanvasRenderer>();
+            boat3D = GetComponent<WorldMapBoat3D>();
+            baseYaw = boat3D != null ? boat3D.Yaw : 0f;
             home = rect.anchoredPosition;
             baseScale = rect.localScale;
             baseRotation = rect.localRotation;
@@ -65,8 +70,9 @@ namespace Watermelon
             // Different start points so props never move in step; stable per position.
             phase = Mathf.Repeat(home.x * 0.0137f + home.y * 0.0091f, 1f);
 
-            if (motion == Motion.Sail && baseScale.x < 0f)
-                phase += 0.5f;   // mirrored boats start heading left
+            bool facingLeft = boat3D != null ? Mathf.Cos(baseYaw * Mathf.Deg2Rad) < 0f : baseScale.x < 0f;
+            if (motion == Motion.Sail && facingLeft)
+                phase += 0.5f;   // boats facing left start heading left
         }
 
         private void OnEnable()
@@ -83,6 +89,8 @@ namespace Watermelon
             rect.anchoredPosition = home;
             rect.localScale = baseScale;
             rect.localRotation = baseRotation;
+            if (boat3D != null)
+                boat3D.SetPose(baseYaw, 0f, 0f, 0f);
             if (canvasRenderer != null)
                 canvasRenderer.SetAlpha(1f);
         }
@@ -104,16 +112,39 @@ namespace Watermelon
             float a = (t / tripSeconds + phase) * Tau;
             float heading = Mathf.Cos(a);    // > 0 sailing toward +Travel
 
+            float dir = travel.x >= 0f ? 1f : -1f;
+            if (boat3D != null)
+            {
+                // a real 3D turn: the bow swings round toward the camera at each end of the trip
+                float turn = Mathf.Clamp(heading * dir * 3f, -1f, 1f);
+                rect.anchoredPosition = home + travel * Mathf.Sin(a);
+                Rock3D(t, 90f - 90f * turn);
+                return;
+            }
+
             // Face the way it is going; the quick squash at each end reads as turning around.
             float face = Mathf.Clamp(heading * 10f, -1f, 1f);
-            float dir = travel.x >= 0f ? 1f : -1f;
             rect.localScale = new Vector3(Mathf.Abs(baseScale.x) * face * dir, baseScale.y, baseScale.z);
 
             Float(t, home + travel * Mathf.Sin(a));
         }
 
+        private void Rock3D(float t, float yawDegrees)
+        {
+            float b = (t / bobSeconds + phase) * Tau;
+            boat3D.SetPose(yawDegrees, rockDegrees * Mathf.Sin(b + 1.1f), 0.6f * rockDegrees * Mathf.Sin(b * 0.7f + 0.4f),
+                           bobHeight * Mathf.Sin(b));
+        }
+
         private void Float(float t, Vector2 centre)
         {
+            if (boat3D != null)
+            {
+                rect.anchoredPosition = centre;
+                Rock3D(t, baseYaw);
+                return;
+            }
+
             float b = (t / bobSeconds + phase) * Tau;
             rect.anchoredPosition = centre + new Vector2(0f, bobHeight * Mathf.Sin(b));
             rect.localRotation = baseRotation * Quaternion.Euler(0f, 0f, rockDegrees * Mathf.Sin(b + 1.1f));

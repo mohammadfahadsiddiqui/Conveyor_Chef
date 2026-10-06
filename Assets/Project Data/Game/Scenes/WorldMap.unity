@@ -17225,7 +17225,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1675204699455777020}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: 22b8d352a1fe44e7923d6f58d2cc63c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
@@ -17236,16 +17236,22 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 8852ff8bdd074ed88c1672d61cbc8b3b, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 1
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  model: {fileID: 4900000, guid: a667b82f31ad483da6556f48c1a5f20f, type: 3}
+  effects: {fileID: 2800000, guid: e080ad9854f8486593205d26ec4a2f2c, type: 3}
+  yaw: 0
+  viewAngle: 42
+  size: 0.46
+  waterline: -0.12
+  outline: 0.035
+  outlineColor:
+    serializedVersion: 2
+    rgba: 4281606694
+  lightDirection: {x: -0.45, y: 0.75, z: 0.5}
+  ambient: 0.58
+  showWake: 1
+  wakeAlpha: 1
+  smokePuffs: 4
+  smokeSeconds: 3.2
 --- !u!1 &613537322905081766
 GameObject:
   m_ObjectHideFlags: 0
@@ -18372,7 +18378,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 635313551104873607}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: 22b8d352a1fe44e7923d6f58d2cc63c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
@@ -18383,16 +18389,22 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: e15fa9346f80403a97258146e8f056ea, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 1
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  model: {fileID: 4900000, guid: f388bb687ac94528b34d487c3827fb31, type: 3}
+  effects: {fileID: 2800000, guid: e080ad9854f8486593205d26ec4a2f2c, type: 3}
+  yaw: 180
+  viewAngle: 42
+  size: 0.46
+  waterline: -0.12
+  outline: 0.035
+  outlineColor:
+    serializedVersion: 2
+    rgba: 4281606694
+  lightDirection: {x: -0.45, y: 0.75, z: 0.5}
+  ambient: 0.58
+  showWake: 1
+  wakeAlpha: 1
+  smokePuffs: 0
+  smokeSeconds: 3.2
 --- !u!1 &992240287248416441
 GameObject:
   m_ObjectHideFlags: 0
@@ -22569,7 +22581,7 @@ RectTransform:
   m_GameObject: {fileID: 635313551104873607}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: -1, y: 1, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3688586812365818400}
@@ -24757,7 +24769,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 799142111402238860}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: 22b8d352a1fe44e7923d6f58d2cc63c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
@@ -24768,16 +24780,22 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: e15fa9346f80403a97258146e8f056ea, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 1
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  model: {fileID: 4900000, guid: f388bb687ac94528b34d487c3827fb31, type: 3}
+  effects: {fileID: 2800000, guid: e080ad9854f8486593205d26ec4a2f2c, type: 3}
+  yaw: 0
+  viewAngle: 42
+  size: 0.46
+  waterline: -0.12
+  outline: 0.035
+  outlineColor:
+    serializedVersion: 2
+    rgba: 4281606694
+  lightDirection: {x: -0.45, y: 0.75, z: 0.5}
+  ambient: 0.58
+  showWake: 1
+  wakeAlpha: 1
+  smokePuffs: 0
+  smokeSeconds: 3.2
 --- !u!224 &3704656326874143027
 RectTransform:
   m_ObjectHideFlags: 0
@@ -27615,7 +27633,6 @@ GameObject:
   - component: {fileID: 1597626814081150091}
   - component: {fileID: 56233593206654692}
   - component: {fileID: 1773646686259532280}
-  - component: {fileID: 741602113342871039}
   - component: {fileID: 1846660061457249767}
   m_Layer: 5
   m_Name: Sailboat
@@ -27633,7 +27650,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2023276852916280634}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: 22b8d352a1fe44e7923d6f58d2cc63c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
@@ -27644,16 +27661,22 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: e15fa9346f80403a97258146e8f056ea, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 1
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  model: {fileID: 4900000, guid: f388bb687ac94528b34d487c3827fb31, type: 3}
+  effects: {fileID: 2800000, guid: e080ad9854f8486593205d26ec4a2f2c, type: 3}
+  yaw: 0
+  viewAngle: 42
+  size: 0.46
+  waterline: -0.12
+  outline: 0.035
+  outlineColor:
+    serializedVersion: 2
+    rgba: 4281606694
+  lightDirection: {x: -0.45, y: 0.75, z: 0.5}
+  ambient: 0.58
+  showWake: 1
+  wakeAlpha: 1
+  smokePuffs: 0
+  smokeSeconds: 3.2
 --- !u!224 &1597626814081150091
 RectTransform:
   m_ObjectHideFlags: 0
@@ -27673,28 +27696,6 @@ RectTransform:
   m_AnchoredPosition: {x: 900, y: -50}
   m_SizeDelta: {x: 200, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &741602113342871039
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2023276852916280634}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1b1b616d97b48f98921e911c55da523, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  motion: 0
-  travel: {x: 120, y: 0}
-  tripSeconds: 23
-  bobHeight: 6
-  bobSeconds: 2.8
-  rockDegrees: 4
-  surfaceCycleSeconds: 11
-  diveDepth: 22
-  driftSpeed: 14
-  driftAlpha: 0.92
 --- !u!114 &1846660061457249767
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -27708,7 +27709,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   motion: 0
-  travel: {x: 120, y: 0}
+  travel: {x: 90, y: 0}
   tripSeconds: 21
   bobHeight: 6
   bobSeconds: 2.8
@@ -27726,7 +27727,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 4123823106402675453}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: 22b8d352a1fe44e7923d6f58d2cc63c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
@@ -27737,16 +27738,22 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 8852ff8bdd074ed88c1672d61cbc8b3b, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 1
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  model: {fileID: 4900000, guid: a667b82f31ad483da6556f48c1a5f20f, type: 3}
+  effects: {fileID: 2800000, guid: e080ad9854f8486593205d26ec4a2f2c, type: 3}
+  yaw: 180
+  viewAngle: 42
+  size: 0.46
+  waterline: -0.12
+  outline: 0.035
+  outlineColor:
+    serializedVersion: 2
+    rgba: 4281606694
+  lightDirection: {x: -0.45, y: 0.75, z: 0.5}
+  ambient: 0.58
+  showWake: 1
+  wakeAlpha: 1
+  smokePuffs: 4
+  smokeSeconds: 3.2
 --- !u!224 &1056345410029576976
 RectTransform:
   m_ObjectHideFlags: 0
@@ -27756,7 +27763,7 @@ RectTransform:
   m_GameObject: {fileID: 4123823106402675453}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: -1, y: 1, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3688586812365818400}
@@ -27777,7 +27784,6 @@ GameObject:
   - component: {fileID: 1056345410029576976}
   - component: {fileID: 4538089400925668174}
   - component: {fileID: 2439911211325480651}
-  - component: {fileID: 4482096053366145232}
   - component: {fileID: 1515145968586768741}
   m_Layer: 5
   m_Name: Steamship
@@ -27794,28 +27800,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4123823106402675453}
   m_CullTransparentMesh: 1
---- !u!114 &4482096053366145232
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4123823106402675453}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1b1b616d97b48f98921e911c55da523, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  motion: 0
-  travel: {x: 120, y: 0}
-  tripSeconds: 19
-  bobHeight: 6
-  bobSeconds: 2.8
-  rockDegrees: 4
-  surfaceCycleSeconds: 11
-  diveDepth: 22
-  driftSpeed: 14
-  driftAlpha: 0.92
 --- !u!114 &1515145968586768741
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -27857,7 +27841,6 @@ GameObject:
   - component: {fileID: 3607213905854377526}
   - component: {fileID: 4116083362633944863}
   - component: {fileID: 2173018470939070706}
-  - component: {fileID: 174073351317783464}
   - component: {fileID: 4575927171746014574}
   m_Layer: 5
   m_Name: Sailboat
@@ -27875,7 +27858,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2900541987999610035}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: 22b8d352a1fe44e7923d6f58d2cc63c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
@@ -27886,16 +27869,22 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: e15fa9346f80403a97258146e8f056ea, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 1
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  model: {fileID: 4900000, guid: f388bb687ac94528b34d487c3827fb31, type: 3}
+  effects: {fileID: 2800000, guid: e080ad9854f8486593205d26ec4a2f2c, type: 3}
+  yaw: 180
+  viewAngle: 42
+  size: 0.46
+  waterline: -0.12
+  outline: 0.035
+  outlineColor:
+    serializedVersion: 2
+    rgba: 4281606694
+  lightDirection: {x: -0.45, y: 0.75, z: 0.5}
+  ambient: 0.58
+  showWake: 1
+  wakeAlpha: 1
+  smokePuffs: 0
+  smokeSeconds: 3.2
 --- !u!224 &3607213905854377526
 RectTransform:
   m_ObjectHideFlags: 0
@@ -27905,7 +27894,7 @@ RectTransform:
   m_GameObject: {fileID: 2900541987999610035}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: -1, y: 1, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3688586812365818400}
@@ -27915,28 +27904,6 @@ RectTransform:
   m_AnchoredPosition: {x: -1400, y: 150}
   m_SizeDelta: {x: 200, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &174073351317783464
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2900541987999610035}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1b1b616d97b48f98921e911c55da523, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  motion: 0
-  travel: {x: 120, y: 0}
-  tripSeconds: 23
-  bobHeight: 6
-  bobSeconds: 2.8
-  rockDegrees: 4
-  surfaceCycleSeconds: 11
-  diveDepth: 22
-  driftSpeed: 14
-  driftAlpha: 0.92
 --- !u!114 &4575927171746014574
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28008,7 +27975,6 @@ GameObject:
   - component: {fileID: 4371321653767905737}
   - component: {fileID: 3259213383091430870}
   - component: {fileID: 454808098866759347}
-  - component: {fileID: 791980571871221201}
   - component: {fileID: 3792664672193592701}
   m_Layer: 5
   m_Name: Whale
@@ -28036,28 +28002,6 @@ RectTransform:
   m_AnchoredPosition: {x: -1350, y: 1100}
   m_SizeDelta: {x: 230, y: 230}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &791980571871221201
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3283404652639114245}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1b1b616d97b48f98921e911c55da523, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  motion: 2
-  travel: {x: 0, y: 0}
-  tripSeconds: 20
-  bobHeight: 5
-  bobSeconds: 3.2
-  rockDegrees: 3
-  surfaceCycleSeconds: 12
-  diveDepth: 24
-  driftSpeed: 14
-  driftAlpha: 0.92
 --- !u!114 &3792664672193592701
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28089,7 +28033,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2249192444275914217}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: 22b8d352a1fe44e7923d6f58d2cc63c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
@@ -28100,16 +28044,22 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 8852ff8bdd074ed88c1672d61cbc8b3b, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 1
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  model: {fileID: 4900000, guid: a667b82f31ad483da6556f48c1a5f20f, type: 3}
+  effects: {fileID: 2800000, guid: e080ad9854f8486593205d26ec4a2f2c, type: 3}
+  yaw: 0
+  viewAngle: 42
+  size: 0.46
+  waterline: -0.12
+  outline: 0.035
+  outlineColor:
+    serializedVersion: 2
+    rgba: 4281606694
+  lightDirection: {x: -0.45, y: 0.75, z: 0.5}
+  ambient: 0.58
+  showWake: 1
+  wakeAlpha: 1
+  smokePuffs: 4
+  smokeSeconds: 3.2
 --- !u!224 &4400732512533813623
 RectTransform:
   m_ObjectHideFlags: 0
@@ -28140,7 +28090,6 @@ GameObject:
   - component: {fileID: 4400732512533813623}
   - component: {fileID: 1564417905430895045}
   - component: {fileID: 3920119322011711761}
-  - component: {fileID: 816920679382151021}
   - component: {fileID: 2137469861510145012}
   m_Layer: 5
   m_Name: Steamship
@@ -28157,28 +28106,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2249192444275914217}
   m_CullTransparentMesh: 1
---- !u!114 &816920679382151021
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2249192444275914217}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1b1b616d97b48f98921e911c55da523, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  motion: 0
-  travel: {x: 120, y: 0}
-  tripSeconds: 19
-  bobHeight: 6
-  bobSeconds: 2.8
-  rockDegrees: 4
-  surfaceCycleSeconds: 11
-  diveDepth: 22
-  driftSpeed: 14
-  driftAlpha: 0.92
 --- !u!114 &2137469861510145012
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28192,7 +28119,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   motion: 0
-  travel: {x: 120, y: 0}
+  travel: {x: 80, y: 0}
   tripSeconds: 22
   bobHeight: 6
   bobSeconds: 2.8
@@ -28250,7 +28177,6 @@ GameObject:
   - component: {fileID: 137953452631633713}
   - component: {fileID: 13438635149631288}
   - component: {fileID: 1825441449925409742}
-  - component: {fileID: 2002887503141858818}
   - component: {fileID: 1257905388544977812}
   m_Layer: 5
   m_Name: Whale
@@ -28278,28 +28204,6 @@ RectTransform:
   m_AnchoredPosition: {x: -1250, y: -1100}
   m_SizeDelta: {x: 230, y: 230}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &2002887503141858818
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4386902855855650124}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1b1b616d97b48f98921e911c55da523, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  motion: 2
-  travel: {x: 0, y: 0}
-  tripSeconds: 20
-  bobHeight: 5
-  bobSeconds: 3.2
-  rockDegrees: 3
-  surfaceCycleSeconds: 12
-  diveDepth: 24
-  driftSpeed: 14
-  driftAlpha: 0.92
 --- !u!114 &1257905388544977812
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28341,7 +28245,6 @@ GameObject:
   - component: {fileID: 55150679811313743}
   - component: {fileID: 4264759375440411693}
   - component: {fileID: 4451421591836473709}
-  - component: {fileID: 4029079093990088062}
   - component: {fileID: 38731133437828322}
   m_Layer: 5
   m_Name: Sailboat
@@ -28359,7 +28262,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 2422302148757180562}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: 22b8d352a1fe44e7923d6f58d2cc63c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
@@ -28370,16 +28273,22 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: e15fa9346f80403a97258146e8f056ea, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 1
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  model: {fileID: 4900000, guid: f388bb687ac94528b34d487c3827fb31, type: 3}
+  effects: {fileID: 2800000, guid: e080ad9854f8486593205d26ec4a2f2c, type: 3}
+  yaw: 0
+  viewAngle: 42
+  size: 0.46
+  waterline: -0.12
+  outline: 0.035
+  outlineColor:
+    serializedVersion: 2
+    rgba: 4281606694
+  lightDirection: {x: -0.45, y: 0.75, z: 0.5}
+  ambient: 0.58
+  showWake: 1
+  wakeAlpha: 1
+  smokePuffs: 0
+  smokeSeconds: 3.2
 --- !u!224 &55150679811313743
 RectTransform:
   m_ObjectHideFlags: 0
@@ -28399,28 +28308,6 @@ RectTransform:
   m_AnchoredPosition: {x: 130, y: 350}
   m_SizeDelta: {x: 180, y: 180}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4029079093990088062
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2422302148757180562}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1b1b616d97b48f98921e911c55da523, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  motion: 0
-  travel: {x: 120, y: 0}
-  tripSeconds: 23
-  bobHeight: 6
-  bobSeconds: 2.8
-  rockDegrees: 4
-  surfaceCycleSeconds: 11
-  diveDepth: 22
-  driftSpeed: 14
-  driftAlpha: 0.92
 --- !u!114 &38731133437828322
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28462,7 +28349,6 @@ GameObject:
   - component: {fileID: 1887553934530547451}
   - component: {fileID: 2686761610681935387}
   - component: {fileID: 1787362863807893139}
-  - component: {fileID: 4392374055211334098}
   - component: {fileID: 3274293679620499969}
   m_Layer: 5
   m_Name: Sailboat
@@ -28480,7 +28366,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1649304853204356587}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Script: {fileID: 11500000, guid: 22b8d352a1fe44e7923d6f58d2cc63c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
@@ -28491,16 +28377,22 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: e15fa9346f80403a97258146e8f056ea, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 1
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  model: {fileID: 4900000, guid: f388bb687ac94528b34d487c3827fb31, type: 3}
+  effects: {fileID: 2800000, guid: e080ad9854f8486593205d26ec4a2f2c, type: 3}
+  yaw: 180
+  viewAngle: 42
+  size: 0.46
+  waterline: -0.12
+  outline: 0.035
+  outlineColor:
+    serializedVersion: 2
+    rgba: 4281606694
+  lightDirection: {x: -0.45, y: 0.75, z: 0.5}
+  ambient: 0.58
+  showWake: 1
+  wakeAlpha: 1
+  smokePuffs: 0
+  smokeSeconds: 3.2
 --- !u!224 &1887553934530547451
 RectTransform:
   m_ObjectHideFlags: 0
@@ -28510,7 +28402,7 @@ RectTransform:
   m_GameObject: {fileID: 1649304853204356587}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: -1, y: 1, z: 1}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3688586812365818400}
@@ -28520,28 +28412,6 @@ RectTransform:
   m_AnchoredPosition: {x: 50, y: -750}
   m_SizeDelta: {x: 190, y: 190}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &4392374055211334098
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1649304853204356587}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1b1b616d97b48f98921e911c55da523, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  motion: 0
-  travel: {x: 120, y: 0}
-  tripSeconds: 23
-  bobHeight: 6
-  bobSeconds: 2.8
-  rockDegrees: 4
-  surfaceCycleSeconds: 11
-  diveDepth: 22
-  driftSpeed: 14
-  driftAlpha: 0.92
 --- !u!114 &3274293679620499969
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -28613,7 +28483,6 @@ GameObject:
   - component: {fileID: 2521337403644259693}
   - component: {fileID: 2392957989501856774}
   - component: {fileID: 2120768260761319213}
-  - component: {fileID: 1900085314572171688}
   - component: {fileID: 2481921128558951574}
   m_Layer: 5
   m_Name: Whale
@@ -28641,28 +28510,6 @@ RectTransform:
   m_AnchoredPosition: {x: 1350, y: -350}
   m_SizeDelta: {x: 210, y: 210}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1900085314572171688
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2196552540174834024}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1b1b616d97b48f98921e911c55da523, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  motion: 2
-  travel: {x: 0, y: 0}
-  tripSeconds: 20
-  bobHeight: 5
-  bobSeconds: 3.2
-  rockDegrees: 3
-  surfaceCycleSeconds: 12
-  diveDepth: 24
-  driftSpeed: 14
-  driftAlpha: 0.92
 --- !u!114 &2481921128558951574
 MonoBehaviour:
   m_ObjectHideFlags: 0
