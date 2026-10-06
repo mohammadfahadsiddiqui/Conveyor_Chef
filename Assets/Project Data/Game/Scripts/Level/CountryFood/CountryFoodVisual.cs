@@ -248,8 +248,15 @@ namespace Watermelon.BusStop
                     scale = scale * depth / (depth + TowardsCamera * scale);
             }
 
+            // Pull the card towards the camera along the line of sight, so it stays exactly over
+            // its tile or slot on screen (along the camera's forward axis, a perspective camera
+            // pushed off-centre cards outwards, e.g. dishes in the left dock slots looked shifted left).
+            Vector3 towardsCamera = cam.orthographic
+                ? -cam.transform.forward
+                : (cam.transform.position - centre).normalized;
+
             card.rotation = cam.transform.rotation;
-            card.position = centre - cam.transform.forward * (scale * TowardsCamera);
+            card.position = centre + towardsCamera * (scale * TowardsCamera);
             card.localScale = new Vector3(scale, scale, scale);
 
             Color blocked = art != null ? art.blockedTint : new Color(0.95f, 0.95f, 0.95f, 1f);
@@ -260,6 +267,40 @@ namespace Watermelon.BusStop
 
             UpdateCloche(!pickable && (art == null || art.showCloche));
             UpdateFoodSize(art);
+
+            // In a dock slot the plate and food sit in the lower part of the card; centre them in the
+            // square slot.
+            if (character.IsSubmitted && traySpacing <= 0f)
+                card.position += card.up * (VisualCentreOffset() * scale);
+        }
+
+        // Card-unit offset that moves the middle of plate + food (as drawn now) to the card centre.
+        private float VisualCentreOffset()
+        {
+            float bottom = 0f, top = 0f;
+            bool any = false;
+
+            if (plateRenderer != null && plateRenderer.enabled && plateRenderer.sprite != null)
+            {
+                float half = plateRenderer.sprite.bounds.extents.y * plateRenderer.transform.localScale.y;
+                bottom = plateRenderer.transform.localPosition.y - half;
+                top = plateRenderer.transform.localPosition.y + half;
+                any = true;
+            }
+
+            if (dishRenderer != null && dishRenderer.sprite != null)
+            {
+                // The food itself, not the image's empty margins.
+                Transform dish = dishRenderer.transform;
+                float height = dishRenderer.sprite.bounds.size.y * dish.localScale.y;
+                float foodBottom = dish.localPosition.y + (dishRect.y - 0.5f) * height;
+                float foodTop = dish.localPosition.y + (dishRect.w - 0.5f) * height;
+                bottom = any ? Mathf.Min(bottom, foodBottom) : foodBottom;
+                top = any ? Mathf.Max(top, foodTop) : foodTop;
+                any = true;
+            }
+
+            return any ? -0.5f * (bottom + top) : 0f;
         }
 
         // Under the cloche the food must fit inside the glass; once the cloche is off (or on
