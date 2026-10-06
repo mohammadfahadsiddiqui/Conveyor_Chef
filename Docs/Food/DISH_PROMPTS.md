@@ -6,7 +6,7 @@ as a country's dishes arrive, the board, the conveyor trays and the orders panel
 
 ## What to generate
 
-One image per country / Antarctic region (**30 images**), each showing that country's 7 dishes.
+One image per country / Antarctic region (**35 images**; the 5 Asian ones refresh the current Asian dishes so all match), each showing that country's 7 dishes.
 
 - **1536 × 1024**, **transparent background**.
 - **7 separate dishes in a grid**: 4 in the top row, 3 in the bottom row, in the **exact order**
@@ -27,6 +27,11 @@ One image per country / Antarctic region (**30 images**), each showing that coun
 
 | Folder | Country | Dishes (order) |
 |---|---|---|
+| asia/china | China | 1 Tanghulu · 2 Jiaozi Dumplings · 3 Red Bean Bao · 4 Chow Mein · 5 Spring Rolls · 6 Siu Mai · 7 Taro Bun |
+| asia/japan | Japan | 1 Tuna Nigiri · 2 Matcha Dango · 3 Sakura Mochi · 4 Ramen · 5 Shrimp Tempura · 6 Melon Kakigori · 7 Taiyaki |
+| asia/india | India | 1 Tandoori Chicken · 2 Pani Puri · 3 Falooda · 4 Chicken Biryani · 5 Samosa · 6 Masala Chai · 7 Gulab Jamun |
+| asia/south_korea | South Korea | 1 Tteokbokki · 2 Kimbap · 3 Strawberry Bingsu · 4 Bibimbap · 5 Honey Fried Chicken · 6 Japchae · 7 Goguma Bread |
+| asia/thailand | Thailand | 1 Tom Yum · 2 Green Curry · 3 Pink Milk · 4 Blue Sticky Rice · 5 Mango Sticky Rice · 6 Pad Thai · 7 Butterfly Pea Soda |
 | north_america/usa | United States | 1 BBQ Ribs · 2 Key Lime Pie · 3 Strawberry Milkshake · 4 Blueberry Pancakes · 5 Mac and Cheese · 6 Mint Chip Sundae · 7 Grape Soda Float |
 | north_america/mexico | Mexico | 1 Pozole Rojo · 2 Guacamole · 3 Pink Conchas · 4 Blue Corn Tacos · 5 Elote · 6 Lime Agua Fresca · 7 Jamaica Agua Fresca |
 | north_america/canada | Canada | 1 Maple Glazed Salmon · 2 Fiddlehead Salad · 3 Raspberry Butter Tart · 4 Blueberry Grunt · 5 Poutine · 6 Mint Nanaimo Bar · 7 Saskatoon Berry Pie |
