@@ -412,34 +412,4 @@ namespace Watermelon
             MenuUI.Anchor(text.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-Margin, -46f), new Vector2(RightWidth, 38f));
         }
     }
-
-    /// <summary>Small press-down scale on menu buttons.</summary>
-    public sealed class MenuButtonPress : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
-    {
-        private Vector3 baseScale = Vector3.one;
-        private bool pressed;
-
-        private void Awake()
-        {
-            baseScale = transform.localScale;
-        }
-
-        public void OnPointerDown(PointerEventData eventData)
-        {
-            pressed = true;
-            transform.localScale = baseScale * 0.94f;
-        }
-
-        public void OnPointerUp(PointerEventData eventData) => Release();
-
-        public void OnPointerExit(PointerEventData eventData) => Release();
-
-        private void Release()
-        {
-            if (!pressed)
-                return;
-            pressed = false;
-            transform.localScale = baseScale;
-        }
-    }
 }
