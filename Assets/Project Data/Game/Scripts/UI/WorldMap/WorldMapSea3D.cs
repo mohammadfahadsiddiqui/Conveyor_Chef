@@ -8,8 +8,9 @@ namespace Watermelon
     /// <summary>
     /// A real 3D sea under the World Map UI: a wavy water surface lit by the sun, 3D boats and
     /// whales that ride the waves and sit in the water, wakes, smoke, whale spray, and shadows of
-    /// the boats and of the clouds. A camera behind the UI follows the map's scrolling every frame,
-    /// so everything stays exactly where the map puts it.
+    /// the boats and of the clouds. A sea camera renders into an image placed at the bottom of the
+    /// map's viewport (where the flat ocean was), so the continents and all UI draw on top as before.
+    /// The camera follows the map's scrolling every frame, so everything stays where the map puts it.
     ///
     /// Positions still come from the props under MapContent/Map Props (move or animate those in
     /// the Hierarchy, WorldMapAmbientProp settings included); this only replaces how they look.
@@ -26,7 +27,7 @@ namespace Watermelon
         [SerializeField] private RectTransform mapProps;
         [Tooltip("MapContent/Sky: the clouds cast shadows on the sea.")]
         [SerializeField] private RectTransform sky;
-        [Tooltip("Flat ocean pictures replaced by the 3D sea while playing.")]
+        [Tooltip("Flat ocean layers inside the map replaced by the 3D sea while playing.")]
         [SerializeField] private GameObject[] hideWhileRunning = new GameObject[0];
 
         [Header("Look")]
@@ -54,6 +55,8 @@ namespace Watermelon
         [Header("Rendering")]
         [Tooltip("Layer for the 3D sea (only the sea camera draws it).")]
         [SerializeField, Range(0, 31)] private int seaLayer = 4;
+        [Tooltip("Sea image resolution compared with the screen (lower = faster).")]
+        [SerializeField, Range(0.4f, 1f)] private float renderScale = 0.8f;
         [SerializeField, Min(0f)] private float margin = 2500f;
         [SerializeField, Range(16, 200)] private int waterCells = 110;
 
@@ -85,6 +88,7 @@ namespace Watermelon
         }
 
         private static readonly Dictionary<TextAsset, Mesh> meshes = new Dictionary<TextAsset, Mesh>();
+        private static readonly Dictionary<TextAsset, Texture2D> palettes = new Dictionary<TextAsset, Texture2D>();
         private static readonly Dictionary<TextAsset, WorldMapModelText.Model> models = new Dictionary<TextAsset, WorldMapModelText.Model>();
 
         private readonly List<Floater> floaters = new List<Floater>();
@@ -92,11 +96,15 @@ namespace Watermelon
         private readonly Vector4[] waves = new Vector4[4];
 
         private readonly List<Vector3> fxVerts = new List<Vector3>();
-        private readonly List<Color32> fxColors = new List<Color32>();
+        private readonly List<Vector4> fxTint = new List<Vector4>();
         private readonly List<Vector2> fxUV = new List<Vector2>();
         private readonly List<int> fxTris = new List<int>();
 
         private Camera seaCamera;
+        private RawImage view;
+        private RenderTexture target;
+        private Canvas canvas;
+        private readonly Vector3[] corners = new Vector3[4];
         private Transform world;
         private Mesh fxMesh;
         private float sinView, cosView, fxLift;
@@ -161,15 +169,17 @@ namespace Watermelon
         {
             if (mapProps == null)
                 mapProps = FindMapProps(gameObject.scene);
-            Canvas canvas = mapProps != null ? mapProps.GetComponentInParent<Canvas>() : null;
-            if (canvas == null || canvas.rootCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
+            canvas = mapProps != null ? mapProps.GetComponentInParent<Canvas>() : null;
+            RectTransform viewport = mapProps != null && mapProps.parent != null ? mapProps.parent.parent as RectTransform : null;
+            if (canvas == null || viewport == null)
             {
-                Debug.LogWarning("[WorldMap] 3D sea needs the World Map on a Screen Space Overlay canvas; keeping the 2D sea.");
+                Debug.LogWarning("[WorldMap] 3D sea: Map Props / MapViewport not found; keeping the 2D sea.");
                 enabled = false;
                 return;
             }
+            canvas = canvas.rootCanvas;
 
-            LoadDefaults(canvas);
+            LoadDefaults();
             if (waterMaterial == null || modelMaterial == null || effectsMaterial == null ||
                 !waterMaterial.shader.isSupported || !modelMaterial.shader.isSupported || !effectsMaterial.shader.isSupported)
             {
@@ -186,6 +196,7 @@ namespace Watermelon
             world.gameObject.layer = seaLayer;
 
             BuildCamera();
+            BuildView(viewport);
             BuildWater();
             BuildFloaters();
             BuildEffects();
@@ -198,9 +209,11 @@ namespace Watermelon
 
             running = true;
             LateUpdate();
+            Debug.Log("[WorldMap] 3D sea ready: " + floaters.Count + " boats/whales, " + clouds.Count + " cloud shadows, canvas " +
+                      canvas.renderMode + ", sea image " + (target != null ? target.width + "x" + target.height : "none") + ".");
         }
 
-        private void LoadDefaults(Canvas canvas)
+        private void LoadDefaults()
         {
             if (sailboatModel == null) sailboatModel = Resources.Load<TextAsset>(ResourceFolder + "sailboat");
             if (steamshipModel == null) steamshipModel = Resources.Load<TextAsset>(ResourceFolder + "steamship");
@@ -220,9 +233,6 @@ namespace Watermelon
                 {
                     AddIfFound(list, content.Find("ScrollableOcean"));
                     AddIfFound(list, content.Find("Ocean FX"));
-                    Transform viewport = content.parent;
-                    if (viewport != null && viewport.parent != null)
-                        AddIfFound(list, viewport.parent.Find("Background Artwork"));
                 }
                 hideWhileRunning = list.ToArray();
             }
@@ -247,16 +257,64 @@ namespace Watermelon
             seaCamera.farClipPlane = 20000f;
             seaCamera.allowHDR = false;
             seaCamera.allowMSAA = true;
+            seaCamera.depth = -100f;
 
-            float depth = -1f;
             foreach (Camera other in Camera.allCameras)
             {
-                if (other == seaCamera)
-                    continue;
-                other.cullingMask &= ~(1 << seaLayer);     // nobody else draws the sea
-                depth = Mathf.Max(depth, other.depth);
+                if (other != seaCamera)
+                    other.cullingMask &= ~(1 << seaLayer);     // nobody else draws the sea
             }
-            seaCamera.depth = depth + 1f;                    // drawn after the scene cameras, under the UI
+        }
+
+        // The sea image sits at the bottom of the map viewport, under the continents and all UI.
+        private void BuildView(RectTransform viewport)
+        {
+            var go = new GameObject("Sea 3D View", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
+            go.layer = viewport.gameObject.layer;
+            var rt = (RectTransform)go.transform;
+            rt.SetParent(viewport, false);
+            rt.SetAsFirstSibling();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = Vector2.zero;
+            rt.offsetMax = Vector2.zero;
+            view = go.GetComponent<RawImage>();
+            view.raycastTarget = false;
+        }
+
+        // A render texture the size of the sea image on screen (times renderScale).
+        private void EnsureTarget()
+        {
+            view.rectTransform.GetWorldCorners(corners);
+            Camera ui = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            Vector2 a = RectTransformUtility.WorldToScreenPoint(ui, corners[0]);
+            Vector2 b = RectTransformUtility.WorldToScreenPoint(ui, corners[2]);
+            float w = Mathf.Abs(b.x - a.x) * renderScale, h = Mathf.Abs(b.y - a.y) * renderScale;
+            float cap = 2048f / Mathf.Max(1f, Mathf.Max(w, h));
+            if (cap < 1f)
+            {
+                w *= cap;
+                h *= cap;
+            }
+            int width = Mathf.Max(16, Mathf.RoundToInt(w)), height = Mathf.Max(16, Mathf.RoundToInt(h));
+            if (target != null && target.width == width && target.height == height)
+                return;
+
+            if (target != null)
+            {
+                seaCamera.targetTexture = null;
+                target.Release();
+                Destroy(target);
+            }
+            target = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32)
+            {
+                name = "Sea 3D",
+                antiAliasing = 2,
+                useMipMap = false,
+            };
+            target.Create();
+            seaCamera.targetTexture = target;
+            view.texture = target;
         }
 
         private void BuildWater()
@@ -320,6 +378,9 @@ namespace Watermelon
                 go.GetComponent<MeshFilter>().sharedMesh = GetMesh(text);
                 var r = go.GetComponent<MeshRenderer>();
                 r.sharedMaterial = modelMaterial;
+                var block = new MaterialPropertyBlock();
+                block.SetTexture("_MainTex", palettes[text]);
+                r.SetPropertyBlock(block);
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 r.receiveShadows = false;
 
@@ -355,8 +416,9 @@ namespace Watermelon
             {
                 WorldMapModelText.Model m = WorldMapModelText.Parse(text.text);
                 models[text] = m;
-                mesh = WorldMapModelText.BuildMesh(m, text.name);
+                mesh = WorldMapModelText.BuildMesh(m, text.name, out Texture2D palette);
                 meshes[text] = mesh;
+                palettes[text] = palette;
             }
             return mesh;
         }
@@ -397,6 +459,15 @@ namespace Watermelon
             }
             if (fxMesh != null)
                 Destroy(fxMesh);
+            if (seaCamera != null)
+                seaCamera.targetTexture = null;
+            if (target != null)
+            {
+                target.Release();
+                Destroy(target);
+            }
+            if (view != null)
+                Destroy(view.gameObject);
         }
 
         // ---------------------------------------------------------------- every frame
@@ -419,7 +490,7 @@ namespace Watermelon
             Shader.SetGlobalVector("_SeaSunDir", sun);
             Shader.SetGlobalVector("_SeaViewDir", -seaCamera.transform.forward);
 
-            fxVerts.Clear(); fxColors.Clear(); fxUV.Clear(); fxTris.Clear();
+            fxVerts.Clear(); fxTint.Clear(); fxUV.Clear(); fxTris.Clear();
 
             foreach (WorldMapAmbientProp cloud in clouds)
             {
@@ -449,22 +520,26 @@ namespace Watermelon
 
             fxMesh.Clear();
             fxMesh.SetVertices(fxVerts);
-            fxMesh.SetColors(fxColors);
+            fxMesh.SetUVs(1, fxTint);
             fxMesh.SetUVs(0, fxUV);
             fxMesh.SetTriangles(fxTris, 0);
             fxMesh.bounds = new Bounds(Vector3.zero, Vector3.one * 100000f);
         }
 
-        // The sea camera shows exactly the part of the map the UI shows.
+        // The sea camera shows exactly the part of the map covered by the sea image.
         private void SyncCamera()
         {
-            Vector2 centre = mapProps.InverseTransformPoint(new Vector3(Screen.width * 0.5f, Screen.height * 0.5f, 0f));
-            float pixelsPerUnit = Mathf.Max(1e-4f, mapProps.lossyScale.y);
+            EnsureTarget();
+            view.rectTransform.GetWorldCorners(corners);
+            Vector2 bl = mapProps.InverseTransformPoint(corners[0]);
+            Vector2 tr = mapProps.InverseTransformPoint(corners[2]);
+            float width = Mathf.Max(1f, Mathf.Abs(tr.x - bl.x)), height = Mathf.Max(1f, Mathf.Abs(tr.y - bl.y));
 
-            seaCamera.orthographicSize = Screen.height * 0.5f / pixelsPerUnit;
+            seaCamera.orthographicSize = height * 0.5f;
+            seaCamera.aspect = width / height;
             Quaternion look = Quaternion.Euler(viewAngle, 0f, 0f);
-            Vector3 target = ToSea(centre, 0f);
-            seaCamera.transform.SetPositionAndRotation(target - look * Vector3.forward * 8000f, look);
+            Vector3 centre = ToSea((bl + tr) * 0.5f, 0f);
+            seaCamera.transform.SetPositionAndRotation(centre - look * Vector3.forward * 8000f, look);
         }
 
         /// <summary>Map point (map units) at a height above the water, so it lands on that map point on screen.</summary>
@@ -560,10 +635,9 @@ namespace Watermelon
             fxVerts.Add(c + along - across);
             fxVerts.Add(c + along + across);
             fxVerts.Add(c - along + across);
-            Color32 c32 = color;
             for (int i = 0; i < 4; i++)
             {
-                fxColors.Add(c32);
+                fxTint.Add(color);
                 fxUV.Add(uv[i]);
             }
             fxTris.Add(start); fxTris.Add(start + 1); fxTris.Add(start + 2);
@@ -576,11 +650,11 @@ namespace Watermelon
             Vector3 x = new Vector3(bow.x, 0f, bow.y);
             Vector3 z = new Vector3(-bow.y, 0f, bow.x);
             int start = fxVerts.Count;
-            Color32 col = new Color(1f, 1f, 1f, alpha);
+            var col = new Vector4(1f, 1f, 1f, alpha);
             for (int i = 0; i < 4; i++)
             {
                 fxVerts.Add(c + (x * WakeQuad[i].x + z * WakeQuad[i].z) * scale);
-                fxColors.Add(col);
+                fxTint.Add(col);
                 fxUV.Add(WakeUV[i]);
             }
             fxTris.Add(start); fxTris.Add(start + 1); fxTris.Add(start + 2);
@@ -613,7 +687,7 @@ namespace Watermelon
                     Vector3 c = from + Vector3.up * ((f.whale ? 0.45f : 0.55f) * u * scale) +
                                 Vector3.left * ((f.whale ? 0.05f : 0.35f) * u * scale);
                     tint.a = strength * (1f - u) * Mathf.Min(1f, u * 6f);
-                    Color32 col = tint;
+                    Vector4 col = tint;
                     int start = fxVerts.Count;
                     fxVerts.Add(c + (-right - up) * radius);
                     fxVerts.Add(c + (right - up) * radius);
@@ -621,7 +695,7 @@ namespace Watermelon
                     fxVerts.Add(c + (-right + up) * radius);
                     for (int i = 0; i < 4; i++)
                     {
-                        fxColors.Add(col);
+                        fxTint.Add(col);
                         fxUV.Add(PuffUV[i]);
                     }
                     fxTris.Add(start); fxTris.Add(start + 1); fxTris.Add(start + 2);

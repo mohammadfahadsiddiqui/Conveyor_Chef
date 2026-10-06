@@ -102,16 +102,39 @@ namespace Watermelon
             };
         }
 
-        /// <summary>A flat-shaded Unity mesh: vertex colours, and smooth normals (for outlines).</summary>
-        public static Mesh BuildMesh(Model m, string name)
+        /// <summary>
+        /// A flat-shaded Unity mesh that needs no vertex colours: normals = face normals (lighting),
+        /// uv0 = this face's colour in the palette texture, uv1 = smooth normals (outline).
+        /// Palette alpha below 1 marks thin double-sided parts (kept bright by the shader).
+        /// </summary>
+        public static Mesh BuildMesh(Model m, string name, out Texture2D palette)
         {
             int n = m.corners.Length;
-            var vertices = new Vector3[n];
-            var colors = new Color32[n];
-            var smooth = new Vector3[n];
-            var indices = new int[n];
-            var sums = new Dictionary<Vector3Int, Vector3>();
+            var keys = new List<Color32>();
+            var faceSlot = new int[m.colors.Length];
+            for (int f = 0; f < m.colors.Length; f++)
+            {
+                Color32 c = m.colors[f];
+                c.a = m.twoSided[f] ? (byte)128 : (byte)255;
+                int slot = keys.FindIndex(k => k.r == c.r && k.g == c.g && k.b == c.b && k.a == c.a);
+                if (slot < 0)
+                {
+                    slot = keys.Count;
+                    keys.Add(c);
+                }
+                faceSlot[f] = slot;
+            }
 
+            palette = new Texture2D(Mathf.Max(1, keys.Count), 1, TextureFormat.RGBA32, false)
+            {
+                name = name + " Palette",
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp,
+            };
+            palette.SetPixels32(keys.Count > 0 ? keys.ToArray() : new[] { new Color32(255, 255, 255, 255) });
+            palette.Apply(false, true);
+
+            var sums = new Dictionary<Vector3Int, Vector3>();
             for (int i = 0; i < n; i++)
             {
                 Vector3Int key = Key(m.corners[i]);
@@ -119,21 +142,27 @@ namespace Watermelon
                 sums[key] = sum + m.normals[i / 3];
             }
 
+            var vertices = new Vector3[n];
+            var normals = new Vector3[n];
+            var uv = new Vector2[n];
+            var smooth = new List<Vector3>(n);
+            var indices = new int[n];
+            float width = Mathf.Max(1, keys.Count);
             for (int i = 0; i < n; i++)
             {
                 vertices[i] = m.corners[i];
-                Color32 c = m.colors[i / 3];
-                c.a = m.twoSided[i / 3] ? (byte)128 : (byte)255;   // shader keeps thin parts bright
-                colors[i] = c;
+                normals[i] = m.normals[i / 3];
+                uv[i] = new Vector2((faceSlot[i / 3] + 0.5f) / width, 0.5f);
                 Vector3 s = sums[Key(m.corners[i])];
-                smooth[i] = s.sqrMagnitude > 1e-8f ? s.normalized : m.normals[i / 3];
+                smooth.Add(s.sqrMagnitude > 1e-8f ? s.normalized : m.normals[i / 3]);
                 indices[i] = i;
             }
 
             var mesh = new Mesh { name = name };
             mesh.vertices = vertices;
-            mesh.colors32 = colors;
-            mesh.normals = smooth;
+            mesh.normals = normals;
+            mesh.uv = uv;
+            mesh.SetUVs(1, smooth);
             mesh.SetIndices(indices, MeshTopology.Triangles, 0);
             mesh.RecalculateBounds();
             return mesh;

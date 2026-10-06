@@ -29203,7 +29203,6 @@ MonoBehaviour:
   hideWhileRunning:
   - {fileID: 2026181104}
   - {fileID: 1805076544463012057}
-  - {fileID: 498594228}
   viewAngle: 42
   sunDirection: {x: -0.5, y: 0.8, z: -0.3}
   waveHeight: 1
