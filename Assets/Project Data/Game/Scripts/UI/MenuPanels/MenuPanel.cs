@@ -38,7 +38,7 @@ namespace Watermelon
         private TextMeshProUGUI coinsText;
         private TextMeshProUGUI diamondsText;
         private RectTransform toastRoot;
-        private Coroutine animation;
+        private Coroutine popInRoutine;
         private int selectedTab;
 
         protected abstract string Title { get; }
@@ -227,9 +227,9 @@ namespace Watermelon
             scroll.verticalNormalizedPosition = 1f;
             OnOpened();
 
-            if (animation != null)
-                StopCoroutine(animation);
-            animation = StartCoroutine(PopIn());
+            if (popInRoutine != null)
+                StopCoroutine(popInRoutine);
+            popInRoutine = StartCoroutine(PopIn());
         }
 
         private void RebuildContent()
@@ -266,7 +266,7 @@ namespace Watermelon
 
             frame.localScale = Vector3.one;
             rootGroup.alpha = 1f;
-            animation = null;
+            popInRoutine = null;
         }
 
         private IEnumerator FloatAway(TextMeshProUGUI text)
