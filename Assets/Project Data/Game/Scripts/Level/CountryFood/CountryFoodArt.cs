@@ -16,12 +16,13 @@ namespace Watermelon.BusStop
 
         public Sprite[] dishes = new Sprite[35];
 
-        [Tooltip("Per dish, same order as Dishes: the area the food covers in its image, as fractions of " +
+        [Tooltip("Per dish, index = country * 7 + colour (Asia: same order as Dishes; other countries' " +
+                 "dishes load from Resources/World): the area the food covers in its image, as fractions of " +
                  "the image (x = left, y = bottom, z = right, w = top). Every dish is sized and centred from " +
                  "this, so the empty margins of the images do not matter.")]
         public Vector4[] dishRects = new Vector4[35];
 
-        [Tooltip("Per dish, same order as Dishes: x = dish image width on the card and y = where the food's " +
+        [Tooltip("Per dish, index = country * 7 + colour: x = dish image width on the card and y = where the food's " +
                  "bottom sits, measured so the food fits inside the glass cloche. 0 = use Food Width instead.")]
         public Vector2[] dishFits = new Vector2[35];
 
@@ -47,15 +48,34 @@ namespace Watermelon.BusStop
         [Tooltip("Tallest the food may be (tall drinks), relative to the dish card.")]
         [Range(0.5f, 1.1f)] public float foodMaxHeight = 0.82f;
 
+        // Dishes loaded from Resources/World (countries outside Asia) and their measurement index.
+        [System.NonSerialized] private System.Collections.Generic.Dictionary<Sprite, int> worldDishes;
+
+        /// <summary>Links a dish loaded from Resources/World to its measurements (country * 7 + colour).</summary>
+        public void RegisterWorldDish(Sprite dish, int index)
+        {
+            if (dish == null)
+                return;
+            worldDishes ??= new System.Collections.Generic.Dictionary<Sprite, int>();
+            worldDishes[dish] = index;
+        }
+
+        private int IndexOfDish(Sprite dish)
+        {
+            if (dish == null)
+                return -1;
+            int index = dishes != null ? System.Array.IndexOf(dishes, dish) : -1;
+            if (index < 0 && worldDishes != null && worldDishes.TryGetValue(dish, out int world))
+                index = world;
+            return index;
+        }
+
         /// <summary>Area the food covers in this dish image (see <see cref="dishRects"/>).</summary>
         public Vector4 GetDishRect(Sprite dish)
         {
-            if (dish != null && dishes != null && dishRects != null)
-            {
-                int index = System.Array.IndexOf(dishes, dish);
-                if (index >= 0 && index < dishRects.Length && dishRects[index].z > dishRects[index].x)
-                    return dishRects[index];
-            }
+            int index = IndexOfDish(dish);
+            if (dishRects != null && index >= 0 && index < dishRects.Length && dishRects[index].z > dishRects[index].x)
+                return dishRects[index];
 
             return DefaultDishRect;
         }
@@ -63,12 +83,9 @@ namespace Watermelon.BusStop
         /// <summary>Measured size and position that keep this dish inside the cloche, or zero.</summary>
         public Vector2 GetDishFit(Sprite dish)
         {
-            if (dish != null && dishes != null && dishFits != null)
-            {
-                int index = System.Array.IndexOf(dishes, dish);
-                if (index >= 0 && index < dishFits.Length)
-                    return dishFits[index];
-            }
+            int index = IndexOfDish(dish);
+            if (dishFits != null && index >= 0 && index < dishFits.Length)
+                return dishFits[index];
 
             return Vector2.zero;
         }

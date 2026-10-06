@@ -61,11 +61,14 @@ namespace Watermelon.BusStop
             if (country < 0 || colour < 0 || colour >= CountryFoodArt.ColoursPerCountry)
                 return null;
 
-            Sprite dish = Watermelon.WorldArt.ForCountry(country, Watermelon.WorldArt.Dish(colour));
-            if (dish != null)
-                return dish;
-
             CountryFoodArt foodArt = Art;
+            Sprite dish = Watermelon.WorldArt.ForCountry(country, Watermelon.WorldArt.Dish(colour), false);
+            if (dish != null)
+            {
+                foodArt?.RegisterWorldDish(dish, country * CountryFoodArt.ColoursPerCountry + colour);
+                return dish;
+            }
+
             return foodArt != null ? foodArt.GetDish(Watermelon.WorldCatalog.StandInCountry(country), colour) : null;
         }
 
