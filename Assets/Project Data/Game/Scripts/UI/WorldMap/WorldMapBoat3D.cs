@@ -72,7 +72,7 @@ namespace Watermelon
         private static readonly Dictionary<TextAsset, Model3D> cache = new Dictionary<TextAsset, Model3D>();
 
         private float roll, pitch, lift;
-        private float[] depth;
+        private float[] faceDepth;
         private int[] order;
 
         public float Yaw => yaw;
@@ -135,9 +135,9 @@ namespace Watermelon
 
             // hull: back faces culled, far to near
             int count = m.normals.Length;
-            if (depth == null || depth.Length < count)
+            if (faceDepth == null || faceDepth.Length < count)
             {
-                depth = new float[count];
+                faceDepth = new float[count];
                 order = new int[count];
             }
 
@@ -152,11 +152,11 @@ namespace Watermelon
                 if (n.z <= 0f && !m.twoSided[i])
                     continue;
 
-                depth[visible] = R.MultiplyVector(m.centres[i]).z;
+                faceDepth[visible] = R.MultiplyVector(m.centres[i]).z;
                 order[visible] = i;
                 visible++;
             }
-            System.Array.Sort(depth, order, 0, visible);
+            System.Array.Sort(faceDepth, order, 0, visible);
 
             // ink outline: every face drawn a little larger in dark first; the boat then covers
             // all of it except a thin line round the silhouette
