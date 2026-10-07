@@ -39,8 +39,8 @@ namespace Watermelon
         [SerializeField, Range(0f, 2f)] private float waveSpeed = 1f;
 
         [Header("Boats and Whales")]
-        [SerializeField, Range(0.1f, 1f)] private float boatSize = 0.46f;
-        [SerializeField, Range(0.1f, 1f)] private float whaleSize = 0.36f;
+        [SerializeField, Range(0.1f, 1f)] private float boatSize = 0.34f;
+        [SerializeField, Range(0.1f, 1f)] private float whaleSize = 0.27f;
         [SerializeField, Range(0f, 1f)] private float shadowStrength = 0.28f;
         [SerializeField, Range(0f, 1f)] private float cloudShadowStrength = 0.16f;
 
@@ -50,6 +50,8 @@ namespace Watermelon
         [SerializeField] private TextAsset whaleModel;
         [SerializeField] private Material waterMaterial;
         [SerializeField] private Material modelMaterial;
+        [Tooltip("Cartoon ink outline, drawn as each model's second material.")]
+        [SerializeField] private Material outlineMaterial;
         [SerializeField] private Material effectsMaterial;
 
         [Header("Rendering")]
@@ -220,6 +222,7 @@ namespace Watermelon
             if (whaleModel == null) whaleModel = Resources.Load<TextAsset>(ResourceFolder + "whale");
             if (waterMaterial == null) waterMaterial = Resources.Load<Material>(ResourceFolder + "SeaWater");
             if (modelMaterial == null) modelMaterial = Resources.Load<Material>(ResourceFolder + "SeaModel");
+            if (outlineMaterial == null) outlineMaterial = Resources.Load<Material>(ResourceFolder + "SeaOutline");
             if (effectsMaterial == null) effectsMaterial = Resources.Load<Material>(ResourceFolder + "SeaEffects");
 
             Transform content = mapProps.parent;
@@ -377,7 +380,9 @@ namespace Watermelon
                 go.transform.SetParent(world, false);
                 go.GetComponent<MeshFilter>().sharedMesh = GetMesh(text);
                 var r = go.GetComponent<MeshRenderer>();
-                r.sharedMaterial = modelMaterial;
+                r.sharedMaterials = outlineMaterial != null && outlineMaterial.shader.isSupported
+                    ? new[] { modelMaterial, outlineMaterial }
+                    : new[] { modelMaterial };
                 var block = new MaterialPropertyBlock();
                 block.SetTexture("_MainTex", palettes[text]);
                 r.SetPropertyBlock(block);

@@ -1,5 +1,7 @@
 // World Map 3D sea effects: wakes, boat and cloud shadows, smoke and whale spray.
 // One mesh: atlas texture (boat_fx.png, uv0) times a per-quad tint (uv1 = r, g, b, a).
+// Queued just before transparents: this project's URP renderer draws transparent queues only on
+// the TransparentFX and UI layers.
 Shader "Conveyor Chef/Sea/Effects"
 {
     Properties
@@ -9,7 +11,7 @@ Shader "Conveyor Chef/Sea/Effects"
 
     SubShader
     {
-        Tags { "Queue"="Transparent" "RenderType"="Transparent" "IgnoreProjector"="True" }
+        Tags { "Queue"="Geometry+450" "RenderType"="Transparent" "IgnoreProjector"="True" }   // after the water and models; inside URP's opaque stage, which draws every layer
         Blend SrcAlpha OneMinusSrcAlpha, Zero One     // keep the sea image opaque
         ZWrite Off
         Cull Off

@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: SeaModel
-  m_Shader: {fileID: 4800000, guid: a52267e2188d4fbaa92fb1f2403fe17a, type: 3}
+  m_Name: SeaOutline
+  m_Shader: {fileID: 4800000, guid: 46ef143deda84f619509e2198e74aafd, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -29,9 +29,8 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Ambient: 0.58
-    - _Diffuse: 0.5
-    - _Rim: 0.15
-    m_Colors: []
+    - _OutlineWidth: 0.035
+    m_Colors:
+    - _OutlineColor: {r: 0.15, g: 0.13, b: 0.2, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
