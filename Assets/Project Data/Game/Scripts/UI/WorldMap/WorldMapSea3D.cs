@@ -18,7 +18,7 @@ namespace Watermelon
     /// </summary>
     [DefaultExecutionOrder(10000)]          // after the ScrollRect has moved the map this frame
     [DisallowMultipleComponent]
-    public sealed class WorldMapSea3D : MonoBehaviour
+    public sealed partial class WorldMapSea3D : MonoBehaviour
     {
         private const string ResourceFolder = "WorldMapSea/";
 
@@ -109,7 +109,7 @@ namespace Watermelon
         private readonly Vector3[] corners = new Vector3[4];
         private Transform world;
         private Mesh fxMesh;
-        private float sinView, cosView, fxLift;
+        private float sinView, cosView, fxLift, waveTime;
         private bool running;
 
         // boat_fx.png regions (512 x 256)
@@ -202,6 +202,7 @@ namespace Watermelon
             BuildWater();
             BuildFloaters();
             BuildEffects();
+            BuildLife();
 
             foreach (GameObject go in hideWhileRunning)
             {
@@ -375,19 +376,7 @@ namespace Watermelon
                 if (text == null)
                     continue;
 
-                var go = new GameObject(prop.name + " 3D", typeof(MeshFilter), typeof(MeshRenderer));
-                go.layer = seaLayer;
-                go.transform.SetParent(world, false);
-                go.GetComponent<MeshFilter>().sharedMesh = GetMesh(text);
-                var r = go.GetComponent<MeshRenderer>();
-                r.sharedMaterials = outlineMaterial != null && outlineMaterial.shader.isSupported
-                    ? new[] { modelMaterial, outlineMaterial }
-                    : new[] { modelMaterial };
-                var block = new MaterialPropertyBlock();
-                block.SetTexture("_MainTex", palettes[text]);
-                r.SetPropertyBlock(block);
-                r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                r.receiveShadows = false;
+                Transform body = MakeRenderer(world, text, prop.name + " 3D", false);
 
                 // the 2D picture / UI boat stays as the editable stand-in but isn't drawn
                 Graphic picture = prop.GetComponent<Graphic>();
@@ -398,7 +387,7 @@ namespace Watermelon
                 {
                     prop = prop,
                     rect = (RectTransform)prop.transform,
-                    body = go.transform,
+                    body = body,
                     model = models[text],
                     whale = whale,
                     waterline = whale ? -0.05f : -0.12f,
@@ -413,6 +402,27 @@ namespace Watermelon
                         clouds.Add(cloud);
                 }
             }
+        }
+
+        // A model on the sea layer: lit palette material + ink outline. 'mirror' flips it left/right.
+        private Transform MakeRenderer(Transform parent, TextAsset text, string name, bool mirror)
+        {
+            var go = new GameObject(name, typeof(MeshFilter), typeof(MeshRenderer));
+            go.layer = seaLayer;
+            go.transform.SetParent(parent, false);
+            if (mirror)
+                go.transform.localScale = new Vector3(1f, 1f, -1f);
+            go.GetComponent<MeshFilter>().sharedMesh = GetMesh(text);
+            var r = go.GetComponent<MeshRenderer>();
+            r.sharedMaterials = outlineMaterial != null && outlineMaterial.shader.isSupported
+                ? new[] { modelMaterial, outlineMaterial }
+                : new[] { modelMaterial };
+            var block = new MaterialPropertyBlock();
+            block.SetTexture("_MainTex", palettes[text]);
+            r.SetPropertyBlock(block);
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = false;
+            return go.transform;
         }
 
         private static Mesh GetMesh(TextAsset text)
@@ -483,6 +493,7 @@ namespace Watermelon
                 return;
 
             float t = Time.time * waveSpeed;
+            waveTime = t;
             for (int i = 0; i < 4; i++)
                 waves[i] = new Vector4(WaveSet[i].x, WaveSet[i].y, WaveSet[i].z * waveHeight, WaveSet[i].w);
 
@@ -516,11 +527,13 @@ namespace Watermelon
                 Place(f, t, dt, sun);
             }
 
+            UpdateLife(Time.time, dt, sun);
+
             // smoke and spray last so they draw over everything
             foreach (Floater f in floaters)
             {
                 if (f.prop != null && f.body.gameObject.activeSelf)
-                    Puffs(f, Time.time);
+                    Puffs(f.body, f.model.smoke, f.whale, f.whale ? Mathf.Clamp01(f.prop.Surfacing * 2f - 1f) : 1f, Time.time);
             }
 
             fxMesh.Clear();
@@ -538,6 +551,7 @@ namespace Watermelon
             view.rectTransform.GetWorldCorners(corners);
             Vector2 bl = mapProps.InverseTransformPoint(corners[0]);
             Vector2 tr = mapProps.InverseTransformPoint(corners[2]);
+            viewMap = Rect.MinMaxRect(Mathf.Min(bl.x, tr.x), Mathf.Min(bl.y, tr.y), Mathf.Max(bl.x, tr.x), Mathf.Max(bl.y, tr.y));
             float width = Mathf.Max(1f, Mathf.Abs(tr.x - bl.x)), height = Mathf.Max(1f, Mathf.Abs(tr.y - bl.y));
 
             seaCamera.orthographicSize = height * 0.5f;
@@ -666,47 +680,47 @@ namespace Watermelon
             fxTris.Add(start); fxTris.Add(start + 2); fxTris.Add(start + 3);
         }
 
-        private void Puffs(Floater f, float time)
+        // Rising puffs (steamship smoke, whale spray) from the model's "#smoke" points.
+        private void Puffs(Transform body, Vector3[] points, bool spray, float strength, float time)
         {
-            Vector3[] points = f.model.smoke;
-            if (points.Length == 0)
+            if (points.Length == 0 || strength <= 0f)
                 return;
 
-            float scale = f.body.localScale.x;
-            float strength = f.whale ? Mathf.Clamp01(f.prop.Surfacing * 2f - 1f) : 1f;
-            if (strength <= 0f)
-                return;
-
+            float scale = body.lossyScale.x;
             Vector3 right = seaCamera.transform.right, up = seaCamera.transform.up;
-            Color tint = f.whale ? new Color(0.85f, 0.95f, 1f) : new Color(0.96f, 0.96f, 0.98f);
+            Color tint = spray ? new Color(0.85f, 0.95f, 1f) : new Color(0.96f, 0.96f, 0.98f);
             const int count = 4;
-            float cycle = f.whale ? 1.6f : 3.2f;
+            float cycle = spray ? 1.6f : 3.2f;
 
             foreach (Vector3 local in points)
             {
-                Vector3 from = f.body.TransformPoint(local);
+                Vector3 from = body.TransformPoint(local);
                 for (int k = 0; k < count; k++)
                 {
                     float u = Mathf.Repeat(time / cycle + (float)k / count, 1f);
-                    float radius = (f.whale ? 0.08f + 0.12f * u : 0.1f + 0.16f * u) * scale;
-                    Vector3 c = from + Vector3.up * ((f.whale ? 0.45f : 0.55f) * u * scale) +
-                                Vector3.left * ((f.whale ? 0.05f : 0.35f) * u * scale);
+                    float radius = (spray ? 0.08f + 0.12f * u : 0.1f + 0.16f * u) * scale;
+                    Vector3 c = from + Vector3.up * ((spray ? 0.45f : 0.55f) * u * scale) +
+                                Vector3.left * ((spray ? 0.05f : 0.35f) * u * scale);
                     tint.a = strength * (1f - u) * Mathf.Min(1f, u * 6f);
-                    Vector4 col = tint;
-                    int start = fxVerts.Count;
-                    fxVerts.Add(c + (-right - up) * radius);
-                    fxVerts.Add(c + (right - up) * radius);
-                    fxVerts.Add(c + (right + up) * radius);
-                    fxVerts.Add(c + (-right + up) * radius);
-                    for (int i = 0; i < 4; i++)
-                    {
-                        fxTint.Add(col);
-                        fxUV.Add(PuffUV[i]);
-                    }
-                    fxTris.Add(start); fxTris.Add(start + 1); fxTris.Add(start + 2);
-                    fxTris.Add(start); fxTris.Add(start + 2); fxTris.Add(start + 3);
+                    AddBillboard(c, right, up, radius, tint);
                 }
             }
+        }
+
+        private void AddBillboard(Vector3 c, Vector3 right, Vector3 up, float radius, Vector4 tint)
+        {
+            int start = fxVerts.Count;
+            fxVerts.Add(c + (-right - up) * radius);
+            fxVerts.Add(c + (right - up) * radius);
+            fxVerts.Add(c + (right + up) * radius);
+            fxVerts.Add(c + (-right + up) * radius);
+            for (int i = 0; i < 4; i++)
+            {
+                fxTint.Add(tint);
+                fxUV.Add(PuffUV[i]);
+            }
+            fxTris.Add(start); fxTris.Add(start + 1); fxTris.Add(start + 2);
+            fxTris.Add(start); fxTris.Add(start + 2); fxTris.Add(start + 3);
         }
     }
 }
