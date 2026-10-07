@@ -20,6 +20,10 @@ namespace Watermelon
         [SerializeField] RectTransform safeArea;
         [SerializeField] RectTransform topBackplate;
         [SerializeField] float topBackplateHeight = 150f;
+        [Tooltip("Top notch / camera-hole space already allowed for in the authored layout (canvas units). " +
+                 "The layout is designed on the Galaxy S20 Ultra, so on that phone Play mode matches the editor; " +
+                 "phones with a taller notch move the HUD down only by the extra amount.")]
+        [SerializeField, Min(0f)] float notchAllowance = 96f;
         [SerializeField] int layoutVersion;
 
         private Canvas canvas;
@@ -167,25 +171,24 @@ namespace Watermelon
 
             float topInset = Screen.height - appliedSafeArea.yMax;
 
+            // The authored layout already leaves room for an S20-sized camera hole, so the
+            // HUD only moves down by whatever a taller notch needs beyond that.
+            float extraTop = Mathf.Max(0f, topInset / GetCanvasScale() - notchAllowance);
+
             if (safeArea != null)
             {
                 Vector2 min = appliedSafeArea.position;
                 Vector2 max = appliedSafeArea.position + appliedSafeArea.size;
 
                 safeArea.anchorMin = new Vector2(min.x / Screen.width, min.y / Screen.height);
-                safeArea.anchorMax = new Vector2(max.x / Screen.width, max.y / Screen.height);
+                safeArea.anchorMax = new Vector2(max.x / Screen.width, 1f);
                 safeArea.offsetMin = Vector2.zero;
-                safeArea.offsetMax = Vector2.zero;
+                safeArea.offsetMax = new Vector2(0f, -extraTop);
             }
 
-            // The dark top bar sits outside the safe area so it still reaches the top
-            // edge behind a notch or camera hole.
+            // The dark top bar grows with the same extra space.
             if (topBackplate != null)
-            {
-                float insetInCanvasUnits = topInset / GetCanvasScale();
-
-                topBackplate.sizeDelta = new Vector2(topBackplate.sizeDelta.x, topBackplateHeight + insetInCanvasUnits);
-            }
+                topBackplate.sizeDelta = new Vector2(topBackplate.sizeDelta.x, topBackplateHeight + extraTop);
         }
 
         // Same formula CanvasScaler uses, so it is valid before the scaler's first update.
