@@ -140,7 +140,7 @@ PlayerSettings:
   loadStoreDebugModeEnabled: 0
   visionOSBundleVersion: 1.0
   tvOSBundleVersion: 1.0
-  bundleVersion: 0.4
+  bundleVersion: 0.6
   preloadedAssets: []
   metroInputSource: 0
   wsaTransparentSwapchain: 0
@@ -172,7 +172,7 @@ PlayerSettings:
     iPhone: 2
     tvOS: 0
   overrideDefaultApplicationIdentifier: 1
-  AndroidBundleVersionCode: 4
+  AndroidBundleVersionCode: 6
   AndroidMinSdkVersion: 26
   AndroidTargetSdkVersion: 0
   AndroidPreferredInstallLocation: 1
@@ -493,6 +493,9 @@ PlayerSettings:
   - m_BuildTarget: Android
     m_StaticBatching: 1
     m_DynamicBatching: 0
+  - m_BuildTarget: WebGL
+    m_StaticBatching: 0
+    m_DynamicBatching: 0
   m_BuildTargetShaderSettings: []
   m_BuildTargetGraphicsJobs: []
   m_BuildTargetGraphicsJobMode: []
@@ -522,6 +525,9 @@ PlayerSettings:
   - serializedVersion: 3
     m_BuildTarget: Android
     m_Formats: 01000000
+  - serializedVersion: 3
+    m_BuildTarget: WebGL
+    m_Formats: 05000000
   playModeTestRunnerEnabled: 0
   runPlayModeTestAsEditModeTest: 0
   actionOnDotNetUnhandledException: 1
@@ -801,7 +807,7 @@ PlayerSettings:
     ReservedCFE: UNITY_POST_PROCESSING_STACK_V2
     Standalone: MODULE_INPUT_SYSTEM;MODULE_POWERUPS;UNITY_POST_PROCESSING_STACK_V2;MODULE_IAP;MODULE_UNITYADS
     VisionOS: UNITY_POST_PROCESSING_STACK_V2
-    WebGL: MODULE_POWERUPS;UNITY_POST_PROCESSING_STACK_V2
+    WebGL: MODULE_POWERUPS;UNITY_POST_PROCESSING_STACK_V2;MODULE_INPUT_SYSTEM;MODULE_IAP;MODULE_UNITYADS
     XboxOne: UNITY_POST_PROCESSING_STACK_V2
     iPhone: NEWTONSOFT;VS_ATT
     tvOS: UNITY_POST_PROCESSING_STACK_V2
