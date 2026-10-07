@@ -70,7 +70,8 @@ namespace Watermelon
             if (uiController == null || uiController.gameObject.activeSelf)
                 return;
 
-            Debug.LogWarning("[GameMainCanvas] '" + uiController.name + "' was switched off in the scene. Switching it on for Play mode.");
+            // Expected while previewing this canvas in the editor; not a problem.
+            Debug.Log("[GameMainCanvas] '" + uiController.name + "' is switched off in the scene; switched on for Play mode.");
             uiController.gameObject.SetActive(true);
         }
 
