@@ -442,12 +442,26 @@ namespace Watermelon
 
             LevelController.MarkLevelCompleted(completedLevelIndex, 3);
             PlayerStats.RecordLevelWon(3);
+            SaveController.MarkAsSaveIsRequired();
             SaveController.Save(true);
+            LogProgress(completedLevelIndex);
 
             //UIController.HidePage<UIGame>();
             UIController.ShowPage<UIComplete>();
 
             AudioController.PlaySound(AudioController.Sounds.completeSound);
+        }
+
+        // One line per win: which level was saved and what it unlocked.
+        private static void LogProgress(int levelIndex)
+        {
+            int country = WorldCatalog.CountryOfLevel(levelIndex);
+            int next = country + 1;
+            Debug.Log("[Progress] Level " + (levelIndex + 1) + " completed (" + WorldCatalog.GetCountryName(country) + " " +
+                      WorldCatalog.CountryLevelsCompleted(country) + "/" + WorldCatalog.LevelsPerCountry + "). " +
+                      (WorldCatalog.IsValidCountry(next)
+                          ? "Next country " + WorldCatalog.GetCountryName(next) + (WorldCatalog.IsCountryUnlocked(next) ? " is UNLOCKED." : " unlocks after the last level of this country.")
+                          : "All countries done."));
         }
 
         public static void ReturnToMainMenu()

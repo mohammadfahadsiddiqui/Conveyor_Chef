@@ -243,7 +243,24 @@ namespace Watermelon
 
         #endregion
 
+        // The HUD pause button: pause the game with the in-game MENU (Continue, Sound,
+        // Vibration, Restart, Home); the replay confirmation only when there is no menu.
         private void OnReplayButtonClicked()
+        {
+            GameMenuPopup menu = GetComponentInChildren<GameMenuPopup>(true);
+            if (menu == null)
+                menu = GetComponentInParent<GameMenuPopup>();
+            if (menu != null)
+            {
+                menu.Open();
+                return;
+            }
+
+            exitPopUp.Show();
+        }
+
+        /// <summary>"Restart?" confirmation: confirming replays the level.</summary>
+        public void ShowReplayConfirmation()
         {
             exitPopUp.Show();
         }

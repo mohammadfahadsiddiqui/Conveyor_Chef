@@ -6,7 +6,8 @@ using Watermelon.BusStop;
 namespace Watermelon
 {
     /// <summary>
-    /// In-game menu opened by the grid button on the Game toolbar.
+    /// In-game pause menu, opened by the HUD pause button and the grid button on the Game
+    /// toolbar. Gameplay is frozen (Time.timeScale = 0) while it is open.
     ///
     /// In the original Game UI the grid button opened the settings panel of UI Main Menu
     /// (sound / vibration) together with the replay button. That panel lives on a page
@@ -27,7 +28,7 @@ namespace Watermelon
         [SerializeField] TMP_Text vibrationLabel;
         [SerializeField] Button restartButton;
         [SerializeField] Button homeButton;
-        [Tooltip("The HUD pause button; Restart reuses its quit / replay confirmation popup.")]
+        [Tooltip("The HUD pause button (opens this menu through UIGame).")]
         [SerializeField] Button pauseButton;
 
         [Header("Toggle Art")]
@@ -37,6 +38,9 @@ namespace Watermelon
         [SerializeField] Sprite vibrationOffSprite;
 
         public bool IsOpen => root != null && root.activeSelf;
+
+        private bool paused;
+        private float timeScaleBeforePause = 1f;
 
         private void Awake()
         {
@@ -62,6 +66,7 @@ namespace Watermelon
             root.SetActive(true);
             root.transform.SetAsLastSibling();
             RaycastController.Disable();
+            Pause();
 
             Debug.Log("[GameMenu] Opened");
         }
@@ -73,9 +78,37 @@ namespace Watermelon
 
             PlayClick();
             root.SetActive(false);
+            Resume();
 
             if (GameController.IsGameActive)
                 RaycastController.Enable();
+        }
+
+        private void Pause()
+        {
+            if (paused)
+                return;
+            paused = true;
+            timeScaleBeforePause = Time.timeScale > 0f ? Time.timeScale : 1f;
+            Time.timeScale = 0f;
+        }
+
+        private void Resume()
+        {
+            if (!paused)
+                return;
+            paused = false;
+            Time.timeScale = timeScaleBeforePause;
+        }
+
+        private void OnDisable()
+        {
+            Resume();
+        }
+
+        private void OnDestroy()
+        {
+            Resume();
         }
 
         private void ToggleSound()
@@ -97,14 +130,18 @@ namespace Watermelon
         {
             Close();
 
-            // Same flow as the pause button: confirmation popup, then replay.
-            if (pauseButton != null)
-                pauseButton.onClick.Invoke();
+            // "Restart?" confirmation, then the level is replayed.
+            UIGame game = GetComponentInParent<UIGame>();
+            if (game == null)
+                game = UIController.GetPage<UIGame>();
+            if (game != null)
+                game.ShowReplayConfirmation();
         }
 
         private void Home()
         {
             root.SetActive(false);
+            Resume();
             PlayClick();
             GameController.ReturnToLevelSelection();
         }

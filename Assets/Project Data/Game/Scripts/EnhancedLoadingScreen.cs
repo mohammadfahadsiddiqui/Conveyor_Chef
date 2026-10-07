@@ -18,6 +18,14 @@ namespace Watermelon
 
         private static string pendingSceneName;
         private static bool routeInProgress;
+        private static bool gameShownThisSession;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetSession()
+        {
+            routeInProgress = false;
+            gameShownThisSession = false;
+        }
 
         [Header("Loading Screen UI")]
         public GameObject loadingScreenPanel;
@@ -116,6 +124,19 @@ namespace Watermelon
                 Debug.LogWarning("[LoadingScreen] Ignoring request to load the loading scene through itself.");
                 return;
             }
+
+            // The full loading screen only for the first level of a session (the heavy Game
+            // scene); every other hop is a quick fade, so the player isn't shown it over and over.
+            bool firstLevel = targetSceneName == "Game" && !gameShownThisSession;
+            if (!firstLevel && Application.CanStreamedLevelBeLoaded(targetSceneName))
+            {
+                if (QuickSceneTransition.IsRunning)
+                    return;
+                QuickSceneTransition.Load(targetSceneName);
+                return;
+            }
+            if (targetSceneName == "Game")
+                gameShownThisSession = true;
 
             routeInProgress = true;
             pendingSceneName = targetSceneName;
@@ -274,7 +295,8 @@ namespace Watermelon
 
             operation.allowSceneActivation = false;
 
-            while (operation.progress < 0.9f || Time.realtimeSinceStartup - startTime < minimumLoadTime)
+            // at most ~0.9 s of minimum display: long enough to read, short enough not to annoy
+            while (operation.progress < 0.9f || Time.realtimeSinceStartup - startTime < Mathf.Min(minimumLoadTime, 0.9f))
             {
                 float actualProgress = Mathf.Clamp01(operation.progress / 0.9f);
                 displayedProgress = MoveDisplayedProgress(displayedProgress, actualProgress);
