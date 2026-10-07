@@ -206,6 +206,10 @@ namespace Watermelon
                 mainThreadEventsCount = 0;
             }
 
+            // Statics can be reset (domain reload off / reinitialise) while this executor survives.
+            if (settings == null)
+                return;
+
             if (settings.AutoShowInterstitial)
             {
                 if (lastInterstitialTime < Time.time)
