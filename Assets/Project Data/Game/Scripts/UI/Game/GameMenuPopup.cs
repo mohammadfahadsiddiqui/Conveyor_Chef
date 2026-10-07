@@ -45,6 +45,7 @@ namespace Watermelon
         private void Awake()
         {
             Wire(openButton, Open);
+            Wire(pauseButton, Open);      // the HUD pause button pauses with this menu
             Wire(backgroundButton, Close);
             Wire(resumeButton, Close);
             Wire(soundButton, ToggleSound);
@@ -58,7 +59,7 @@ namespace Watermelon
 
         public void Open()
         {
-            if (root == null)
+            if (root == null || root.activeSelf)
                 return;
 
             PlayClick();
